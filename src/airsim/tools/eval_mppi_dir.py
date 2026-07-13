@@ -68,6 +68,8 @@ def main():
     ap.add_argument("--plan-repeats", type=int, default=2, help="每次规划内部连续 plan 几次收敛")
     ap.add_argument("--avg-runs", type=int, default=5, help="每个起点独立重跑几次取平均(压 MPPI 采样方差)")
     ap.add_argument("--seed", type=int, default=0, help="固定随机种子，结果可复现")
+    ap.add_argument("--out", default=None,
+                    help="结果落盘 csv 路径(默认 outputs/evaluations/mppi_dir/eval_<ep>_K<K>.csv)；'none' 关闭")
     cli = ap.parse_args()
     torch.manual_seed(cli.seed)
     np.random.seed(cli.seed)
@@ -147,6 +149,12 @@ def main():
             zc[t] = encode(rgb[t])
         return zc[t]
 
+    # 结果落盘：终端打印的数字同时写 csv，论文实验留痕（value_fn 路径也记，区分 v1/v2）
+    out_rows = [["metric", "t", "real_vx", "real_vy", "real_vz", "real_yaw",
+                 "plan_vx", "plan_vy", "plan_vz", "plan_yaw", "cos", "sign_ok"]]
+    meta = f"# ep={cli.ep} K={cli.K} samples={cli.samples} iters={cli.iters} avg_runs={cli.avg_runs} " \
+           f"plan_repeats={cli.plan_repeats} seed={cli.seed} value_fn={value_p}"
+
     print(f"ep={cli.ep} K={cli.K} metrics={cli.metrics} dev={DEV}")
     for metric in cli.metrics:
         print(f"\n============ 目标函数 = {metric} (纯终点代价) ============")
@@ -169,7 +177,19 @@ def main():
             rs = "[" + ",".join(f"{x:+.2f}" for x in rm) + "]"
             ps = "[" + ",".join(f"{x:+.2f}" for x in pm) + "]"
             print(f"{t:>6} {rs:>32} {ps:>30} {cos:>6.2f} {'✓' if ok else '✗':>6}")
+            out_rows.append([metric, t, *[f"{x:.3f}" for x in rm], *[f"{x:.3f}" for x in pm],
+                             f"{cos:.3f}", int(ok)])
         print(f"  余弦均值={np.mean(cos_all):+.2f}  主分量符号对={sign_ok_n}/{len(cli.starts)}")
+        out_rows.append([f"{metric}_SUMMARY", "", "", "", "", "", "", "", "", "",
+                         f"{np.mean(cos_all):.3f}", f"{sign_ok_n}/{len(cli.starts)}"])
+
+    if cli.out != "none":
+        out_p = cli.out or f"{BASE}/outputs/evaluations/mppi_dir/eval_{cli.ep.replace('.h5','')}_K{cli.K}.csv"
+        os.makedirs(os.path.dirname(out_p), exist_ok=True)
+        with open(out_p, "w") as f:
+            f.write(meta + "\n")
+            f.writelines(",".join(map(str, r)) + "\n" for r in out_rows)
+        print(f"\n结果已落盘: {out_p}")
 
 
 if __name__ == "__main__":
