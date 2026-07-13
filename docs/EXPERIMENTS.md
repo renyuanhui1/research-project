@@ -44,7 +44,9 @@
 ### eval_mppi_dir: value vs patchmse, K=8/25, v1 与 v2（服务器 ryh-dinov2, ep0052）
 - 命令: `python src/airsim/tools/eval_mppi_dir.py --K {8,25} --value-fn-path <v1|v2> ...`
   （256采样×6迭代×5重跑×8起点; 重平滑=乐观上界）
-- 产物: 当时仅终端（本表即抄录）; **脚本已加 `--out` 落盘,今后自动存 `outputs/evaluations/mppi_dir/`**
+- 产物: v2 两组已重跑落盘并复现（0.907/0.713,与首跑一致,seed=0 可复现 ✓）:
+  `outputs/evaluations/mppi_dir/eval_ep0052_K8_v2.csv`、`eval_ep0052_K25_v2.csv`（服务器跑,已 scp 回本地归档）。
+  v1 两组仅终端抄录（v1 已淘汰,需要时可随时重跑）。
 - 结果（余弦均值 / 主分量符号对）:
 
 | 目标半径 | patchmse | value v1 | value v2 |
