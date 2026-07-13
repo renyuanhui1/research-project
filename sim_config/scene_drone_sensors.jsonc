@@ -1,0 +1,44 @@
+{
+  // 场景 ID。加载成功后，topic 前缀会包含 /Sim/SceneDroneSensors。
+  "id": "SceneDroneSensors",
+  // 场景中的所有 actor。这里仅放置一架无人机。
+  "actors": [
+    {
+      // actor 类型为 robot，表示这是一个可被 Project AirSim 管理的机器人。
+      "type": "robot",
+      // 机器人实例名。Python 里 Drone(client, world, "Drone1") 必须和这里一致。
+      "name": "Drone1",
+      // 机器人初始位姿。xyz 是位置，rpy-deg 是欧拉角，单位为度。
+      "origin": {
+        // 初始位置，采用 Project AirSim/UE 场景坐标。
+        // 采集/原始出生点。
+        "xyz": "0.9 3.6 -7.5",
+        // 初始姿态：roll pitch yaw，单位为度。yaw=0 朝默认前向（试其他目标用）。
+        "rpy-deg": "0 0 0"
+      },
+      // 机器人配置文件。这里使用带相机、IMU、lidar、GPS 等传感器的四旋翼。
+      "robot-config": "robot_quadrotor_fastphysics_sensors.jsonc"
+    }
+  ],
+  // 仿真时钟配置。real-time 表示按真实时间推进。
+  "clock": {
+    "type": "real-time"
+  },
+  // 场景原点对应的地理坐标，供 GPS、地理接口等使用。
+  "home-geo-point": {
+    "latitude": 47.641468,
+    "longitude": -122.140165,
+    "altitude": 122.0
+  },
+  // 语义分割初始化设置，控制场景对象分割 ID 的生成方式。
+  "segmentation": {
+    // 启动时初始化分割 ID。
+    "initialize-ids": true,
+    // false 表示不要忽略已有对象，也给已有对象设置/保留分割信息。
+    "ignore-existing": false,
+    // true 表示按对象 owner 名称生成分割标签。
+    "use-owner-name": true
+  },
+  // 场景类型。UnrealNative 表示使用 Unreal 原生场景。
+  "scene-type": "UnrealNative"
+}

@@ -1,0 +1,50 @@
+{
+  // 场景 ID。加载成功后，topic 前缀会包含 /Sim/SceneBasicDrone。
+  "id": "SceneBasicDrone",
+  // 场景中的 actor 列表。这里仅创建一架无人机。
+  "actors": [
+    {
+      // actor 类型为 robot，表示这是一个机器人实体。
+      "type": "robot",
+      // 机器人实例名。Python 代码里的 Drone(client, world, "Drone1") 要和这里一致。
+      "name": "Drone1",
+      // 机器人初始位姿。
+      "origin": {
+        // 初始位置，采用 Project AirSim/Unreal 场景坐标。
+        "xyz": "0.9 3.6 -7.5",
+        // 初始姿态：roll pitch yaw，单位为度。
+        "rpy-deg": "0 0 0"
+      },
+      // 机器人配置文件。这里引用普通 fast-physics 四旋翼。
+      "robot-config": "robot_quadrotor_fastphysics.jsonc"
+    }
+  ],
+  // 仿真时钟配置。steppable 表示仿真按固定步长推进。
+  "clock": {
+    // 固定步进时钟。
+    "type": "steppable",
+    // 每个仿真步长，单位纳秒。3000000 ns = 0.003 s。
+    "step-ns": 3000000,
+    // 目标真实时间更新周期，单位纳秒。
+    "real-time-update-rate": 3000000,
+    // false 表示场景加载后不暂停，直接开始运行。
+    "pause-on-start": false
+  },
+  // 场景原点对应的地理坐标，供 GPS、地理接口等使用。
+  "home-geo-point": {
+    "latitude": 47.641468,
+    "longitude": -122.140165,
+    "altitude": 122.0
+  },
+  // 语义分割初始化设置，控制对象分割 ID 的生成方式。
+  "segmentation": {
+    // 启动时初始化分割 ID。
+    "initialize-ids": true,
+    // false 表示不忽略已有对象。
+    "ignore-existing": false,
+    // true 表示按对象 owner 名称生成分割标签。
+    "use-owner-name": true
+  },
+  // 场景类型。UnrealNative 表示使用 Unreal 原生场景。
+  "scene-type": "UnrealNative"
+}

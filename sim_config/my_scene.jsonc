@@ -1,0 +1,29 @@
+{
+  "id": "MyScene",
+  "actors": [
+    {
+      "type": "robot",
+      "name": "Drone1",
+      "origin": {
+        "xyz": "0.9 3.6 -7",
+        // "xyz": "320 8258 372",
+        "rpy-deg": "0 0 0"
+      },
+      "robot-config": "my_robot.jsonc"
+    }
+  ],
+  "clock": {
+    "type": "real-time"
+  },
+  "home-geo-point": {
+    "latitude": 47.641468,
+    "longitude": -122.140165,
+    "altitude": 122.0
+  },
+  "segmentation": {
+    "initialize-ids": true,
+    "ignore-existing": false,
+    "use-owner-name": true
+  },
+  "scene-type": "UnrealNative"
+}

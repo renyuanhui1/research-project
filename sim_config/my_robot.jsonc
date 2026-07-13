@@ -1,0 +1,572 @@
+{
+  // Project AirSim 机器人配置 schema，用来校验这个 JSONC 文件里的字段是否合法。
+  "$schema":"../../projectairsim/src/projectairsim/schema/robot_config_schema.jsonc",
+
+  // 使用快速物理模型，适合四旋翼这类轻量仿真。
+  "physics-type": "fast-physics",
+
+  // links 定义无人机的刚体/视觉部件：主机体 Frame 和四个桨叶。
+  // 这里的尺寸和坐标单位通常是米，不是 UE 里的厘米。
+  "links": [
+    {
+      // 主机体，后面的电机、相机、IMU、GPS 等基本都挂在这个 Frame 上。
+      "name": "Frame",
+      "inertial": {
+        // 主机体质量，单位 kg。
+        "mass": 1.0,
+        // 用一个 box 近似主机体的惯性。
+        "inertia": {
+          "type": "geometry",
+          "geometry": {
+            "box": {
+              // 主机体近似尺寸：x/y/z 三个方向，单位 m。
+              "size": "0.180 0.110 0.040"
+            }
+          }
+        },
+        // 气动阻力模型，同样用 box 近似。
+        "aerodynamics": {
+          "drag-coefficient": 0.325,
+          "type": "geometry",
+          "geometry": {
+            "box": {
+              "size": "0.180 0.110 0.040"
+            }
+          }
+        }
+      },
+      // 碰撞参数：弹性和摩擦。
+      "collision": {
+        "restitution": 0.1,
+        "friction": 0.5
+      },
+      // 在 UE 中显示的机体模型资源。
+      "visual": {
+        "geometry": {
+          "type": "unreal_mesh",
+          "name": "/Drone/mydrone",
+          "scale": "1.0 1.0 1.0"
+        }
+      }
+    },
+    {
+      // 前左桨叶/电机部件。FL = Front Left。
+      "name": "Prop_FL",
+      "inertial": {
+        // 相对 Frame 的位置和姿态。xyz 单位 m，rpy-deg 单位度。
+        // x 正方向通常是机头前方；从 FL/FR 坐标看，y 正方向对应右侧。
+        "origin": {
+          "xyz": "0.253 -0.253 -0.01",
+          "rpy-deg": "0 0 0"
+        },
+        // 单个桨/电机部件质量。
+        "mass": 0.055,
+        // 用点质量近似转子惯性。
+        "inertia": {
+          "type": "point-mass"
+        },
+        // 桨盘气动外形，用圆柱近似。
+        "aerodynamics": {
+          "drag-coefficient": 0.325,
+          "type": "geometry",
+          "geometry": {
+            "cylinder": {
+              "radius": 0.1143,
+              "length": 0.01
+            }
+          }
+        }
+      },
+      "visual": {
+        // 视觉模型相对 Frame 的位置，需要和 inertial/origin 对齐。
+        "origin": {
+          "xyz": "0.36 0 -0.3",
+          "rpy-deg": "0 0 0"
+        },
+        "geometry": {
+          "type": "unreal_mesh",
+          "name": "/Drone/mydrone1"
+        }
+      }
+    },
+    {
+      // 前右桨叶/电机部件。FR = Front Right。
+      "name": "Prop_FR",
+      "inertial": {
+        "origin": {
+          "xyz": "0.253 0.253 -0.01",
+          "rpy-deg": "0 0 0"
+        },
+        "mass": 0.055,
+        "inertia": {
+          "type": "point-mass"
+        },
+        "aerodynamics": {
+          "drag-coefficient": 0.325,
+          "type": "geometry",
+          "geometry": {
+            "cylinder": {
+              "radius": 0.1143,
+              "length": 0.01
+            }
+          }
+        }
+      },
+      "visual": {
+        "origin": {
+          "xyz": "0 0.36 -0.3",
+          "rpy-deg": "0 0 0"
+        },
+        "geometry": {
+          "type": "unreal_mesh",
+          "name": "/Drone/mydrone2"
+        }
+      }
+    },
+    {
+      // 后左桨叶/电机部件。RL = Rear Left。
+      "name": "Prop_RL",
+      "inertial": {
+        "origin": {
+          "xyz": "-0.253 -0.253 -0.01",
+          "rpy-deg": "0 0 0"
+        },
+        "mass": 0.055,
+        "inertia": {
+          "type": "point-mass"
+        },
+        "aerodynamics": {
+          "drag-coefficient": 0.325,
+          "type": "geometry",
+          "geometry": {
+            "cylinder": {
+              "radius": 0.1143,
+              "length": 0.01
+            }
+          }
+        }
+      },
+      "visual": {
+        "origin": {
+          "xyz": "0 -0.36 -0.3",
+          "rpy-deg": "0 0 0"
+        },
+        "geometry": {
+          "type": "unreal_mesh",
+          "name": "/Drone/mydrone3"
+        }
+      }
+    },
+    {
+      // 后右桨叶/电机部件。RR = Rear Right。
+      "name": "Prop_RR",
+      "inertial": {
+        "origin": {
+          "xyz": "-0.253 0.253 -0.01",
+          "rpy-deg": "0 0 0"
+        },
+        "mass": 0.055,
+        "inertia": {
+          "type": "point-mass"
+        },
+        "aerodynamics": {
+          "drag-coefficient": 0.325,
+          "type": "geometry",
+          "geometry": {
+            "cylinder": {
+              "radius": 0.1143,
+              "length": 0.01
+            }
+          }
+        }
+      },
+      "visual": {
+        "origin": {
+          "xyz": "-0.36 0 -0.3",
+          "rpy-deg": "0 0 0"
+        },
+        "geometry": {
+          "type": "unreal_mesh",
+          "name": "/Drone/mydrone4"
+        }
+      }
+    }
+  ],
+
+  // joints 定义部件之间的连接关系。这里四个桨叶都固定连接到主机体 Frame。
+  "joints": [
+    {
+      "id": "Frame_Prop_FL",
+      // fixed 表示固定连接，不是可自由运动的机械关节。
+      "type": "fixed",
+      "parent-link": "Frame",
+      "child-link": "Prop_FL",
+      "axis": "0 0 1"
+    },
+    {
+      "id": "Frame_Prop_FR",
+      "type": "fixed",
+      "parent-link": "Frame",
+      "child-link": "Prop_FR",
+      "axis": "0 0 1"
+    },
+    {
+      "id": "Frame_Prop_RL",
+      "type": "fixed",
+      "parent-link": "Frame",
+      "child-link": "Prop_RL",
+      "axis": "0 0 1"
+    },
+    {
+      "id": "Frame_Prop_RR",
+      "type": "fixed",
+      "parent-link": "Frame",
+      "child-link": "Prop_RR",
+      "axis": "0 0 1"
+    }
+  ],
+
+  // 飞控配置：simple-flight-api 控制四旋翼 X 架构。
+  "controller": {
+    "id": "Simple_Flight_Controller",
+    "airframe-setup": "quadrotor-x",
+    "type": "simple-flight-api",
+    "simple-flight-api-settings": {
+      // 飞控输出通道对应的电机顺序，顺序错了会导致起飞/姿态控制异常。
+      "actuator-order": [
+        {
+          "id": "Prop_FR_actuator"
+        },
+        {
+          "id": "Prop_RL_actuator"
+        },
+        {
+          "id": "Prop_FL_actuator"
+        },
+        {
+          "id": "Prop_RR_actuator"
+        }
+      ]
+    }
+  },
+
+  // actuators 定义真正产生推力和反扭矩的四个旋翼执行器。
+  "actuators": [
+    {
+      "name": "Prop_FL_actuator",
+      "type": "rotor",
+      "enabled": true,
+      // 执行器挂在主机体 Frame 上，作用到对应的桨叶 link。
+      "parent-link": "Frame",
+      "child-link": "Prop_FL",
+      // 电机位置相对 Frame，需和对应 Prop_FL 的 link 位置一致。
+      "origin": {
+        "xyz": "0.253 -0.253 -0.01",
+        "rpy-deg": "0 0 0"
+      },
+      "rotor-settings": {
+        // 旋翼旋转方向，四个电机需要按对角线交替。
+        "turning-direction": "clock-wise",
+        // 桨盘法向/推力方向，和仿真坐标系强相关。
+        "normal-vector": "0.0 0.0 -1.0",
+        // 推力系数和反扭矩系数。
+        "coeff-of-thrust": 0.109919,
+        "coeff-of-torque": 0.040164,
+        // 最大转速 RPM。
+        "max-rpm": 6396.667,
+        // 桨叶直径，单位 m；0.2286m 约等于 9 英寸。
+        "propeller-diameter": 0.2286,
+        // 电机响应平滑时间常数。
+        "smoothing-tc": 0.005
+      }
+    },
+    {
+      "name": "Prop_FR_actuator",
+      "type": "rotor",
+      "enabled": true,
+      "parent-link": "Frame",
+      "child-link": "Prop_FR",
+      // 前右电机位置。
+      "origin": {
+        "xyz": "0.253 0.253 -0.01",
+        "rpy-deg": "0 0 0"
+      },
+      "rotor-settings": {
+        "turning-direction": "counter-clock-wise",
+        "normal-vector": "0.0 0.0 -1.0",
+        "coeff-of-thrust": 0.109919,
+        "coeff-of-torque": 0.040164,
+        "max-rpm": 6396.667,
+        "propeller-diameter": 0.2286,
+        "smoothing-tc": 0.005
+      }
+    },
+    {
+      "name": "Prop_RL_actuator",
+      "type": "rotor",
+      "enabled": true,
+      "parent-link": "Frame",
+      "child-link": "Prop_RL",
+      // 后左电机位置。
+      "origin": {
+        "xyz": "-0.253 -0.253 -0.01",
+        "rpy-deg": "0 0 0"
+      },
+      "rotor-settings": {
+        "turning-direction": "counter-clock-wise",
+        "normal-vector": "0.0 0.0 -1.0",
+        "coeff-of-thrust": 0.109919,
+        "coeff-of-torque": 0.040164,
+        "max-rpm": 6396.667,
+        "propeller-diameter": 0.2286,
+        "smoothing-tc": 0.005
+      }
+    },
+    {
+      "name": "Prop_RR_actuator",
+      "type": "rotor",
+      "enabled": true,
+      "parent-link": "Frame",
+      "child-link": "Prop_RR",
+      // 后右电机位置。
+      "origin": {
+        "xyz": "-0.253 0.253 -0.01",
+        "rpy-deg": "0 0 0"
+      },
+      "rotor-settings": {
+        "turning-direction": "clock-wise",
+        "normal-vector": "0.0 0.0 -1.0",
+        "coeff-of-thrust": 0.109919,
+        "coeff-of-torque": 0.040164,
+        "max-rpm": 6396.667,
+        "propeller-diameter": 0.2286,
+        "smoothing-tc": 0.005
+      }
+    }
+  ],
+
+  // sensors 定义相机、IMU、雷达、GPS、气压计、电池等传感器。
+  // parent-link 为 Frame 时，origin 都是相对无人机机体中心的坐标，不是 UE 世界坐标。
+  "sensors": [
+    {
+      // 追踪/观察相机，通常用于从无人机后方观察机体。
+      "id": "Chase",
+      "type": "camera",
+      "enabled": true,
+      "parent-link": "Frame",
+      // 采集间隔 0.03s，约 33 FPS。
+      "capture-interval": 0.03,
+      "capture-settings": [
+        {
+          // image-type 0 = 普通场景 RGB 图。
+          "image-type": 0,
+          "width": 1920,
+          "height": 1080,
+          // 相机视场角，单位度。越大越容易看到机体边缘/桨叶。
+          "fov-degrees": 90,
+          "capture-enabled": true,
+          // 是否开启视频流输出。
+          "streaming-enabled": true,
+          // RGB 图通常用 uint8，所以这里是 false。
+          "pixels-as-float": false,
+          "compress": false,
+          "target-gamma": 2.5
+        }
+      ],
+      // 云台锁定设置：锁 roll/pitch，不锁 yaw。
+      "gimbal": {
+        "lock-roll": true,
+        "lock-pitch": true,
+        "lock-yaw": false
+      },
+      // Chase 相机相对 Frame 的位置：大致在无人机后方/上方，并略微俯仰。
+      "origin": {
+        "xyz": "-3.0 0.0 -1.0",
+        "rpy-deg": "0 -11.46 0"
+      }
+    },
+    {
+      // 前视相机。当前文件里没有 DownCamera，下视相机需要另加或改这个相机姿态。
+      "id": "FrontCamera",
+      "type": "camera",
+      "enabled": true,
+      "parent-link": "Frame",
+      // 采集间隔 0.05s，约 20 FPS。
+      "capture-interval": 0.05,
+      "capture-settings": [
+        {
+          // image-type 0 = 普通 RGB/Scene 图。
+          "image-type": 0,
+          "width": 1920,
+          "height": 1080,
+          "fov-degrees": 90,
+          "capture-enabled": true,
+          "streaming-enabled": true,
+          "pixels-as-float": false,
+          "compress": false,
+          "target-gamma": 2.5
+        },
+        {
+          // image-type 2 = depth perspective，表示相机光心到物体点的射线距离。
+          "image-type": 2,
+          "width": 1920,
+          "height": 1080,
+          "fov-degrees": 90,
+          "capture-enabled": true,
+          "streaming-enabled": false,
+          "pixels-as-float": true,
+          "compress": false
+        }
+      ],
+      // 前视相机相对 Frame 向机头方向偏移 0.5m，姿态为 0 表示沿默认前向看。
+      // 如果要做下视相机，常见姿态是 rpy-deg: "0 -90 0"，再根据画面调 xyz 和 FOV。
+      "origin": {
+        "xyz": "0.5 0.0 0.0",
+        "rpy-deg": "0 0 0"
+      }
+    },
+    {
+      // 惯性测量单元：加速度计 + 陀螺仪。
+      "id": "IMU1",
+      "type": "imu",
+      "enabled": true,
+      "parent-link": "Frame",
+      // 加速度计噪声/偏置模型。
+      "accelerometer": {
+        "velocity-random-walk": 2.3e-3,
+        "tau": 800,
+        "bias-stability": 3.53e-4,
+        "turn-on-bias": "0 0 0"
+      },
+      // 陀螺仪噪声/偏置模型。
+      "gyroscope": {
+        "angle-random-walk": 1.027e-4,
+        "tau": 500,
+        "bias-stability": 2.23e-5,
+        "turn-on-bias": "0 0 0"
+      }
+    },
+    {
+      // 16 线激光雷达。
+      "id": "lidar1",
+      "type": "lidar",
+      "enabled": true,
+      "parent-link": "Frame",
+      "number-of-channels": 16,
+      // 最大测距，单位 m。
+      "range": 100,
+      // 每秒点数。
+      "points-per-second": 100000,
+      // 水平旋转频率，单位 Hz。
+      "horizontal-rotation-frequency": 10,
+      // 水平视场角 0-360 度。
+      "horizontal-fov-start-deg": 0.0,
+      "horizontal-fov-end-deg": 360.0,
+      // 垂直视场角，从水平到向下 90 度。
+      "vertical-fov-upper-deg": 0.0,
+      "vertical-fov-lower-deg": -90.0,
+      "draw-debug-points": false,
+      // 雷达相对 Frame 的安装位置。
+      "origin": {
+        "xyz": "0 0 0.2",
+        "rpy-deg": "0 0 0"
+      }
+    },
+    {
+      // 单点测距传感器，例如朝下测高。
+      "id": "DistanceSensor",
+      "type": "distance-sensor",
+      "enabled": true,
+      "parent-link": "Frame",
+      // 最大/最小有效测距，单位 m。
+      "max-distance": 50.0,
+      "min-distance": 0.5,
+      "draw-debug-points": true,
+      // rpy-deg: "0 -90 0" 通常用于让传感器朝下。
+      "origin": {
+        "xyz": "0 0 0.2",
+        "rpy-deg": "0 -90 0"
+      }
+    },
+    {
+      // GPS 传感器，下面是水平/垂直定位误差收敛参数。
+      "id": "GPS",
+      "type": "gps",
+      "enabled": true,
+      "parent-link": "Frame",
+      "eph-time-constant": 0.9,
+      "epv-time-constant": 0.9,
+      "eph-initial": 100,
+      "epv-initial": 100,
+      "eph-final": 0.1,
+      "epv-final": 0.1,
+      "eph-min_3d": 3.0,
+      "eph-min_2d": 4.0
+    },
+    {
+      // 气压计，用于高度估计。
+      "id": "Barometer",
+      "type": "barometer",
+      "enabled": true,
+      "parent-link": "Frame",
+      // 标准海平面气压，单位 hPa。
+      "qnh": 1013.250,
+      "pressure-factor-sigma": 0.001825,
+      "pressure-factor-tau": 3600,
+      "uncorrelated-noise-sigma": 2.7,
+      "update-latency": 0,
+      "update-frequency": 50,
+      "startup-delay": 0
+    },
+    {
+      // 磁力计，用于航向估计。
+      "id": "Magnetometer",
+      "type": "magnetometer",
+      "enabled": true,
+      "parent-link": "Frame",
+      "scale-factor": 1,
+      "noise-sigma": "0.005 0.005 0.005", // 5 mgauss as per LSM303D spec-sheet
+      "noise-bias": "0.0 0.0 0.0" // no offset as per specsheet (zero gauss level)
+    },
+    {
+      // 空速计。forward-xyz 指定机头/前向方向。
+      "id": "Airspeed",
+      "type": "airspeed",
+      "enabled": true,
+      "parent-link": "Frame",
+      "pressure-factor-sigma": 0.001825,
+      "pressure-factor-tau": 3600,
+      "uncorrelated-noise-sigma": 1.052,
+      "forward-xyz": "1.0 0.0 0.0"
+    },
+    {
+      // 电池模型。
+      "id": "Battery",
+      "type": "battery",
+      "enabled": true,
+      "parent-link": "Frame",
+
+      // Total battery capacity.
+      // Typically, on start capacity should be lower than total battery capacity.
+      // Use joules as unit for capacity.
+      // 1 joule = 3600 * Amp hour
+      // 1 joule = 3.6 * milli Amp hour
+      "total-battery-capacity": 36000,
+      "battery-capacity-on-start": 30000,
+
+      // Battery has two simulated mode: Rotor power discharge or simple discharge model
+
+      // Rotor power discharge mode depletes power proportional to torque*angular_velocity
+      //  Simple discharge mode, depletes at rate specified.
+
+      // Config for rotor power discharge mode.
+      // You can configure the constant of proportionality using config option.
+      "battery-mode": "rotor-power-discharge-mode",
+      "rotor-power-coefficient": 1
+
+      // Config for simple discharge model. The drain rate can be adjusted at runtime using client api calls.
+      // "battery-mode":"simple-discharge-mode",
+      // "battery-drain-rate-on-start": 1
+    }
+  ]
+}

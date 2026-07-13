@@ -1,0 +1,549 @@
+{
+  // 使用 Project AirSim 的快速物理模型，适合仿真和 PX4 SITL 联调。
+  "physics-type": "fast-physics",
+
+  // 机体刚体结构定义。Frame 是无人机主体，四个 Prop_* 是四个桨叶/电机位置的可视和惯性部件。
+  // 坐标通常按机体系理解：x 前后、y 左右、z 上下；长度单位为米，质量单位为 kg。
+  "links": [
+    {
+      // 无人机中心机架。
+      "name": "Frame",
+      "inertial": {
+        // 主机体质量。
+        "mass": 1.0,
+        "inertia": {
+          // 用几何体近似计算惯量。
+          "type": "geometry",
+          "geometry": {
+            "box": {
+              // 主体碰撞/惯量近似尺寸：长、宽、高。
+              "size": "0.180 0.110 0.040"
+            }
+          }
+        },
+        "aerodynamics": {
+          // 空气阻力系数，用于快速物理中的阻力近似。
+          "drag-coefficient": 0.325,
+          "type": "geometry",
+          "geometry": {
+            "box": {
+              "size": "0.180 0.110 0.040"
+            }
+          }
+        }
+      },
+      "collision": {
+        // 碰撞反弹系数和摩擦系数。
+        "restitution": 0.1,
+        "friction": 0.5
+      },
+      "visual": {
+        "geometry": {
+          // Unreal 中用于显示无人机主体的 mesh 资源。
+          "type": "unreal_mesh",
+          "name": "/Drone/Quadrotor1"
+        }
+      }
+    },
+    {
+      // 前左旋翼。FL = Front Left。
+      "name": "Prop_FL",
+      "inertial": {
+        "origin": {
+          // 相对 Frame 的位置和姿态。
+          "xyz": "0.253 -0.253 -0.01",
+          "rpy-deg": "0 0 0"
+        },
+        "mass": 0.055,
+        "inertia": {
+          "type": "point-mass"
+        },
+        "aerodynamics": {
+          "drag-coefficient": 0.325,
+          "type": "geometry",
+          "geometry": {
+            "cylinder": {
+              "radius": 0.1143,
+              "length": 0.01
+            }
+          }
+        }
+      },
+      "visual": {
+        "origin": {
+          // 可视模型位置需要和旋翼惯性位置一致。
+          "xyz": "0.253 -0.253 -0.01",
+          "rpy-deg": "0 0 0"
+        },
+        "geometry": {
+          "type": "unreal_mesh",
+          "name": "/Drone/PropellerRed"
+        }
+      }
+    },
+    {
+      // 前右旋翼。FR = Front Right。
+      "name": "Prop_FR",
+      "inertial": {
+        "origin": {
+          "xyz": "0.253 0.253 -0.01",
+          "rpy-deg": "0 0 0"
+        },
+        "mass": 0.055,
+        "inertia": {
+          "type": "point-mass"
+        },
+        "aerodynamics": {
+          "drag-coefficient": 0.325,
+          "type": "geometry",
+          "geometry": {
+            "cylinder": {
+              "radius": 0.1143,
+              "length": 0.01
+            }
+          }
+        }
+      },
+      "visual": {
+        "origin": {
+          "xyz": "0.253 0.253 -0.01",
+          "rpy-deg": "0 0 0"
+        },
+        "geometry": {
+          "type": "unreal_mesh",
+          "name": "/Drone/PropellerRed"
+        }
+      }
+    },
+    {
+      // 后左旋翼。RL = Rear Left。
+      "name": "Prop_RL",
+      "inertial": {
+        "origin": {
+          "xyz": "-0.253 -0.253 -0.01",
+          "rpy-deg": "0 0 0"
+        },
+        "mass": 0.055,
+        "inertia": {
+          "type": "point-mass"
+        },
+        "aerodynamics": {
+          "drag-coefficient": 0.325,
+          "type": "geometry",
+          "geometry": {
+            "cylinder": {
+              "radius": 0.1143,
+              "length": 0.01
+            }
+          }
+        }
+      },
+      "visual": {
+        "origin": {
+          "xyz": "-0.253 -0.253 -0.01",
+          "rpy-deg": "0 0 0"
+        },
+        "geometry": {
+          "type": "unreal_mesh",
+          "name": "/Drone/PropellerWhite"
+        }
+      }
+    },
+    {
+      // 后右旋翼。RR = Rear Right。
+      "name": "Prop_RR",
+      "inertial": {
+        "origin": {
+          "xyz": "-0.253 0.253 -0.01",
+          "rpy-deg": "0 0 0"
+        },
+        "mass": 0.055,
+        "inertia": {
+          "type": "point-mass"
+        },
+        "aerodynamics": {
+          "drag-coefficient": 0.325,
+          "type": "geometry",
+          "geometry": {
+            "cylinder": {
+              "radius": 0.1143,
+              "length": 0.01
+            }
+          }
+        }
+      },
+      "visual": {
+        "origin": {
+          "xyz": "-0.253 0.253 -0.01",
+          "rpy-deg": "0 0 0"
+        },
+        "geometry": {
+          "type": "unreal_mesh",
+          "name": "/Drone/PropellerWhite"
+        }
+      }
+    }
+  ],
+
+  // 固定关节：把四个旋翼部件固定到 Frame 上。
+  // 真正产生推力的是后面的 actuators，这里的 joint 只描述刚体连接关系。
+  "joints": [
+    {
+      "id": "Frame_Prop_FL",
+      "type": "fixed",
+      "parent-link": "Frame",
+      "child-link": "Prop_FL",
+      "axis": "0 0 1"
+    },
+    {
+      "id": "Frame_Prop_FR",
+      "type": "fixed",
+      "parent-link": "Frame",
+      "child-link": "Prop_FR",
+      "axis": "0 0 1"
+    },
+    {
+      "id": "Frame_Prop_RL",
+      "type": "fixed",
+      "parent-link": "Frame",
+      "child-link": "Prop_RL",
+      "axis": "0 0 1"
+    },
+    {
+      "id": "Frame_Prop_RR",
+      "type": "fixed",
+      "parent-link": "Frame",
+      "child-link": "Prop_RR",
+      "axis": "0 0 1"
+    }
+  ],
+
+  // PX4 控制器配置。Project AirSim 通过这里和 PX4 SITL 通信。
+  "controller": {
+    "id": "PX4_Controller",
+    // px4-api 表示由 PX4 输出电机控制量，AirSim 根据 actuator 配置施加推力/力矩。
+    "type": "px4-api",
+    "px4-settings": {
+      // WSL2/外部 PX4 联调时通常关闭 lock-step，避免仿真和 PX4 时间同步阻塞。
+      "lock-step" : false,
+      // 当前使用 TCP，不走串口。
+      "use-serial": false,
+      "use-tcp": true,
+      // PX4 SITL TCP 连接端口，常见默认值是 4560。
+      "tcp-port": 4560,
+      // remote 表示 PX4 控制端在远端/外部进程，而不是本进程内。
+      "control-ip-address": "remote",
+      // 本机在 WSL2/Windows 网络里的 IPv4 地址。PX4 侧需要能访问这个地址。
+      "local-host-ip": "172.21.192.1",
+      // "control-ip-address": "remote",
+      // MAVLink 控制链路端口。remote/local 都设为 14580，方便 PX4 和 AirSim 对接。
+      "control-port-remote": 14580,
+      "control-port-local": 14580,
+      // QGroundControl 连接配置。qgc-host-ip 为空表示使用默认/自动目标。
+      "qgc-host-ip": "",
+      "qgc-port": 14550,
+      "parameters": {
+        // 关闭 RC 丢失、数据链路丢失等保护动作，避免 SITL 无遥控器时自动 failsafe。
+        "NAV_RCL_ACT": 0,
+        "NAV_DLL_ACT": 0,
+        // Offboard 丢失动作配置。
+        "COM_OBL_ACT": 1,
+        // 本地位置估计器的参考经纬度。
+        "LPE_LAT": 47.641468,
+        "LPE_LON": -122.140165
+      },
+      // PX4 输出通道到 AirSim actuator 的映射顺序。
+      // 顺序必须和 PX4 机型/混控器一致，否则会出现起飞翻滚、姿态不稳定等问题。
+      "actuator-order": [
+        {
+          "id": "Prop_FR_actuator"
+        },
+        {
+          "id": "Prop_RL_actuator"
+        },
+        {
+          "id": "Prop_FL_actuator"
+        },
+        {
+          "id": "Prop_RR_actuator"
+        }
+      ]
+    }
+  },
+
+  // 电机/旋翼执行器定义。每个 actuator 负责给对应 Prop_* 施加推力和反扭矩。
+  "actuators": [
+    {
+      "name": "Prop_FL_actuator",
+      "type": "rotor",
+      "enabled": true,
+      "parent-link": "Frame",
+      "child-link": "Prop_FL",
+      "origin": {
+        "xyz": "0.253 -0.253 -0.01",
+        "rpy-deg": "0 0 0"
+      },
+      "rotor-settings": {
+        // 旋转方向用于计算反扭矩，四旋翼需要相邻旋翼方向相反。
+        "turning-direction": "clock-wise",
+        // 推力法线方向。这里 -Z 表示旋翼推力沿机体负 z 方向。
+        "normal-vector": "0.0 0.0 -1.0",
+        // 推力系数和扭矩系数，决定同样转速下产生多少升力/反扭矩。
+        "coeff-of-thrust": 0.109919,
+        "coeff-of-torque": 0.040164,
+        // 最大转速、桨直径、转速平滑时间常数。
+        "max-rpm": 6396.667,
+        "propeller-diameter": 0.2286,
+        "smoothing-tc": 0.005
+      }
+    },
+    {
+      "name": "Prop_FR_actuator",
+      "type": "rotor",
+      "enabled": true,
+      "parent-link": "Frame",
+      "child-link": "Prop_FR",
+      "origin": {
+        "xyz": "0.253 0.253 -0.01",
+        "rpy-deg": "0 0 0"
+      },
+      "rotor-settings": {
+        "turning-direction": "counter-clock-wise",
+        "normal-vector": "0.0 0.0 -1.0",
+        "coeff-of-thrust": 0.109919,
+        "coeff-of-torque": 0.040164,
+        "max-rpm": 6396.667,
+        "propeller-diameter": 0.2286,
+        "smoothing-tc": 0.005
+      }
+    },
+    {
+      "name": "Prop_RL_actuator",
+      "type": "rotor",
+      "enabled": true,
+      "parent-link": "Frame",
+      "child-link": "Prop_RL",
+      "origin": {
+        "xyz": "-0.253 -0.253 -0.01",
+        "rpy-deg": "0 0 0"
+      },
+      "rotor-settings": {
+        "turning-direction": "counter-clock-wise",
+        "normal-vector": "0.0 0.0 -1.0",
+        "coeff-of-thrust": 0.109919,
+        "coeff-of-torque": 0.040164,
+        "max-rpm": 6396.667,
+        "propeller-diameter": 0.2286,
+        "smoothing-tc": 0.005
+      }
+    },
+    {
+      "name": "Prop_RR_actuator",
+      "type": "rotor",
+      "enabled": true,
+      "parent-link": "Frame",
+      "child-link": "Prop_RR",
+      "origin": {
+        "xyz": "-0.253 0.253 -0.01",
+        "rpy-deg": "0 0 0"
+      },
+      "rotor-settings": {
+        "turning-direction": "clock-wise",
+        "normal-vector": "0.0 0.0 -1.0",
+        "coeff-of-thrust": 0.109919,
+        "coeff-of-torque": 0.040164,
+        "max-rpm": 6396.667,
+        "propeller-diameter": 0.2286,
+        "smoothing-tc": 0.005
+      }
+    }
+  ],
+
+  // 传感器配置。PX4 使用 IMU/GPS/气压计/磁力计，图像采集脚本使用 Chase 和 FrontCamera。
+  "sensors": [
+    {
+      // 追随视角相机，通常用于第三人称画面采集或观察。
+      "id": "Chase",
+      "type": "camera",
+      "enabled": true,
+      "parent-link": "Frame",
+      // 采样间隔 0.03s，约 33 FPS。
+      "capture-interval": 0.03,
+      "capture-settings": [
+        {
+          // image-type 0 通常是 RGB Scene 图。
+          "image-type": 0,
+          "width": 1920,
+          "height": 1080,
+          "fov-degrees": 90,
+          "capture-enabled": true,
+          "streaming-enabled": true,
+          "pixels-as-float": false,
+          "compress": false,
+          "target-gamma": 2.5
+        }
+      ],
+      "gimbal": {
+        // 锁定 roll/pitch，让追随相机画面更稳定；yaw 不锁定，跟随无人机朝向。
+        "lock-roll": true,
+        "lock-pitch": true,
+        "lock-yaw": false
+      },
+      "origin": {
+        // 相机在机体后方 3m、上方/下方偏移 1m 的追随位置，并稍微俯视。
+        "xyz": "-3.0 0.0 -1.0",
+        "rpy-deg": "0 -11.46 0"
+      }
+    },
+    {
+      // 机载前视 RGB 相机，px4_dual_camera_capture.py 会把它保存到 imgs_wrist。
+      "id": "FrontCamera",
+      "type": "camera",
+      "enabled": true,
+      "parent-link": "Frame",
+      // 采样间隔 0.05s，约 20 FPS。
+      "capture-interval": 0.05,
+      "capture-settings": [
+        {
+          "image-type": 0,
+          "width": 1920,
+          "height": 1080,
+          "fov-degrees": 90,
+          "capture-enabled": true,
+          "streaming-enabled": true,
+          "pixels-as-float": false,
+          "compress": false,
+          "target-gamma": 2.5
+        }
+      ],
+      "origin": {
+        // 前视相机安装在机体前方 0.5m，朝向与机体一致。
+        "xyz": "0.5 0.0 0.0",
+        "rpy-deg": "0 0 0"
+      }
+    },
+    {
+      // 下视相机，可同时配置 RGB、Depth、Segmentation 等不同 image-type。
+      "id": "DownCamera",
+      "type": "camera",
+      "enabled": true,
+      "parent-link": "Frame",
+      // 采样间隔 0.02s，约 50 FPS。
+      "capture-interval": 0.02,
+      "capture-settings": [
+        {
+          // RGB Scene 图。
+          "image-type": 0,
+          "width": 400,
+          "height": 225,
+          "fov-degrees": 90,
+          "capture-enabled": true,
+          "streaming-enabled": false,
+          "pixels-as-float": false,
+          "compress": false,
+          "target-gamma": 2.5
+        },
+        {
+          // 深度类图像配置，当前 capture-enabled 为 false。
+          "image-type": 1,
+          "width": 400,
+          "height": 225,
+          "fov-degrees": 90,
+          "capture-enabled": false,
+          "streaming-enabled": false,
+          "pixels-as-float": false,
+          "compress": false
+        },
+        {
+          // 另一类图像输出，当前启用但不 streaming；具体语义取决于 Project AirSim 的 ImageType 枚举。
+          "image-type": 2,
+          "width": 400,
+          "height": 225,
+          "fov-degrees": 90,
+          "capture-enabled": true,
+          "streaming-enabled": false,
+          "pixels-as-float": false,
+          "compress": false
+        },
+        {
+          // 另一类图像输出，当前关闭。
+          "image-type": 3,
+          "width": 400,
+          "height": 225,
+          "fov-degrees": 90,
+          "capture-enabled": false,
+          "streaming-enabled": false,
+          "pixels-as-float": false,
+          "compress": false
+        }
+      ],
+      "noise-settings": [
+        {
+          // 对 image-type 1 的图像噪声模型，当前关闭。
+          "enabled": false,
+          "image-type": 1,
+          "rand-contrib": 0.2,
+          "rand-speed": 100000.0,
+          "rand-size": 500.0,
+          "rand-density": 2,
+          "horz-wave-contrib": 0.03,
+          "horz-wave-strength": 0.08,
+          "horz-wave-vert-size": 1.0,
+          "horz-wave-screen-size": 1.0,
+          "horz-noise-lines-contrib": 1.0,
+          "horz-noise-lines-density-y": 0.01,
+          "horz-noise-lines-density-xy": 0.5,
+          "horz-distortion-contrib": 1.0,
+          "horz-distortion-strength": 0.002
+        }
+      ],
+      "origin": {
+        // pitch = -90 度，使相机朝下看。
+        "xyz": "0 0.0 0.0",
+        "rpy-deg": "0 -90 0"
+      }
+    },
+    {
+      // PX4 状态估计需要的 IMU。
+      "id": "IMU1",
+      "type": "imu",
+      "enabled": true,
+      "parent-link": "Frame",
+      "accelerometer": {
+        // 加速度计随机游走、相关时间、零偏稳定性和初始零偏。
+        "velocity-random-walk": 2.353e-3,
+        "tau": 800,
+        "bias-stability": 3.53e-4,
+        "turn-on-bias": "0 0 0"
+      },
+      "gyroscope": {
+        // 陀螺仪随机游走、相关时间、零偏稳定性和初始零偏。
+        "angle-random-walk": 8.72644e-5,
+        "tau": 500,
+        "bias-stability": 2.23014e-5,
+        "turn-on-bias": "0 0 0"
+      }
+    },
+    {
+      // GPS，供 PX4 定位/导航使用。
+      "id": "GPS",
+      "type": "gps",
+      "enabled": true,
+      "parent-link": "Frame"
+    },
+    {
+      // 气压计，供 PX4 高度估计使用。
+      "id": "Barometer",
+      "type": "barometer",
+      "enabled": true,
+      "parent-link": "Frame"
+    },
+    {
+      // 磁力计，供 PX4 航向估计使用。
+      "id": "Magnetometer",
+      "type": "magnetometer",
+      "enabled": true,
+      "parent-link": "Frame"
+    }
+  ]
+}

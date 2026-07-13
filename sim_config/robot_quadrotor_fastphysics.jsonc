@@ -1,0 +1,558 @@
+{
+  // 使用 fast-physics 动力学后端。这个配置是真实飞行动力学四旋翼，不是 non-physics 直接位姿控制模型。
+  "physics-type": "fast-physics",
+  // links 定义刚体部件：机身 Frame 和四个螺旋桨。
+  "links": [
+    {
+      // 主机架/机身，其他螺旋桨都挂在这个 Frame 上。
+      "name": "Frame",
+      // 惯性和空气动力参数，影响质量、惯量和空气阻力。
+      "inertial": {
+        // 机身质量，单位 kg。
+        "mass": 1.0,
+        // 用几何体估算惯量。
+        "inertia": {
+          "type": "geometry",
+          "geometry": {
+            "box": {
+              // 机身惯量估算盒子的长宽高，单位 m。
+              "size": "0.180 0.110 0.040"
+            }
+          }
+        },
+        // 机身空气阻力模型。
+        "aerodynamics": {
+          // 阻力系数。
+          "drag-coefficient": 0.325,
+          "type": "geometry",
+          "geometry": {
+            "box": {
+              // 用盒子近似机身受风面积。
+              "size": "0.180 0.110 0.040"
+            }
+          }
+        }
+      },
+      // 碰撞材质参数。
+      "collision": {
+        // 反弹系数。
+        "restitution": 0.1,
+        // 摩擦系数。
+        "friction": 0.5
+      },
+      // 视觉模型，只影响显示，不直接决定飞行动力学。
+      "visual": {
+        "geometry": {
+          // 使用 Unreal 中的四旋翼网格。
+          "type": "unreal_mesh",
+          "name": "/Drone/Quadrotor1"
+        }
+      }
+    },
+    {
+      // 前左螺旋桨 link：Prop_FL = front-left。
+      "name": "Prop_FL",
+      "inertial": {
+        // 螺旋桨相对机身的位置。
+        "origin": {
+          "xyz": "0.253 -0.253 -0.01",
+          "rpy-deg": "0 0 0"
+        },
+        // 单个桨的质量，单位 kg。
+        "mass": 0.055,
+        "inertia": {
+          // 桨叶用点质量近似惯量。
+          "type": "point-mass"
+        },
+        // 桨叶空气阻力近似。
+        "aerodynamics": {
+          "drag-coefficient": 0.325,
+          "type": "geometry",
+          "geometry": {
+            "cylinder": {
+              // 桨盘半径，单位 m。
+              "radius": 0.1143,
+              // 桨盘厚度，单位 m。
+              "length": 0.01
+            }
+          }
+        }
+      },
+      "visual": {
+        // 螺旋桨视觉模型的位置。
+        "origin": {
+          "xyz": "0.253 -0.253 -0.01",
+          "rpy-deg": "0 0 0"
+        },
+        "geometry": {
+          "type": "unreal_mesh",
+          "name": "/Drone/PropellerRed"
+        }
+      }
+    },
+    {
+      // 前右螺旋桨 link：Prop_FR = front-right。
+      "name": "Prop_FR",
+      "inertial": {
+        "origin": {
+          "xyz": "0.253 0.253 -0.01",
+          "rpy-deg": "0 0 0"
+        },
+        "mass": 0.055,
+        "inertia": {
+          "type": "point-mass"
+        },
+        "aerodynamics": {
+          "drag-coefficient": 0.325,
+          "type": "geometry",
+          "geometry": {
+            "cylinder": {
+              "radius": 0.1143,
+              "length": 0.01
+            }
+          }
+        }
+      },
+      "visual": {
+        "origin": {
+          "xyz": "0.253 0.253 -0.01",
+          "rpy-deg": "0 0 0"
+        },
+        "geometry": {
+          "type": "unreal_mesh",
+          "name": "/Drone/PropellerRed"
+        }
+      }
+    },
+    {
+      // 后左螺旋桨 link：Prop_RL = rear-left。
+      "name": "Prop_RL",
+      "inertial": {
+        "origin": {
+          "xyz": "-0.253 -0.253 -0.01",
+          "rpy-deg": "0 0 0"
+        },
+        "mass": 0.055,
+        "inertia": {
+          "type": "point-mass"
+        },
+        "aerodynamics": {
+          "drag-coefficient": 0.325,
+          "type": "geometry",
+          "geometry": {
+            "cylinder": {
+              "radius": 0.1143,
+              "length": 0.01
+            }
+          }
+        }
+      },
+      "visual": {
+        "origin": {
+          "xyz": "-0.253 -0.253 -0.01",
+          "rpy-deg": "0 0 0"
+        },
+        "geometry": {
+          "type": "unreal_mesh",
+          "name": "/Drone/PropellerWhite"
+        }
+      }
+    },
+    {
+      // 后右螺旋桨 link：Prop_RR = rear-right。
+      "name": "Prop_RR",
+      "inertial": {
+        "origin": {
+          "xyz": "-0.253 0.253 -0.01",
+          "rpy-deg": "0 0 0"
+        },
+        "mass": 0.055,
+        "inertia": {
+          "type": "point-mass"
+        },
+        "aerodynamics": {
+          "drag-coefficient": 0.325,
+          "type": "geometry",
+          "geometry": {
+            "cylinder": {
+              "radius": 0.1143,
+              "length": 0.01
+            }
+          }
+        }
+      },
+      "visual": {
+        "origin": {
+          "xyz": "-0.253 0.253 -0.01",
+          "rpy-deg": "0 0 0"
+        },
+        "geometry": {
+          "type": "unreal_mesh",
+          "name": "/Drone/PropellerWhite"
+        }
+      }
+    }
+  ],
+  // joints 定义部件连接关系。这里四个桨都固定连接在 Frame 上。
+  "joints": [
+    {
+      // Frame 到前左桨的固定关节。
+      "id": "Frame_Prop_FL",
+      "type": "fixed",
+      "parent-link": "Frame",
+      "child-link": "Prop_FL",
+      "axis": "0 0 1"
+    },
+    {
+      // Frame 到前右桨的固定关节。
+      "id": "Frame_Prop_FR",
+      "type": "fixed",
+      "parent-link": "Frame",
+      "child-link": "Prop_FR",
+      "axis": "0 0 1"
+    },
+    {
+      // Frame 到后左桨的固定关节。
+      "id": "Frame_Prop_RL",
+      "type": "fixed",
+      "parent-link": "Frame",
+      "child-link": "Prop_RL",
+      "axis": "0 0 1"
+    },
+    {
+      // Frame 到后右桨的固定关节。
+      "id": "Frame_Prop_RR",
+      "type": "fixed",
+      "parent-link": "Frame",
+      "child-link": "Prop_RR",
+      "axis": "0 0 1"
+    }
+  ],
+  // controller 定义飞控。这个配置使用 Project AirSim 内置 simple-flight API。
+  "controller": {
+    // 控制器 ID，仅用于标识。
+    "id": "Simple_Flight_Controller",
+    // 四旋翼 X 架构。
+    "airframe-setup": "quadrotor-x",
+    // simple-flight-api 支持 enable_api_control、arm、takeoff、move_by_velocity 等 Python API。
+    "type": "simple-flight-api",
+    "simple-flight-api-settings": {
+      // 控制器输出通道到实际电机/桨 actuator 的映射顺序。
+      "actuator-order": [
+        {
+          "id": "Prop_FR_actuator"
+        },
+        {
+          "id": "Prop_RL_actuator"
+        },
+        {
+          "id": "Prop_FL_actuator"
+        },
+        {
+          "id": "Prop_RR_actuator"
+        }
+      ]
+    }
+  },
+  // actuators 定义实际执行器。四旋翼有四个 rotor actuator。
+  "actuators": [
+    {
+      // 前左电机/桨执行器。
+      "name": "Prop_FL_actuator",
+      // rotor 表示旋翼执行器，会根据转速产生推力和反扭矩。
+      "type": "rotor",
+      // true 表示启用这个执行器。
+      "enabled": true,
+      // 执行器挂在 Frame 上，并驱动 Prop_FL。
+      "parent-link": "Frame",
+      "child-link": "Prop_FL",
+      // 执行器相对机身的位置。
+      "origin": {
+        "xyz": "0.253 -0.253 -0.01",
+        "rpy-deg": "0 0 0"
+      },
+      // 旋翼物理参数，直接影响升力、扭矩和响应速度。
+      "rotor-settings": {
+        // 旋转方向。相邻桨方向相反，用于抵消总反扭矩。
+        "turning-direction": "clock-wise",
+        // 推力法向量。z 为 -1 表示沿机体系向上产生升力。
+        "normal-vector": "0.0 0.0 -1.0",
+        // 推力系数。
+        "coeff-of-thrust": 0.109919,
+        // 扭矩系数。
+        "coeff-of-torque": 0.040164,
+        // 最大转速，单位 rpm。
+        "max-rpm": 6396.667,
+        // 螺旋桨直径，单位 m。
+        "propeller-diameter": 0.2286,
+        // 电机/旋翼响应平滑时间常数。
+        "smoothing-tc": 0.005
+      }
+    },
+    {
+      // 前右电机/桨执行器。
+      "name": "Prop_FR_actuator",
+      "type": "rotor",
+      "enabled": true,
+      "parent-link": "Frame",
+      "child-link": "Prop_FR",
+      "origin": {
+        "xyz": "0.253 0.253 -0.01",
+        "rpy-deg": "0 0 0"
+      },
+      "rotor-settings": {
+        // 前右桨与前左桨方向相反。
+        "turning-direction": "counter-clock-wise",
+        "normal-vector": "0.0 0.0 -1.0",
+        "coeff-of-thrust": 0.109919,
+        "coeff-of-torque": 0.040164,
+        "max-rpm": 6396.667,
+        "propeller-diameter": 0.2286,
+        "smoothing-tc": 0.005
+      }
+    },
+    {
+      // 后左电机/桨执行器。
+      "name": "Prop_RL_actuator",
+      "type": "rotor",
+      "enabled": true,
+      "parent-link": "Frame",
+      "child-link": "Prop_RL",
+      "origin": {
+        "xyz": "-0.253 -0.253 -0.01",
+        "rpy-deg": "0 0 0"
+      },
+      "rotor-settings": {
+        // 后左桨与前左桨方向相反。
+        "turning-direction": "counter-clock-wise",
+        "normal-vector": "0.0 0.0 -1.0",
+        "coeff-of-thrust": 0.109919,
+        "coeff-of-torque": 0.040164,
+        "max-rpm": 6396.667,
+        "propeller-diameter": 0.2286,
+        "smoothing-tc": 0.005
+      }
+    },
+    {
+      // 后右电机/桨执行器。
+      "name": "Prop_RR_actuator",
+      "type": "rotor",
+      "enabled": true,
+      "parent-link": "Frame",
+      "child-link": "Prop_RR",
+      "origin": {
+        "xyz": "-0.253 0.253 -0.01",
+        "rpy-deg": "0 0 0"
+      },
+      "rotor-settings": {
+        // 后右桨与前右桨方向相反。
+        "turning-direction": "clock-wise",
+        "normal-vector": "0.0 0.0 -1.0",
+        "coeff-of-thrust": 0.109919,
+        "coeff-of-torque": 0.040164,
+        "max-rpm": 6396.667,
+        "propeller-diameter": 0.2286,
+        "smoothing-tc": 0.005
+      }
+    }
+  ],
+  // sensors 定义机载传感器。这里包含追踪相机、下视相机、IMU，以及默认关闭的 GPS/气压计/磁力计。
+  "sensors": [
+    {
+      // Chase 相机：第三人称追踪视角，常用于观察/录制飞行画面。
+      "id": "Chase",
+      "type": "camera",
+      "enabled": true,
+      // 相机挂在机身 Frame 上。
+      "parent-link": "Frame",
+      // 图像采集间隔，单位秒。
+      "capture-interval": 0.03,
+      "capture-settings": [
+        {
+          // image-type 0 = Scene/RGB 图像。
+          "image-type": 0,
+          // 图像宽高。
+          "width": 1280,
+          "height": 720,
+          // 水平视场角，单位度。
+          "fov-degrees": 90,
+          // capture-enabled 表示可以请求该图像类型。
+          "capture-enabled": true,
+          // streaming-enabled 表示是否作为 topic 持续发布。
+          "streaming-enabled": true,
+          // RGB 图像不使用 float 像素。
+          "pixels-as-float": false,
+          // false 表示不压缩图像。
+          "compress": false,
+          // 输出 gamma。
+          "target-gamma": 2.5
+        }
+      ],
+      // 云台锁定设置。锁 roll/pitch，yaw 跟随机体。
+      "gimbal": {
+        "lock-roll": true,
+        "lock-pitch": true,
+        "lock-yaw": false
+      },
+      // Chase 相机放在机体后方并略微俯视。
+      "origin": {
+        "xyz": "-3.0 0.0 -1.0",
+        "rpy-deg": "0 -11.46 0"
+      }
+    },
+    {
+      // DownCamera 下视相机：用于下视 RGB、深度、分割等图像。
+      "id": "DownCamera",
+      "type": "camera",
+      "enabled": true,
+      "parent-link": "Frame",
+      "capture-interval": 0.02,
+      "capture-settings": [
+        {
+          "image-type": 0,  // scene camera
+          "width": 400,
+          "height": 225,
+          "fov-degrees": 90,
+          "capture-enabled": true,
+          "streaming-enabled": false,
+          "pixels-as-float": false,
+          "compress": false,
+          "target-gamma": 2.5
+        },
+        {
+          "image-type": 1,  // depth planar
+          "width": 400,
+          "height": 225,
+          "fov-degrees": 90,
+          "capture-enabled": false,
+          "streaming-enabled": false,
+          "pixels-as-float": true,
+          "compress": false
+        },
+        {
+          "image-type": 2,  // depth perspective
+          "width": 400,
+          "height": 225,
+          "fov-degrees": 90,
+          "capture-enabled": true,
+          "streaming-enabled": false,
+          "pixels-as-float": true,
+          "compress": false
+        },
+        {
+          "image-type": 3,  // segmentation
+          "width": 400,
+          "height": 225,
+          "fov-degrees": 90,
+          "capture-enabled": false,
+          "streaming-enabled": false,
+          "pixels-as-float": false,
+          "compress": false
+        },
+        {
+          "image-type": 4,  // depth vis
+          "width": 400,
+          "height": 225,
+          "fov-degrees": 90,
+          "capture-enabled": false,
+          "streaming-enabled": false,
+          "pixels-as-float": false,
+          "compress": false,
+          "max-depth-meters": 100
+        },
+        {
+          "image-type": 5,  // disparity normalized
+          "width": 400,
+          "height": 225,
+          "fov-degrees": 90,
+          "capture-enabled": false,
+          "streaming-enabled": false,
+          "pixels-as-float": false,
+          "compress": false
+        },
+        {
+          "image-type": 6,  // surface normals
+          "width": 400,
+          "height": 225,
+          "fov-degrees": 90,
+          "capture-enabled": false,
+          "streaming-enabled": false,
+          "pixels-as-float": false,
+          "compress": false
+        }
+      ],
+      // 图像噪声设置。当前 enabled=false，所以不会生效。
+      "noise-settings": [
+        {
+          "enabled": false,
+          "image-type": 1,
+          "rand-contrib": 0.2,
+          "rand-speed": 100000.0,
+          "rand-size": 500.0,
+          "rand-density": 2,
+          "horz-wave-contrib": 0.03,
+          "horz-wave-strength": 0.08,
+          "horz-wave-vert-size": 1.0,
+          "horz-wave-screen-size": 1.0,
+          "horz-noise-lines-contrib": 1.0,
+          "horz-noise-lines-density-y": 0.01,
+          "horz-noise-lines-density-xy": 0.5,
+          "horz-distortion-contrib": 1.0,
+          "horz-distortion-strength": 0.002
+        }
+      ],
+      // 下视相机姿态：pitch=-90 度，镜头朝下。
+      "origin": {
+        "xyz": "0 0.0 0.0",
+        "rpy-deg": "0 -90 0"
+      }
+    },
+    {
+      // IMU：输出加速度计和陀螺仪数据。
+      "id": "IMU1",
+      "type": "imu",
+      "enabled": true,
+      "parent-link": "Frame",
+      // 加速度计噪声/偏置模型。
+      "accelerometer": {
+        // 速度随机游走。
+        "velocity-random-walk": 2.353e-3,
+        // 偏置相关时间常数。
+        "tau": 800,
+        // 偏置稳定性。
+        "bias-stability": 3.53e-4,
+        // 上电初始偏置。
+        "turn-on-bias": "0 0 0"
+      },
+      // 陀螺仪噪声/偏置模型。
+      "gyroscope": {
+        // 角度随机游走。
+        "angle-random-walk": 8.72644e-5,
+        "tau": 500,
+        "bias-stability": 2.23014e-5,
+        "turn-on-bias": "0 0 0"
+      }
+    },
+    {
+      // GPS 传感器。当前关闭；需要 GPS topic 时改为 true。
+      "id": "GPS",
+      "type": "gps",
+      "enabled": false,
+      "parent-link": "Frame"
+    },
+    {
+      // 气压计。当前关闭。
+      "id": "Barometer",
+      "type": "barometer",
+      "enabled": false,
+      "parent-link": "Frame"
+    },
+    {
+      // 磁力计。当前关闭。
+      "id": "Magnetometer",
+      "type": "magnetometer",
+      "enabled": false,
+      "parent-link": "Frame"
+    }
+  ]
+}

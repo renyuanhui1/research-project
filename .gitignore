@@ -1,0 +1,33 @@
+# 上游仿真引擎（体积大、非本项目代码，作为外部依赖，不纳入版本库）
+/ProjectAirSim/
+
+# 第三方 DINOv2 仓库（外部依赖，离线加载模型结构用，不纳入版本库）
+/dinov2/
+
+# 模型权重（大文件，从服务器拷贝，不纳入版本库）
+/weights/
+
+# 采集/生成产物
+/outputs/
+
+# 日志
+*.log
+
+# Python 缓存与字节码
+__pycache__/
+*.py[cod]
+*.egg-info/
+
+# 备份/临时文件
+*.bak
+*.bak_*
+*.tmp
+
+# 编辑器/系统
+.vscode/
+.idea/
+.DS_Store
+
+# conda/venv 本地环境目录（如果有）
+/.venv/
+/env/
