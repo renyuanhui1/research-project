@@ -101,3 +101,63 @@ GitHub推送现在不支持直接用密码,两种方式二选一:
 | `git checkout -b 分支名` | 创建并切换新分支 |
 | `git merge 分支名` | 合并分支 |
 | `git clone 地址` | 克隆远程仓库到本地 |
+| `git remote -v` | 查看当前连的远程仓库地址 |
+| `git remote set-url origin 地址` | 把远程仓库换成另一个地址 |
+
+---
+
+## 十一、SSH 方式(配一次以后免密码，本项目用的就是这个)
+
+GitHub 推送不能用账号密码。SSH 方式配一次公钥，之后 push/pull 再也不用输密码，比令牌省事。
+
+**一次性配置(每台机器配一次)：**
+```bash
+# 1. 生成密钥(一路回车即可；-N "" 表示不设密钥口令)
+ssh-keygen -t ed25519 -C "你的邮箱" -f ~/.ssh/id_ed25519 -N ""
+
+# 2. 打印公钥，复制这一整行
+cat ~/.ssh/id_ed25519.pub
+
+# 3. 到 GitHub 网页粘贴：Settings → SSH and GPG keys → New SSH key
+
+# 4. 测试是否配通(看到 "Hi 用户名! You've successfully authenticated" 即成功)
+ssh -T git@github.com
+```
+> 私钥(`~/.ssh/id_ed25519`，没有 `.pub` 的那个)留在本机、绝不外传；只把**公钥**(`.pub`)贴到 GitHub。
+> 换服务器/换电脑要重新配一次(每台机器一把)。
+
+**注意：远程地址必须用 SSH 形式** `git@github.com:用户名/仓库名.git`（不是 `https://...`）。
+GitHub 网页点 "Code" 按钮时切到 **SSH** 标签再复制。
+
+## 十二、换仓库 / 新项目 推送
+
+**A. 日常推送(当前项目)**
+```bash
+git add -A
+git commit -m "说明改了什么"
+git push
+```
+
+**B. 当前项目改推到另一个远程仓库(项目文件夹不变)**
+```bash
+git remote set-url origin git@github.com:用户名/新仓库名.git
+git push -u origin main
+```
+
+**C. 把另一个项目文件夹传上 GitHub(全新项目)**
+```bash
+cd 那个项目文件夹
+# 先写好 .gitignore，排除大文件/数据/权重，再往下走
+git init
+git add -A
+git commit -m "初始提交"
+git branch -M main
+git remote add origin git@github.com:用户名/新仓库名.git
+git push -u origin main
+```
+
+## 十三、三条铁律(照做就不出错)
+
+1. **地址一律用 `git@github.com:...`(SSH)**，别用 `https://` —— 才能免密码。
+2. **建新仓库时别勾 "Add a README / .gitignore"**(建**空**仓库) —— 否则远程非空，push 会被拒，得先 `git pull ... --allow-unrelated-histories` 合并再推。
+3. **先写 `.gitignore` 再 `git add`** —— 数据集、模型权重、`outputs/` 这类大文件务必先排除；GitHub 单文件超 100M 直接拒收。可直接拷贝已有项目的 `.gitignore` 当模板。
