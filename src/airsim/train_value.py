@@ -53,6 +53,7 @@ def get_pooled_latents(args):
                 pooled.append(pool_spatial(z, args.pool_grid).cpu().numpy())
             eps.append(np.stack(pooled).astype(np.float32))
             print(f"  [{i+1}/{len(files)}] {os.path.basename(f)} T={len(rgb)}")
+    os.makedirs(os.path.dirname(cache) or ".", exist_ok=True)
     np.savez(cache, *eps)
     print(f"池化latent已缓存: {cache}")
     return eps
