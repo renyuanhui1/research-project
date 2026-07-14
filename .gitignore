@@ -13,6 +13,7 @@
 /outputs/references/*
 !/outputs/references/templates/
 !/outputs/references/goals/
+!/outputs/references/manual/
 /outputs/references/goals/*.mp4
 
 # 日志
