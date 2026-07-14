@@ -5,6 +5,7 @@
 - 新 target 模式：取目标模板图，经 DINO patch token 做目标指纹；MPPI 优化"目标居中 + 变大"。
 - 为适配 4060 Ti(8G，仿真已占 ~7G)：DINO/世界模型用 fp16 autocast；MPPI 单次迭代 +
   跨步 warm-start（上一步规划平移作下一步起点），采样数少而靠闭环纠偏。
+- --handoff 两段式：target 指纹 MPPI 远程领路，dist≤goal-thresh 后自动交接视觉伺服收尾（同一指纹）。
 - Chase 相机与本脚本无关：只订阅/使用 FrontCamera。
 - 全程在"训练集统计标准化"潜空间里算（z_mean/z_std 存在 ckpt）。
 
@@ -85,6 +86,10 @@ def parse_args():
     # 纯视觉伺服（不走 MPPI）：用指纹 center 直接比例控制，直线怼上目标，验证"接触"可达
     p.add_argument("--visual-servo", action="store_true",
                    help="纯视觉伺服模式：不用世界模型/MPPI，指纹 center 直接 P 控制 vy/vz、恒定前进撞上目标")
+    p.add_argument("--handoff", action="store_true",
+                   help="两段式：target MPPI 远程领路，dist≤goal-thresh 后自动交接视觉伺服收尾")
+    p.add_argument("--servo-max-steps", type=int, default=80,
+                   help="--handoff 交接后伺服段的步数预算（独立于 --max-steps）")
     p.add_argument("--servo-fwd", type=float, default=0.8, help="伺服恒定前进速度 v_north")
     p.add_argument("--servo-kp-lat", type=float, default=1.2, help="横向比例增益：vy = kp·center_x")
     p.add_argument("--servo-kp-vert", type=float, default=0.8, help="垂直比例增益：vz = kp·center_y")
@@ -135,7 +140,10 @@ def parse_args():
     p.add_argument("--sim-config-dir", type=Path, default=ce.DEFAULT_CONFIG_DIR)
     p.add_argument("--camera", default=ce.DEFAULT_CAMERA)
     p.add_argument("--altitude", type=float, default=ce.DEFAULT_ALTITUDE)
-    return p.parse_args()
+    args = p.parse_args()
+    if (args.visual_servo or args.handoff) and args.cost_metric != "target":
+        raise SystemExit("--visual-servo/--handoff 需配合 --cost-metric target（要用模板指纹 center）")
+    return args
 
 
 class Planner:
@@ -418,6 +426,48 @@ def dry_run(planner, args):
     print(f"samples={args.samples} horizon={args.horizon} fp16={not args.no_fp16}")
 
 
+async def servo_stage(planner, args, drone, n_steps, step0=0):
+    """指纹视觉伺服段：center 比例控制对准目标、恒定前进（不用世界模型/MPPI）。
+    纯伺服模式(--visual-servo)与两段式交接(--handoff)共用；step0 让 viz 步号接着 MPPI 段编。"""
+    print(f"=== 视觉伺服段: fwd={args.servo_fwd} kp_lat={args.servo_kp_lat} "
+          f"kp_vert={args.servo_kp_vert} ===（不用世界模型/MPPI）")
+    servo_ts = -1
+    for step in range(step0, step0 + n_steps):
+        msg, _ = await ce.wait_new_frame(servo_ts)
+        servo_ts = int(msg["time_stamp"])
+        rgb = cv2.resize(ce.decode_image(msg)[0], (ce.STORE_HW, ce.STORE_HW),
+                         interpolation=cv2.INTER_AREA)
+        z_t = planner.encode(rgb)
+        c = planner.target_components(z_t)
+        cx, cy = c["center"][0].item(), c["center"][1].item()
+        peak, mass = c["peak"].item(), c["mass"].item()
+        # 环偏左(cx<0)→往西(vy<0)纠偏；环偏上(cy<0)→爬升(vz<0)。符号已离线验证。
+        vy = float(np.clip(args.servo_kp_lat * cx, -args.v_max, args.v_max))
+        vz = float(np.clip(args.servo_kp_vert * cy, -args.servo_vz_max, args.servo_vz_max))
+        a = [args.servo_fwd, vy, vz, 0.0]
+        pos = ce.extract_pose(msg)[:3]
+        print(f"  step {step:3d}: peak={peak:.3f} mass={mass:.3f} "
+              f"center=({cx:+.2f},{cy:+.2f}) a=[{a[0]:.2f},{vy:+.2f},{vz:+.2f}] "
+              f"pos=({pos[0]:.1f},{pos[1]:.1f},{pos[2]:.1f})")
+        if args.viz_dump:  # 复用 rviz 节点：把伺服动作当"最优线"铺满 horizon
+            vd = Path(args.viz_dump); vd.mkdir(parents=True, exist_ok=True)
+            act_best = np.tile(a, (args.horizon, 1)).astype(np.float32)
+            np.savez_compressed(
+                vd / f"step_{step:04d}.npz",
+                step=step, pose=ce.extract_pose(msg),
+                dist=float((cx * cx + cy * cy) ** 0.5), best=float(peak),
+                dt=args.dt, grid=planner.grid, rgb=rgb, act_best=act_best,
+                samp_acts=act_best[None], samp_cost=np.array([peak], np.float32),
+                sim=c["sim"].float().cpu().numpy())
+        if args.servo_stop_mass > 0 and mass >= args.servo_stop_mass:
+            print(f"  目标充满视野(mass={mass:.3f} ≥ {args.servo_stop_mass})，接触在即，停")
+            break
+        await drone.move_by_velocity_async(
+            v_north=a[0], v_east=vy, v_down=vz,
+            duration=args.dt * args.dur_factor, yaw=0.0, yaw_is_rate=True)
+    print("  伺服段结束")
+
+
 async def closed_loop(planner, args):
     sim_cfg = str(args.sim_config_dir.expanduser().resolve())
     import projectairsim
@@ -514,45 +564,7 @@ async def closed_loop(planner, args):
             return
 
         if args.visual_servo:  # 纯视觉伺服：指纹 center 直接比例控制，直线怼上目标（不走 MPPI）
-            if args.cost_metric != "target":
-                raise SystemExit("--visual-servo 需配合 --cost-metric target（要用模板指纹 center）")
-            print(f"=== 纯视觉伺服: fwd={args.servo_fwd} kp_lat={args.servo_kp_lat} "
-                  f"kp_vert={args.servo_kp_vert} ===（不用世界模型/MPPI）")
-            servo_ts = -1
-            for step in range(args.max_steps):
-                msg, _ = await ce.wait_new_frame(servo_ts)
-                servo_ts = int(msg["time_stamp"])
-                rgb = cv2.resize(ce.decode_image(msg)[0], (ce.STORE_HW, ce.STORE_HW),
-                                 interpolation=cv2.INTER_AREA)
-                z_t = planner.encode(rgb)
-                c = planner.target_components(z_t)
-                cx, cy = c["center"][0].item(), c["center"][1].item()
-                peak, mass = c["peak"].item(), c["mass"].item()
-                # 环偏左(cx<0)→往西(vy<0)纠偏；环偏上(cy<0)→爬升(vz<0)。符号已离线验证。
-                vy = float(np.clip(args.servo_kp_lat * cx, -args.v_max, args.v_max))
-                vz = float(np.clip(args.servo_kp_vert * cy, -args.servo_vz_max, args.servo_vz_max))
-                a = [args.servo_fwd, vy, vz, 0.0]
-                pos = ce.extract_pose(msg)[:3]
-                print(f"  step {step:3d}: peak={peak:.3f} mass={mass:.3f} "
-                      f"center=({cx:+.2f},{cy:+.2f}) a=[{a[0]:.2f},{vy:+.2f},{vz:+.2f}] "
-                      f"pos=({pos[0]:.1f},{pos[1]:.1f},{pos[2]:.1f})")
-                if args.viz_dump:  # 复用 rviz 节点：把伺服动作当"最优线"铺满 horizon
-                    vd = Path(args.viz_dump); vd.mkdir(parents=True, exist_ok=True)
-                    act_best = np.tile(a, (args.horizon, 1)).astype(np.float32)
-                    np.savez_compressed(
-                        vd / f"step_{step:04d}.npz",
-                        step=step, pose=ce.extract_pose(msg),
-                        dist=float((cx * cx + cy * cy) ** 0.5), best=float(peak),
-                        dt=args.dt, grid=planner.grid, rgb=rgb, act_best=act_best,
-                        samp_acts=act_best[None], samp_cost=np.array([peak], np.float32),
-                        sim=c["sim"].float().cpu().numpy())
-                if args.servo_stop_mass > 0 and mass >= args.servo_stop_mass:
-                    print(f"  目标充满视野(mass={mass:.3f} ≥ {args.servo_stop_mass})，接触在即，停")
-                    break
-                await drone.move_by_velocity_async(
-                    v_north=a[0], v_east=vy, v_down=vz,
-                    duration=args.dt * args.dur_factor, yaw=0.0, yaw_is_rate=True)
-            print("  伺服段结束")
+            await servo_stage(planner, args, drone, args.max_steps)
             return
 
         mu = init_mu(args, planner.dev)
@@ -604,8 +616,12 @@ async def closed_loop(planner, args):
                   f"a0=[{acts_exec[0,0]:.2f},{acts_exec[0,1]:.2f},{acts_exec[0,2]:.2f},{acts_exec[0,3]:.2f}]"
                   f" pos=({pos[0]:.1f},{pos[1]:.1f},{pos[2]:.1f}) 步移={dpos:.2f} 累计={dtot:.1f}")
             if dist <= args.goal_thresh:
-                print(f"  到达目标（dist={dist:.3f} ≤ {args.goal_thresh}）")
                 reached = True
+                if args.handoff:
+                    print(f"  MPPI 段到位（dist={dist:.3f} ≤ {args.goal_thresh}），交接视觉伺服收尾")
+                    await servo_stage(planner, args, drone, args.servo_max_steps, step0=step)
+                else:
+                    print(f"  到达目标（dist={dist:.3f} ≤ {args.goal_thresh}）")
                 break
             z_prev, a_prev = z_t, acts_exec[0].clone()  # 记录本步起点与即将执行的第一个动作
             # 连续执行接下来 stride 个规划动作（不中途换向），指令时长拉长以保持连续运动
