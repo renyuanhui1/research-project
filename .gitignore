@@ -7,8 +7,13 @@
 # 模型权重（大文件，从服务器拷贝，不纳入版本库）
 /weights/
 
-# 采集/生成产物
-/outputs/
+# 采集/生成产物（例外：references 下的模板/目标图是实验输入，入库随服务器同步）
+/outputs/*
+!/outputs/references/
+/outputs/references/*
+!/outputs/references/templates/
+!/outputs/references/goals/
+/outputs/references/goals/*.mp4
 
 # 日志
 *.log
