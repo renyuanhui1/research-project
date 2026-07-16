@@ -95,3 +95,49 @@
 【产物】权重 weights/, 数据 outputs/datasets/, 评估 outputs/evaluations/, 台账 docs/EXPERIMENTS.md
 【卡点】V 半径 KMAX=25 → 子目标链; 近目标打转 → rviz 诊断/关 yaw 隔离
 ```
+
+## 七、启动命令速查（两段式闭环 --handoff + rviz）
+
+> 前提：① 宿主机 192.168.31.178 上 UE 仿真已跑起来且**在前台**；② 服务器已 `git pull`（或应用 bundle）。
+> 服务器权重路径与本地不同（都被 gitignore，不随 git 同步，必须显式覆盖）：
+> - DINO 主干在 dinov2 仓库内：`/home/pc/works/2025ryh/dinov2/weights/dinov2_vits14_pretrain.pth` → 必须 `--dino-weights` 指到此**文件**。
+> - 世界模型 `predictor_h5.pt` 在 research-project 的 `weights/` 里 → 走默认，无需 `--ckpt`。
+> - dinov2 仓库在 research-project 外的上一级 → `--repo-dir /home/pc/works/2025ryh/dinov2`（指到**目录**，别和 --dino-weights 混）。
+
+### A. 服务器：跑两段式闭环（指纹 MPPI 远程领路 → dist≤goal-thresh 交接视觉伺服收尾）
+
+```bash
+# conda activate ryh-dinov2; cd /home/pc/works/2025ryh/research-project
+python src/airsim/plan_closed_loop.py \
+  --address 192.168.31.178 \
+  --repo-dir /home/pc/works/2025ryh/dinov2 \
+  --dino-weights /home/pc/works/2025ryh/dinov2/weights/dinov2_vits14_pretrain.pth \
+  --cost-metric target \
+  --target-template outputs/references/templates/tmpl_ring_rim.png \
+  --goal-thresh -0.18 \
+  --handoff \
+  --servo-stop-mass 0.5 \
+  --max-steps 140 \
+  --samples 256 --iters 6 \
+  --viz-dump outputs/runs/mppi/handoff03
+# 说明：tmpl_ring_rim 已标定(ρ=0.847, goal-thresh -0.18)，换目标图必须先离线重标定阈值。
+#      需原地转圈搜目标时加 --acquire；嫌 MPPI 慢降 --samples 64 --iters 3。
+#      --max-steps 是 MPPI 远程段上限；交接后伺服段另有 --servo-max-steps(默认80)。
+#      起点：sim_config/scene_drone_sensors.jsonc 出生点 x=22.3(距目标~20m)；采集需改回 x=0.9。
+```
+
+### B. 本地：sshfs 挂载 + rviz 可视化（rviz 与节点分开跑，便于反复重播）
+
+```bash
+# 1) 挂载服务器 dump 目录（重启后需重挂；非空/已挂先 fusermount -u ~/mnt/server_runs 再挂）
+mkdir -p ~/mnt/server_runs
+sshfs pc@192.168.31.237:/home/pc/works/2025ryh/research-project/outputs/runs/mppi ~/mnt/server_runs
+
+# 2) 终端A：只开 rviz（全程不动）
+rviz2 -d src/mpc/plan_viz.rviz
+
+# 3) 终端B：单独跑可视化节点（重播=Ctrl+C 后重跑，rviz 不用重启；换 run 改 --dump-dir）
+#    必须用系统 python /usr/bin/python3（rclpy C 扩展是 3.10 编的，conda python 会 import 失败）
+/usr/bin/python3 src/mpc/plan_viz_node.py --dump-dir ~/mnt/server_runs/handoff03 --rate 5
+# --rate = 回放速度(步/秒)：每 1/rate 秒播一步；调小慢放看细节，调大快进
+```
