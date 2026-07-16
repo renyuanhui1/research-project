@@ -4,7 +4,8 @@
 与 rviz 同款朝向。轴标签用英文，免得 matplotlib 缺中文字体显示成方块。
 
 用法：
-  python src/mpc/plot_traj_dump.py --dump-dir outputs/runs/mppi/handoff03 --out traj.png
+  python src/mpc/plot_traj_dump.py --dump-dir outputs/runs/mppi/handoff03
+  # 默认输出 outputs/traj_plots/traj.png(目录自动创建)；--out 可自定义路径
   # 本地看服务器的 run：--dump-dir ~/mnt/server_runs/handoff03
   # 加 --side 同时出高度侧视剖面(北 vs 高度)，文件名自动加 _side
 """
@@ -15,6 +16,9 @@ import numpy as np
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
+
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+DEFAULT_OUT = PROJECT_ROOT / "outputs" / "traj_plots" / "traj.png"
 
 
 def load_traj(dump_dir):
@@ -49,9 +53,12 @@ def plot_side(p, out):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--dump-dir", required=True)
-    ap.add_argument("--out", default="traj.png")
+    ap.add_argument("--out", default=str(DEFAULT_OUT),
+                    help=f"输出路径, 默认 {DEFAULT_OUT}")
     ap.add_argument("--side", action="store_true", help="同时出高度侧视剖面(文件名加 _side)")
     args = ap.parse_args()
+
+    Path(args.out).parent.mkdir(parents=True, exist_ok=True)   # 目录不存在则自动建
 
     p = load_traj(args.dump_dir)
     total = float(np.linalg.norm(np.diff(p, axis=0), axis=1).sum())
