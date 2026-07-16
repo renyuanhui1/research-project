@@ -37,3 +37,4 @@ __pycache__/
 # conda/venv 本地环境目录（如果有）
 /.venv/
 /env/
+update.bundle
