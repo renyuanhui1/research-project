@@ -20,10 +20,14 @@ PROJECT_ROOT = Path(__file__).resolve().parents[3]
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--base", default=str(PROJECT_ROOT), help="项目根目录；默认根据脚本位置自动推导")
+    ap.add_argument("--repo-dir", default=None, help="dinov2 仓库路径；默认 {base}/dinov2")
+    ap.add_argument("--dino-weights", default=None, help="DINO 权重；默认 {base}/weights/dinov2_vits14_pretrain.pth")
     ap.add_argument("--steps", type=int, default=30, help="rollout 步数")
     ap.add_argument("--roll-from", type=int, default=0, help="从第几帧起 rollout")
     cli = ap.parse_args()
     BASE = cli.base
+    repo_dir = cli.repo_dir or f"{BASE}/dinov2"
+    dino_weights = cli.dino_weights or f"{BASE}/weights/dinov2_vits14_pretrain.pth"
     sys.path.insert(0, f"{BASE}/src/airsim")
     from extract_dino_features import load_model, to_input_tensor, IMAGENET_MEAN, IMAGENET_STD
     from train_predictor import LatentPredictor
@@ -40,8 +44,7 @@ def main():
     zs = torch.tensor(np.asarray(ck["z_std"]), device=DEV)
     mean = torch.tensor(IMAGENET_MEAN, device=DEV).view(1, 3, 1, 1)
     std = torch.tensor(IMAGENET_STD, device=DEV).view(1, 3, 1, 1)
-    dino = load_model("dinov2_vits14", DEV,
-                      weights=f"{BASE}/weights/dinov2_vits14_pretrain.pth", repo_dir=f"{BASE}/dinov2")
+    dino = load_model("dinov2_vits14", DEV, weights=dino_weights, repo_dir=repo_dir)
 
     files = sorted(glob.glob(f"{BASE}/outputs/datasets/episodes_dataset/episode_*.h5"))
     n = len(files)
