@@ -38,6 +38,15 @@ def ned_to_viz(p):
     return float(p[1]), float(p[0]), float(-p[2])
 
 
+def jet(t):
+    """t∈[0,1] → (r,g,b) jet 彩虹：低=蓝，中=绿黄，高=红。给体素按高度上色。"""
+    t = min(max(t, 0.0), 1.0)
+    r = min(max(1.5 - abs(4 * t - 3), 0.0), 1.0)
+    g = min(max(1.5 - abs(4 * t - 2), 0.0), 1.0)
+    b = min(max(1.5 - abs(4 * t - 1), 0.0), 1.0)
+    return r, g, b
+
+
 class PlanVizNode(Node):
     def __init__(self, args):
         super().__init__('plan_viz')
@@ -49,6 +58,7 @@ class PlanVizNode(Node):
         self.path_pub = self.create_publisher(Path, 'plan/traj', 10)
         self.img_pub = self.create_publisher(Image, 'plan/view', 10)
         self.cloud_pub = self.create_publisher(PointCloud2, 'plan/cloud', 1)
+        self.voxel_pub = self.create_publisher(Marker, 'plan/voxels', 1)
 
         self.traj = Path()
         self.traj.header.frame_id = FRAME
@@ -77,7 +87,7 @@ class PlanVizNode(Node):
     def publish_step(self, d):
         now = self.get_clock().now().to_msg()
         pos = d['pose'][:3]
-        dt = float(d['dt'])
+        dt = float(d['dt']) if 'dt' in d.files else 0.1
 
         # 路径
         ps = PoseStamped()
@@ -89,20 +99,25 @@ class PlanVizNode(Node):
         self.path_pub.publish(self.traj)
 
         arr = MarkerArray()
-        arr.markers.append(self.goal_ring(now))
         arr.markers.append(self.drone_marker(now, pos))
-        arr.markers.append(self.samples_marker(now, pos, d['samp_acts'], d['samp_cost'], dt))
-        arr.markers.append(self.best_marker(now, pos, d['act_best'], dt))
-        arr.markers.append(self.text_marker(now, pos,
-            f"step {int(d['step'])}  dist={float(d['dist']):.3f}  best={float(d['best']):.3f}"))
+        if 'samp_acts' in d.files:          # 规划(闭环)dump：画目标环/采样束/最优线/dist
+            arr.markers.append(self.goal_ring(now))
+            arr.markers.append(self.samples_marker(now, pos, d['samp_acts'], d['samp_cost'], dt))
+            arr.markers.append(self.best_marker(now, pos, d['act_best'], dt))
+            arr.markers.append(self.text_marker(now, pos,
+                f"step {int(d['step'])}  dist={float(d['dist']):.3f}  best={float(d['best']):.3f}"))
+        else:                               # 纯建图 dump：只标无人机 + 步数
+            arr.markers.append(self.text_marker(now, pos, f"step {int(d['step'])}  (mapping)"))
         self.marker_pub.publish(arr)
 
-        self.img_pub.publish(self.view_image(now, d['rgb'], d['sim'], int(d['grid'])))
+        if 'rgb' in d.files:
+            self.img_pub.publish(self.view_image(now, d['rgb'], d['sim'], int(d['grid'])))
 
         if 'pts' in d.files:            # 实时建图：本步点云累加后重发整片
             self.add_cloud(np.asarray(d['pts']), np.asarray(d['cols']))
             if self.cx:
                 self.cloud_pub.publish(self.make_cloud(now))
+                self.voxel_pub.publish(self.make_voxels(now))
 
     # ---------- markers ----------
 
@@ -238,6 +253,21 @@ class PlanVizNode(Node):
         msg.is_dense = True
         msg.data = arr.tobytes()
         return msg
+
+    def make_voxels(self, stamp):
+        """累加的体素 → CUBE_LIST 方块地图(像#14)，格心对齐、按高度 jet 上色。"""
+        v = self.args.map_voxel
+        m = self._base(stamp, 'voxels', 0, Marker.CUBE_LIST)
+        m.scale.x = m.scale.y = m.scale.z = v
+        cz = np.asarray(self.cz)
+        zmin, span = float(cz.min()), max(float(cz.max() - cz.min()), 1e-3)
+        for x, y, z in zip(self.cx, self.cy, self.cz):
+            m.points.append(Point(x=float((np.floor(x / v) + 0.5) * v),
+                                  y=float((np.floor(y / v) + 0.5) * v),
+                                  z=float((np.floor(z / v) + 0.5) * v)))
+            r, g, b = jet((z - zmin) / span)
+            m.colors.append(ColorRGBA(r=r, g=g, b=b, a=1.0))
+        return m
 
 
 def main():
