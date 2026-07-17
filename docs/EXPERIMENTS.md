@@ -104,3 +104,24 @@
 - [ ] 换训练外目标图的泛化验证（脚本待写）
 - [ ] 闭环真实预算(32×2×1)下复跑 eval_mppi_dir, 量化"乐观差"
 - [ ] 子目标链闭环（间距 12~16 步, 依据上表）
+
+---
+
+## 2026-07-16 世界模型离线复现（eval_wm.py）
+
+### eval_wm: predictor_h5 三性质 + 泛化复测（服务器 ryh-dinov2, 53条, held-out=50/51/52）
+- 命令: `python src/airsim/tools/eval_wm.py --repo-dir /home/pc/works/2025ryh/dinov2 --dino-weights .../weights/dinov2_vits14_pretrain.pth --data-dir /home/pc/works/2025ryh/dinov2/my/datasets/episodes_dataset`
+- 环境: 服务器 ryh-dinov2; `predictor_h5.pt`(research-project/weights)
+- 产物: 仅终端（关键比值抄录下方）
+- 结果（held-out 平均, model/基线 比值, <1=赢）:
+
+| 比值 | h3 | h5 | h10 | h15 | h20 | h30 |
+| --- | --- | --- | --- | --- | --- | --- |
+| model/identity | 0.36 | 0.31 | 0.42 | 0.61 | 0.57 | 0.60 |
+| model/zero-act | 0.40 | 0.34 | 0.44 | 0.68 | 0.66 | 0.70 |
+| model/swap | 0.81 | 0.60 | 0.51 | 0.64 | 0.61 | 0.62 |
+
+  泛化: held-out ≈ 训练抽样(0/17/35), 长步长 h30 略差(identity 0.60 vs 训练 0.50)。h1 比值>1 是假象(单步近乎不动, identity 天然占优)。
+- 结论: **三性质(学到运动/真听命令/动作特异)全成立、泛化 OK, 模型验证通过——闭环瓶颈确认在目标函数+标定+几何, 非模型, 不重训。**
+  唯一相对弱项: swap(动作特异)余量最小(0.5~0.8 vs identity 0.3~0.6)且 held-out 长步长略衰减 → 模型"预测大致运动"强、"锐利区分不同动作"偏弱, 与 MPPI 难挑动作连着（后续可优化: 训练加大对比/swap 信号, 非 demo 障碍）。
+- 附: eval_wm.py 已修可传参 `--repo-dir/--dino-weights/--data-dir`（服务器数据在 `dinov2/my/datasets/episodes_dataset`; commit 6463dd7）。
