@@ -38,8 +38,20 @@ def _get():
         return _latest
 
 
+def _dtype_from_encoding(enc):
+    """按 ROS 风格 encoding 名推 numpy dtype，如 16UC1->uint16, 32FC1->float32。"""
+    e = str(enc).lower()
+    if "16u" in e:
+        return np.uint16
+    if "8u" in e:
+        return np.uint8
+    if "32f" in e:
+        return np.float32
+    return None
+
+
 def describe(msg):
-    """把一条深度 msg 的关键信息打印出来，尽量不假设格式。"""
+    """把一条深度 msg 的关键信息打印出来，按 encoding 自动选 dtype。"""
     h, w = msg.get("height"), msg.get("width")
     enc = msg.get("encoding")
     data = msg["data"]
@@ -48,26 +60,30 @@ def describe(msg):
     print(f"  data 类型 = {type(data).__name__}, "
           f"len = {len(data) if hasattr(data, '__len__') else '?'}")
 
-    # 深度是 pixels-as-float=true → float32。msgpack 传 bytes，reqrep 传 list。
+    dt = _dtype_from_encoding(enc)
+    if dt is None:
+        print(f"  ⚠ 不认识的 encoding={enc!r}，无法解码；原始前 16 字节: "
+              f"{bytes(data[:16]) if hasattr(data, '__getitem__') else data}")
+        return
+
     if isinstance(data, (bytes, bytearray, memoryview)):
-        arr = np.frombuffer(data, dtype=np.float32)
+        arr = np.frombuffer(data, dtype=dt)
     else:
-        arr = np.asarray(data, dtype=np.float32)
+        arr = np.asarray(data, dtype=dt)
 
     n = arr.size
     px = (h or 0) * (w or 0)
-    ch = n / px if px else float("nan")
-    print(f"  float32 元素数 = {n}, H*W = {px}, 反推通道数 = {ch:.3f}")
-    if px and n % px == 0:
-        img = arr.reshape(h, w, n // px)
-        d = img[..., 0]
-        finite = d[np.isfinite(d)]
-        print(f"  depth[0] 通道: min={finite.min():.3f} max={finite.max():.3f} "
-              f"mean={finite.mean():.3f}  (推测单位=米，请对照场景尺度确认)")
-        print(f"  中心像素深度 = {d[h // 2, w // 2]:.3f}")
-        print(f"  非有限值(inf/nan)占比 = {(~np.isfinite(d)).mean() * 100:.1f}%")
-    else:
-        print(f"  ⚠ 无法按 H*W 整除，原始前 8 个值: {arr[:8]}")
+    print(f"  按 {np.dtype(dt).name} 解: 元素数={n}, H*W={px}, 通道数={n/px if px else float('nan'):.3f}")
+    if not (px and n % px == 0):
+        print(f"  ⚠ 仍无法整除，原始前 8 个值: {arr[:8]}")
+        return
+
+    d = arr.reshape(h, w, n // px)[..., 0].astype(np.float64)
+    print(f"  原始值(整数刻度): min={d.min():.0f} max={d.max():.0f} mean={d.mean():.1f}")
+    print(f"  中心像素原始值 = {d[h // 2, w // 2]:.0f}")
+    print(f"  ==0 占比 = {(d == 0).mean() * 100:.1f}%   ==max 占比 = {(d == d.max()).mean() * 100:.1f}%")
+    print(f"  → 若单位是毫米: min={d.min()/1000:.2f}m max={d.max()/1000:.2f}m 中心={d[h//2,w//2]/1000:.2f}m")
+    print(f"  (请对照场景实际距离判断刻度：毫米? 厘米? 还是量程归一化的整数?)")
 
 
 async def main(args):
