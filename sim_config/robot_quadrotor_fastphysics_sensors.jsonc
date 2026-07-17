@@ -413,10 +413,10 @@
           "width": 1920,
           "height": 1080,
           "fov-degrees": 90,
-          // 关闭：只用 scene_camera(RGB)，深度图我们不用，渲染深度额外耗 GPU。
-          // 需要深度时改回 true。
-          "capture-enabled": false,
-          "streaming-enabled": false,
+          // 建图需要深度：capture+streaming 都要开，pub/sub 才订得到（RGB 那路同理）。
+          // 平时不建图想省 GPU 就改回 false。
+          "capture-enabled": true,
+          "streaming-enabled": true,
           "pixels-as-float": true,
           "compress": false
         }
