@@ -25,7 +25,7 @@ import rclpy
 from rclpy.node import Node
 from geometry_msgs.msg import Point, PoseStamped
 from nav_msgs.msg import Path
-from sensor_msgs.msg import Image
+from sensor_msgs.msg import Image, PointCloud2, PointField
 from std_msgs.msg import ColorRGBA
 from visualization_msgs.msg import Marker, MarkerArray
 
@@ -48,9 +48,14 @@ class PlanVizNode(Node):
         self.marker_pub = self.create_publisher(MarkerArray, 'plan/markers', 10)
         self.path_pub = self.create_publisher(Path, 'plan/traj', 10)
         self.img_pub = self.create_publisher(Image, 'plan/view', 10)
+        self.cloud_pub = self.create_publisher(PointCloud2, 'plan/cloud', 1)
 
         self.traj = Path()
         self.traj.header.frame_id = FRAME
+
+        # 实时建图：累加各步点云，按体素去重（键=量化坐标），避免无限膨胀
+        self.cx, self.cy, self.cz, self.crgb = [], [], [], []
+        self.vox = set()
 
         self.timer = self.create_timer(1.0 / args.rate, self.tick)
         self.get_logger().info(f'监听 {self.dump}（{args.rate} 步/秒）')
@@ -93,6 +98,11 @@ class PlanVizNode(Node):
         self.marker_pub.publish(arr)
 
         self.img_pub.publish(self.view_image(now, d['rgb'], d['sim'], int(d['grid'])))
+
+        if 'pts' in d.files:            # 实时建图：本步点云累加后重发整片
+            self.add_cloud(np.asarray(d['pts']), np.asarray(d['cols']))
+            if self.cx:
+                self.cloud_pub.publish(self.make_cloud(now))
 
     # ---------- markers ----------
 
@@ -188,6 +198,47 @@ class PlanVizNode(Node):
         msg.data = img.clip(0, 255).astype(np.uint8).tobytes()
         return msg
 
+    # ---------- 实时建图点云 ----------
+
+    def add_cloud(self, pts_ned, cols):
+        """把本步世界NED点(Nx3)转 ENU、体素去重后追加。cols: Nx3 uint8。"""
+        if pts_ned.size == 0:
+            return
+        # NED → ENU：x=东(E)=p[1], y=北(N)=p[0], z=上=-D=-p[2]（与 ned_to_viz 一致）
+        enu = np.stack([pts_ned[:, 1], pts_ned[:, 0], -pts_ned[:, 2]], axis=1)
+        keys = np.floor(enu / self.args.map_voxel).astype(np.int64)
+        rgb = (cols[:, 0].astype(np.uint32) << 16 |
+               cols[:, 1].astype(np.uint32) << 8 | cols[:, 2].astype(np.uint32))
+        for i in range(len(enu)):
+            k = (int(keys[i, 0]), int(keys[i, 1]), int(keys[i, 2]))
+            if k in self.vox:
+                continue
+            self.vox.add(k)
+            self.cx.append(float(enu[i, 0])); self.cy.append(float(enu[i, 1]))
+            self.cz.append(float(enu[i, 2])); self.crgb.append(int(rgb[i]))
+
+    def make_cloud(self, stamp):
+        """累加的点 → PointCloud2(带 rgb)。rgb 按 rviz 惯例打包进 float32 字段。"""
+        n = len(self.cx)
+        arr = np.zeros(n, dtype=[('x', '<f4'), ('y', '<f4'), ('z', '<f4'), ('rgb', '<u4')])
+        arr['x'] = self.cx; arr['y'] = self.cy; arr['z'] = self.cz; arr['rgb'] = self.crgb
+        msg = PointCloud2()
+        msg.header.frame_id = FRAME
+        msg.header.stamp = stamp
+        msg.height, msg.width = 1, n
+        msg.fields = [
+            PointField(name='x', offset=0, datatype=PointField.FLOAT32, count=1),
+            PointField(name='y', offset=4, datatype=PointField.FLOAT32, count=1),
+            PointField(name='z', offset=8, datatype=PointField.FLOAT32, count=1),
+            PointField(name='rgb', offset=12, datatype=PointField.FLOAT32, count=1),
+        ]
+        msg.is_bigendian = False
+        msg.point_step = 16
+        msg.row_step = 16 * n
+        msg.is_dense = True
+        msg.data = arr.tobytes()
+        return msg
+
 
 def main():
     ap = argparse.ArgumentParser()
@@ -196,6 +247,8 @@ def main():
     ap.add_argument('--goal-ned', type=float, nargs=2, default=[42.3, 7.5])
     ap.add_argument('--goal-alt', type=float, default=14.0)
     ap.add_argument('--goal-radius', type=float, default=4.0)
+    ap.add_argument('--map-voxel', type=float, default=0.15,
+                    help='建图点云体素去重尺寸(米)，越大越稀越省')
     args = ap.parse_args()
 
     rclpy.init()

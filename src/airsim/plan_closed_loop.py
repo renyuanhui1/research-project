@@ -24,6 +24,7 @@ import torch
 import torch.nn.functional as F
 
 import collect_episode as ce
+import depth_map as dm
 from extract_dino_features import load_model, to_input_tensor, IMAGENET_MEAN, IMAGENET_STD
 from train_predictor import LatentPredictor
 from train_value import ValueFn, pool_spatial
@@ -77,6 +78,12 @@ def parse_args():
                    help="到达判定阈值：target 默认 0.5；poolcos 可用 ~0.02；patchmse 需调大到 ~0.3")
     p.add_argument("--viz-dump", default=None,
                    help="每次重规划把采样/最优动作/响应图存该目录（npz），供 src/mpc/plan_viz_node.py 可视化")
+    p.add_argument("--map", action="store_true",
+                   help="实时建图：每步用 FrontCamera 深度反投影出世界点云，随 --viz-dump 落进 npz(需先在 config 开深度流)")
+    p.add_argument("--map-stride", type=int, default=16,
+                   help="建图深度像素下采样步长(越大点越稀越省)")
+    p.add_argument("--map-max-range", type=float, default=40.0,
+                   help="建图丢弃超过此距离(米)的深度点")
     p.add_argument("--acquire", action="store_true",
                    help="截获段：起飞后原地旋转搜索目标（peak 过阈值且居中即停），出生朝向可任意")
     p.add_argument("--acquire-rate", type=float, default=0.3, help="截获段旋转速率 rad/s")
@@ -475,12 +482,22 @@ async def closed_loop(planner, args):
     client = projectairsim.ProjectAirSimClient(address=args.address)
     client.connect()
     print("已连接仿真")
+    dtopic = None
     try:
         world = World(client, args.scene, sim_config_path=sim_cfg, delay_after_load_sec=2)
         drone = Drone(client, world, "Drone1")
         topic = drone.sensors[args.camera]["scene_camera"]
         ce.reset_cache()
         client.subscribe(topic, ce.image_callback)
+        if args.map:
+            dkeys = [k for k in drone.sensors[args.camera] if "depth" in k.lower()]
+            if not dkeys:
+                raise SystemExit("--map 需要深度流：config 里 FrontCamera image-type 2 的 "
+                                 "capture-enabled/streaming-enabled 未开，或没有 depth topic")
+            dtopic = drone.sensors[args.camera][dkeys[0]]
+            dm.reset_depth()
+            client.subscribe(dtopic, dm.depth_callback)
+            print(f"已订阅深度: {dtopic}（实时建图）")
         z_goal = None if (args.record_goal or args.sanity or args.cost_metric == "target") \
             else planner.encode(load_goal_rgb(args))
 
@@ -604,13 +621,19 @@ async def closed_loop(planner, args):
                 vd.mkdir(parents=True, exist_ok=True)
                 sim = (planner.target_components(z_t)["sim"].float().cpu().numpy()
                        if args.cost_metric == "target" else np.zeros(1, np.float32))
+                mp = {}
+                if args.map and dm.get_depth() is not None:
+                    pts, cols = dm.frame_to_world(
+                        dm.get_depth(), ce.decode_image(msg)[0], ce.extract_pose(msg),
+                        args.map_stride, args.map_max_range)
+                    mp = {"pts": pts.astype(np.float32), "cols": cols}
                 np.savez_compressed(
                     vd / f"step_{step:04d}.npz",
                     step=step, pose=ce.extract_pose(msg), dist=dist, best=best,
                     dt=args.dt, grid=planner.grid, rgb=rgb,
                     act_best=acts_exec.float().cpu().numpy(),
                     samp_acts=planner.last_plan["acts"],
-                    samp_cost=planner.last_plan["cost"], sim=sim)
+                    samp_cost=planner.last_plan["cost"], sim=sim, **mp)
             tstat = planner.target_stats(z_t) if args.cost_metric == "target" else ""
             print(f"  step {step:3d}: dist={dist:.3f} best={best:.3f}{tstat} "
                   f"a0=[{acts_exec[0,0]:.2f},{acts_exec[0,1]:.2f},{acts_exec[0,2]:.2f},{acts_exec[0,3]:.2f}]"
@@ -647,6 +670,8 @@ async def closed_loop(planner, args):
         except Exception as e:
             print(f"降落/释放异常（可忽略）: {e}")
         client.unsubscribe(topic)
+        if dtopic is not None:
+            client.unsubscribe(dtopic)
         client.disconnect()
         print("已断开仿真")
 
