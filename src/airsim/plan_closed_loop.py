@@ -84,6 +84,10 @@ def parse_args():
                    help="建图深度像素下采样步长(越大点越稀越省)")
     p.add_argument("--map-max-range", type=float, default=40.0,
                    help="建图丢弃超过此距离(米)的深度点")
+    p.add_argument("--map-target-peak", type=float, default=0.4,
+                   help="建图时目标定位的指纹 peak 阈值(整帧 peak 高于此才启用目标高亮)")
+    p.add_argument("--map-target-sim", type=float, default=0.32,
+                   help="单个 patch 判为目标的 sim 阈值(落其上的点高亮成目标)")
     p.add_argument("--acquire", action="store_true",
                    help="截获段：起飞后原地旋转搜索目标（peak 过阈值且居中即停），出生朝向可任意")
     p.add_argument("--acquire-rate", type=float, default=0.3, help="截获段旋转速率 rad/s")
@@ -619,14 +623,26 @@ async def closed_loop(planner, args):
             if args.viz_dump:  # 每次重规划落盘一份快照，供 rviz 节点可视化/离线复盘
                 vd = Path(args.viz_dump)
                 vd.mkdir(parents=True, exist_ok=True)
-                sim = (planner.target_components(z_t)["sim"].float().cpu().numpy()
-                       if args.cost_metric == "target" else np.zeros(1, np.float32))
+                tc = planner.target_components(z_t) if args.cost_metric == "target" else None
+                sim = tc["sim"].float().cpu().numpy() if tc is not None else np.zeros(1, np.float32)
                 mp = {}
                 if args.map and dm.get_depth() is not None:
-                    pts, cols = dm.frame_to_world(
-                        dm.get_depth(), ce.decode_image(msg)[0], ce.extract_pose(msg),
-                        args.map_stride, args.map_max_range)
-                    mp = {"pts": pts.astype(np.float32), "cols": cols}
+                    depth_msg = dm.get_depth()
+                    pose7 = ce.extract_pose(msg)
+                    rgb_full = ce.decode_image(msg)[0]
+                    if tc is not None and float(tc["peak"]) > args.map_target_peak:
+                        # 指纹够强：反投影时给落在目标 patch 上的点打标签 → 地图里高亮出目标
+                        sg = sim.reshape(planner.grid, planner.grid)
+                        pts, cols, is_tgt = dm.frame_to_world_tagged(
+                            depth_msg, rgb_full, pose7, args.map_stride, args.map_max_range,
+                            sg, planner.grid, args.map_target_sim)
+                        mp = {"pts": pts.astype(np.float32), "cols": cols}
+                        if is_tgt.any():
+                            mp["tgt_pts"] = pts[is_tgt].astype(np.float32)
+                    else:
+                        pts, cols = dm.frame_to_world(
+                            depth_msg, rgb_full, pose7, args.map_stride, args.map_max_range)
+                        mp = {"pts": pts.astype(np.float32), "cols": cols}
                 np.savez_compressed(
                     vd / f"step_{step:04d}.npz",
                     step=step, pose=ce.extract_pose(msg), dist=dist, best=best,

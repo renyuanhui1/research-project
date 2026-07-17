@@ -75,7 +75,7 @@ def backproject(depth_m, valid, rgb_full, stride, max_range, fov_deg=90.0):
     # 光学(右,下,前) → 机体 FRD(前,右,下) = (z,x,y)，再加相机安装偏移
     pts_cam = pts_opt[:, [2, 0, 1]] + CAM_OFFSET_BODY
     colors = rgb_full[vv, uu].astype(np.uint8)
-    return pts_cam.astype(np.float32), colors
+    return pts_cam.astype(np.float32), colors, uu, vv
 
 
 def _quat_to_R(q):
@@ -98,5 +98,22 @@ def cam_to_world_ned(pts_cam, pose7):
 def frame_to_world(depth_msg, rgb_full, pose7, stride, max_range, fov_deg=90.0):
     """一步到位：深度帧 + 整帧RGB + 位姿 → (世界NED点 Nx3 float32, 颜色 Nx3 uint8)。"""
     depth_m, valid = decode_depth(depth_msg)
-    pts_cam, colors = backproject(depth_m, valid, rgb_full, stride, max_range, fov_deg)
+    pts_cam, colors, _, _ = backproject(depth_m, valid, rgb_full, stride, max_range, fov_deg)
     return cam_to_world_ned(pts_cam, pose7), colors
+
+
+def frame_to_world_tagged(depth_msg, rgb_full, pose7, stride, max_range,
+                          sim_grid, grid, tgt_thresh, fov_deg=90.0):
+    """同 frame_to_world，但额外用指纹响应图 sim_grid(grid×grid) 给每个点打"是否目标"标签。
+
+    每点像素 (u,v) → 归一化 → 对应 patch → sim 响应；>tgt_thresh 即判为目标点。
+    返回 (世界NED点 Nx3, 颜色 Nx3, is_target 布尔 N)。
+    """
+    depth_m, valid = decode_depth(depth_msg)
+    pts_cam, colors, uu, vv = backproject(depth_m, valid, rgb_full, stride, max_range, fov_deg)
+    pts_world = cam_to_world_ned(pts_cam, pose7)
+    h, w = depth_m.shape
+    col = np.clip((uu.astype(np.float64) / w * grid).astype(int), 0, grid - 1)
+    row = np.clip((vv.astype(np.float64) / h * grid).astype(int), 0, grid - 1)
+    is_target = sim_grid[row, col] > tgt_thresh
+    return pts_world, colors, is_target

@@ -59,6 +59,7 @@ class PlanVizNode(Node):
         self.img_pub = self.create_publisher(Image, 'plan/view', 10)
         self.cloud_pub = self.create_publisher(PointCloud2, 'plan/cloud', 1)
         self.voxel_pub = self.create_publisher(Marker, 'plan/voxels', 1)
+        self.target_pub = self.create_publisher(Marker, 'plan/target_voxels', 1)
 
         self.traj = Path()
         self.traj.header.frame_id = FRAME
@@ -66,6 +67,7 @@ class PlanVizNode(Node):
         # 实时建图：累加各步点云，按体素去重（键=量化坐标），避免无限膨胀
         self.cx, self.cy, self.cz, self.crgb = [], [], [], []
         self.vox = set()
+        self.tx, self.ty, self.tz, self.tvox = [], [], [], set()  # 目标高亮体素(ENU)
 
         self.timer = self.create_timer(1.0 / args.rate, self.tick)
         self.get_logger().info(f'监听 {self.dump}（{args.rate} 步/秒）')
@@ -118,6 +120,10 @@ class PlanVizNode(Node):
             if self.cx:
                 self.cloud_pub.publish(self.make_cloud(now))
                 self.voxel_pub.publish(self.make_voxels(now))
+        if 'tgt_pts' in d.files:        # 目标高亮：把目标点累加成醒目方块
+            self.add_target(np.asarray(d['tgt_pts']))
+        if self.tx:
+            self.target_pub.publish(self.make_target_voxels(now))
 
     # ---------- markers ----------
 
@@ -216,21 +222,26 @@ class PlanVizNode(Node):
     # ---------- 实时建图点云 ----------
 
     def add_cloud(self, pts_ned, cols):
-        """把本步世界NED点(Nx3)转 ENU、体素去重后追加。cols: Nx3 uint8。"""
+        """把本步世界NED点(Nx3)转 ENU、体素去重后追加。cols: Nx3 uint8。向量化,支持高密度。"""
         if pts_ned.size == 0:
             return
         # NED → ENU：x=东(E)=p[1], y=北(N)=p[0], z=上=-D=-p[2]（与 ned_to_viz 一致）
         enu = np.stack([pts_ned[:, 1], pts_ned[:, 0], -pts_ned[:, 2]], axis=1)
         keys = np.floor(enu / self.args.map_voxel).astype(np.int64)
+        off = 1 << 20                                    # 平移保证非负; 每维 21bit 打包进 int64
+        packed = (((keys[:, 0] + off) << 42) |
+                  ((keys[:, 1] + off) << 21) | (keys[:, 2] + off))
+        uniq, idx = np.unique(packed, return_index=True)  # 本帧内先去重
+        novel = np.fromiter((p not in self.vox for p in uniq.tolist()),
+                            dtype=bool, count=len(uniq))   # 只对帧内唯一键查历史
+        if not novel.any():
+            return
+        sel = idx[novel]
+        self.vox.update(uniq[novel].tolist())
         rgb = (cols[:, 0].astype(np.uint32) << 16 |
                cols[:, 1].astype(np.uint32) << 8 | cols[:, 2].astype(np.uint32))
-        for i in range(len(enu)):
-            k = (int(keys[i, 0]), int(keys[i, 1]), int(keys[i, 2]))
-            if k in self.vox:
-                continue
-            self.vox.add(k)
-            self.cx.append(float(enu[i, 0])); self.cy.append(float(enu[i, 1]))
-            self.cz.append(float(enu[i, 2])); self.crgb.append(int(rgb[i]))
+        self.cx.extend(enu[sel, 0].tolist()); self.cy.extend(enu[sel, 1].tolist())
+        self.cz.extend(enu[sel, 2].tolist()); self.crgb.extend(rgb[sel].tolist())
 
     def make_cloud(self, stamp):
         """累加的点 → PointCloud2(带 rgb)。rgb 按 rviz 惯例打包进 float32 字段。"""
@@ -267,6 +278,35 @@ class PlanVizNode(Node):
                                   z=float((np.floor(z / v) + 0.5) * v)))
             r, g, b = jet((z - zmin) / span)
             m.colors.append(ColorRGBA(r=r, g=g, b=b, a=1.0))
+        return m
+
+    def add_target(self, pts_ned):
+        """目标点(世界NED)→ENU、体素去重累加(单独一套，用于高亮)。"""
+        if pts_ned.size == 0:
+            return
+        enu = np.stack([pts_ned[:, 1], pts_ned[:, 0], -pts_ned[:, 2]], axis=1)
+        keys = np.floor(enu / self.args.map_voxel).astype(np.int64)
+        off = 1 << 20
+        packed = (((keys[:, 0] + off) << 42) | ((keys[:, 1] + off) << 21) | (keys[:, 2] + off))
+        uniq, idx = np.unique(packed, return_index=True)
+        novel = np.fromiter((p not in self.tvox for p in uniq.tolist()), dtype=bool, count=len(uniq))
+        if not novel.any():
+            return
+        sel = idx[novel]
+        self.tvox.update(uniq[novel].tolist())
+        self.tx.extend(enu[sel, 0].tolist()); self.ty.extend(enu[sel, 1].tolist())
+        self.tz.extend(enu[sel, 2].tolist())
+
+    def make_target_voxels(self, stamp):
+        """目标高亮方块：醒目品红、略大于环境体素，叠在地图上一眼可辨哪坨是目标。"""
+        v = self.args.map_voxel
+        m = self._base(stamp, 'target', 0, Marker.CUBE_LIST)
+        m.scale.x = m.scale.y = m.scale.z = v * 1.2
+        m.color = ColorRGBA(r=1.0, g=0.0, b=1.0, a=1.0)
+        for x, y, z in zip(self.tx, self.ty, self.tz):
+            m.points.append(Point(x=float((np.floor(x / v) + 0.5) * v),
+                                  y=float((np.floor(y / v) + 0.5) * v),
+                                  z=float((np.floor(z / v) + 0.5) * v)))
         return m
 
 
