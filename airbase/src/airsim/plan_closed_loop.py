@@ -151,6 +151,8 @@ def parse_args():
     p.add_argument("--sim-config-dir", type=Path, default=ce.DEFAULT_CONFIG_DIR)
     p.add_argument("--camera", default=ce.DEFAULT_CAMERA)
     p.add_argument("--altitude", type=float, default=ce.DEFAULT_ALTITUDE)
+    p.add_argument("--face-ned", type=float, nargs=2, default=None, metavar=("N", "E"),
+                   help="爬升后一次性朝向该 NED 点(让目标进画面), 之后交给 MPPI")
     args = p.parse_args()
     if (args.visual_servo or args.handoff) and args.cost_metric != "target":
         raise SystemExit("--visual-servo/--handoff 需配合 --cost-metric target（要用模板指纹 center）")
@@ -515,6 +517,13 @@ async def closed_loop(planner, args):
         await asyncio.wait_for(climb, timeout=30.0)
         await asyncio.sleep(1.0)
         await ce.wait_first_frame()
+
+        if args.face_ned is not None:              # 一次性朝向目标, 让其进画面
+            fn, fe = args.face_ned
+            nn, ee, _ = ce.get_ned(drone)
+            await asyncio.wait_for(await drone.rotate_to_yaw_async(
+                yaw=float(np.arctan2(fe - ee, fn - nn))), timeout=30.0)
+            await asyncio.sleep(0.5)
 
         if args.acquire and args.cost_metric == "target":
             # 截获段：原地慢转扫描，指纹 peak 过阈值且大致居中即停转交给 MPPI。

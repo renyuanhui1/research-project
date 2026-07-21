@@ -41,11 +41,13 @@ def parse_args():
     p.add_argument("--output", type=Path,
                    default=PROJECT_ROOT / "outputs/recordings/approach/approach_full.h5")
     p.add_argument("--goal-ned", type=float, nargs=2, default=[42.3, 7.5],
-                   metavar=("N", "E"), help="目标 NED 坐标（米，UE cm/100）")
+                   metavar=("N", "E"), help="目标水平 NED 坐标（米，UE cm/100）")
+    p.add_argument("--goal-alt", type=float, default=1.4,
+                   help="目标点离地高度（米，UE z cm/100），斜下降终点对准此高度")
     p.add_argument("--speed", type=float, default=1.2, help="接近速度 (m/s)")
-    p.add_argument("--stop-dist", type=float, default=2.0, help="停在目标前多少米")
+    p.add_argument("--stop-dist", type=float, default=2.0, help="停在目标前多少米(3D)")
     p.add_argument("--altitude", type=float, default=10.8,
-                   help="飞行高度（米），默认与既有数据一致")
+                   help="斜下降起始高度（米）")
     p.add_argument("--dt", type=float, default=DEFAULT_DT)
     p.add_argument("--seed", type=int, default=0)
     return p.parse_args()
@@ -75,30 +77,34 @@ async def main(args):
         # 爬升到巡航高度
         n0, e0, d0 = get_ned(drone)
         task = await drone.move_to_position_async(
-            north=n0, east=e0, down=-abs(args.altitude), velocity=2.0)
+            north=n0, east=e0, down=-abs(args.altitude), velocity=10.0)
         await asyncio.wait_for(task, timeout=60.0)
         await asyncio.sleep(1.0)
 
-        # 转向目标并规划直线段
-        n0, e0, _ = get_ned(drone)
+        # 转向目标并规划 3D 斜下降直线段（含垂直分量）
+        n0, e0, d0 = get_ned(drone)
         gn, ge = args.goal_ned
-        dist = math.hypot(gn - n0, ge - e0)
-        heading = math.atan2(ge - e0, gn - n0)
-        fly_dist = dist - args.stop_dist
+        gd = -abs(args.goal_alt)              # 目标点 NED down（负=离地高度）
+        dn, de, dd = gn - n0, ge - e0, gd - d0
+        dist3d = math.sqrt(dn * dn + de * de + dd * dd)
+        heading = math.atan2(de, dn)          # 水平航向（机头对目标）
+        fly_dist = dist3d - args.stop_dist
         if fly_dist <= 0:
-            raise SystemExit(f"已在目标 {dist:.1f}m 内，无需飞行")
+            raise SystemExit(f"已在目标 {dist3d:.1f}m 内，无需飞行")
         steps = int(fly_dist / args.speed / args.dt)
-        print(f"当前 ({n0:.1f},{e0:.1f}) → 目标 ({gn:.1f},{ge:.1f})  "
-              f"距离 {dist:.1f}m  航向 {math.degrees(heading):.1f}°  "
-              f"飞 {fly_dist:.1f}m = {steps} 步 @ {args.speed}m/s")
+        print(f"当前 ({n0:.1f},{e0:.1f},高{-d0:.1f}m) → 目标 ({gn:.1f},{ge:.1f},高{-gd:.1f}m)  "
+              f"3D距离 {dist3d:.1f}m  航向 {math.degrees(heading):.1f}°  "
+              f"飞 {fly_dist:.1f}m = {steps} 步 @ {args.speed}m/s（斜下降）")
         yaw_task = await drone.rotate_to_yaw_async(yaw=heading)
         await asyncio.wait_for(yaw_task, timeout=30.0)
         await asyncio.sleep(1.0)
 
-        # 直线匀速段（NED 速度沿航向；yaw_rate=0 机头保持朝目标）
-        vn = args.speed * math.cos(heading)
-        ve = args.speed * math.sin(heading)
-        trajectory = [(vn, ve, 0.0, 0.0, steps)]
+        # 3D 速度沿直线单位向量（含 v_down 下降分量；yaw_rate=0 机头保持朝目标）
+        ux, uy, uz = dn / dist3d, de / dist3d, dd / dist3d
+        vn = args.speed * ux
+        ve = args.speed * uy
+        vd = args.speed * uz                  # 正=下降
+        trajectory = [(vn, ve, vd, 0.0, steps)]
 
         # run_episode 需要的字段。altitude 置 0：内部 goto_start 按"相对当前再爬升
         # altitude 米"工作，而我们已在上面爬到位，避免重复爬高。
@@ -115,13 +121,13 @@ async def main(args):
               f"{math.hypot(gn - nf, ge - ef):.1f}m，已存 {args.output}")
 
     finally:
+        # 录完直接断开(不降落, 省时且避免 land 卡住)
         if api_on and drone is not None:
             try:
-                await (await drone.land_async())
                 drone.disarm()
                 drone.disable_api_control()
             except Exception as err:
-                print(f"降落/释放控制异常（可忽略）: {err}")
+                print(f"释放控制异常（可忽略）: {err}")
         client.disconnect()
         print("已断开连接")
 
