@@ -38,3 +38,8 @@ __pycache__/
 /.venv/
 /env/
 update.bundle
+
+# airbase 新场景: 同根目录规则, 产物/权重/外部依赖软链不入库(根规则是根锚定, 不匹配子目录, 故重列)
+/airbase/outputs/
+/airbase/weights/
+/airbase/dinov2
