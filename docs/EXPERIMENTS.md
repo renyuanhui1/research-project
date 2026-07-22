@@ -125,3 +125,29 @@
 - 结论: **三性质(学到运动/真听命令/动作特异)全成立、泛化 OK, 模型验证通过——闭环瓶颈确认在目标函数+标定+几何, 非模型, 不重训。**
   唯一相对弱项: swap(动作特异)余量最小(0.5~0.8 vs identity 0.3~0.6)且 held-out 长步长略衰减 → 模型"预测大致运动"强、"锐利区分不同动作"偏弱, 与 MPPI 难挑动作连着（后续可优化: 训练加大对比/swap 信号, 非 demo 障碍）。
 - 附: eval_wm.py 已修可传参 `--repo-dir/--dino-weights/--data-dir`（服务器数据在 `dinov2/my/datasets/episodes_dataset`; commit 6463dd7）。
+
+---
+
+## 相关工作 / 可借鉴项
+
+### PiJEPA (AmirhoseinCh/PiJEPA) — 与本项目同配方的开源实现
+> DINO/V-JEPA 潜空间世界模型 + MPPI 规划 + 语言条件视觉导航(CAST 数据集)。架构与我们高度重合, 可直接对照取舍。
+
+**它的做法（要点）**
+- 编码器: 冻结 DINOv2 或 V-JEPA-2 出 latent, 潜空间预测(不预测像素)——同我们。
+- 预测器: **AdaLN-ViT**(`vit_predictor_AdaLN`), 动作经 AdaLN 调制 LayerNorm 的 scale/shift 注入, **不是拼接**。
+- WM loss: **四项加权 = L2 + L1 + smooth-L1 + cosine**。
+- 训练: curriculum 逐步加长 rollout(1 步→3 步→7 步, 15k/10k/15k), 预测喂回自身+stop-grad 抗漂移。
+- MPPI 目标: **只看末帧的 latent-L2 距离到目标帧 embedding**(`L2FinalFrameObjective`), 目标=验证轨迹真值末帧编码; 语言只喂给策略, 不进规划。
+- MPPI 初始化: 用 **Octo 策略当 proposal**, 采 N 条轨迹的 mean/std 做 warm-start, 替代零均值高斯。
+
+**对我们的启示（按对症优先级）**
+1. **cosine loss 项**(最小改动, 对症): DINO latent 方向比幅值稳, cosine 让目标函数在远处不那么平——对照 [[closed-loop-ood-findings]] "目标函数太平/非单调"。低成本可试。
+2. **MPPI warm-start**(对症 SNR≈1): 用粗策略/指纹梯度方向集中采样, 直接缓解 §2026-07-13 "k100 在 K=50 SNR≈1、MPPI 没敢离开零初始化"。它用 Octo, 我们可用指纹方向。
+3. **AdaLN 注入动作**: 放大动作对预测的影响 → 改善 eval_wm 的 swap 弱项(动作特异性)与 MPPI 挑动作难。
+4. **rollout curriculum**: 若长 horizon 规划漂移, 可参考分段加长 rollout 训练。
+
+**不要被带偏 / 差异**
+- 它的规划目标函数本质就是我们验证过"太平/非单调"的纯 latent-L2(靠 Octo warm-start + 真值末帧绕过, 未修单调性)。**我们的指纹环带模板(全程单调, 见 §模板对决 / [[target-cost-monotonic-validated]])方向更硬, 别退回纯 latent-L2。**
+- 归一化不同: 它用 `F.layer_norm`(跨特征维); 我们是 mean/std 标准化([[dino-latent-must-standardize]])。**两者不等价, 参考其码时勿混用, 会破坏已标定的 goal-thresh。**
+- goal 定义: 它用真值末帧 embedding; 我们用指纹模板, 泛化更好。
