@@ -142,6 +142,8 @@ def parse_args():
                    help="诊断模式：强制 stride=1，每步对比模型预测 z' 与仿真真实 z'")
     p.add_argument("--save-view", default="",
                    help="把每步无人机当前帧存到该目录(step_XXX.png)，用于对比目标图")
+    p.add_argument("--log-csv", default=None,
+                   help="逐步诊断记录：把每步 pose/指纹(center/mass/peak)/cost/选中动作 写成一张 csv，跑完(含中途Ctrl+C)落盘")
     p.add_argument("--sanity", action="store_true",
                    help="开环 sanity check：固定前进动作序列，对比世界模型 rollout 预测 vs 仿真真实 latent")
     p.add_argument("--sanity-vx", type=float, default=1.0, help="sanity 模式的固定前进速度")
@@ -483,6 +485,7 @@ async def servo_stage(planner, args, drone, n_steps, step0=0):
 
 async def closed_loop(planner, args):
     sim_cfg = str(args.sim_config_dir.expanduser().resolve())
+    csv_log = []  # --log-csv 逐步诊断记录；finally 里写盘（Ctrl+C 也保得住）
     import projectairsim
     from projectairsim import Drone, World
     client = projectairsim.ProjectAirSimClient(address=args.address)
@@ -663,6 +666,19 @@ async def closed_loop(planner, args):
             print(f"  step {step:3d}: dist={dist:.3f} best={best:.3f}{tstat} "
                   f"a0=[{acts_exec[0,0]:.2f},{acts_exec[0,1]:.2f},{acts_exec[0,2]:.2f},{acts_exec[0,3]:.2f}]"
                   f" pos=({pos[0]:.1f},{pos[1]:.1f},{pos[2]:.1f}) 步移={dpos:.2f} 累计={dtot:.1f}")
+            if args.log_csv:  # 逐步诊断记录
+                tc = planner.target_components(z_t) if args.cost_metric == "target" else None
+                a0 = acts_exec[0]
+                csv_log.append([
+                    step, f"{pos[0]:.2f}", f"{pos[1]:.2f}", f"{pos[2]:.2f}", f"{-pos[2]:.2f}",
+                    f"{dist:.4f}", f"{best:.4f}",
+                    f"{float(tc['peak']):.4f}" if tc is not None else "",
+                    f"{float(tc['center'][0]):.4f}" if tc is not None else "",
+                    f"{float(tc['center'][1]):.4f}" if tc is not None else "",
+                    f"{float(tc['mass']):.4f}" if tc is not None else "",
+                    f"{float(a0[0]):.3f}", f"{float(a0[1]):.3f}", f"{float(a0[2]):.3f}", f"{float(a0[3]):.3f}",
+                    f"{dpos:.3f}", f"{dtot:.2f}",
+                ])
             if dist <= args.goal_thresh:
                 reached = True
                 if args.handoff:
@@ -699,6 +715,17 @@ async def closed_loop(planner, args):
             client.unsubscribe(dtopic)
         client.disconnect()
         print("已断开仿真")
+        if args.log_csv and csv_log:
+            out = Path(args.log_csv)
+            out.parent.mkdir(parents=True, exist_ok=True)
+            header = ("step,n,e,d,alt,dist,best,peak,center_x,center_y,mass,"
+                      "vn,ve,vd,yaw_rate,dpos,dtot")
+            meta = (f"# ckpt={args.ckpt} template={args.target_template} metric={args.cost_metric} "
+                    f"goal_thresh={args.goal_thresh} v_max={args.v_max} vz_max={args.vz_max}")
+            with open(out, "w") as f:
+                f.write(meta + "\n" + header + "\n")
+                f.writelines(",".join(map(str, r)) + "\n" for r in csv_log)
+            print(f"逐步诊断记录已存: {out}  ({len(csv_log)} 步)")
 
 
 def main():

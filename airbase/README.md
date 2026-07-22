@@ -35,6 +35,44 @@ airbase/
 3. 可分成立 → 按"斜下滑近"重设采集轨迹，走脚本 1→6（collect→dino→predictor）重训世界模型。
 4. 目标函数：先指纹(每部位一张模板, 两段式 handoff) 拿 baseline；价值函数 V 作泛化跟进(须配对新 predictor 重训)。
 
+## 脚本清单（`src/airsim/`）
+
+> 🆕 = airbase 新增/特有；其余为从老场景复制、可针对本场景改。按流水线阶段分组。
+
+**数据采集**
+- `decode_check.py` — 脚本1：相机帧解码验证（数据闭环第一步）
+- `collect_episode.py` — 脚本2：单条 episode 采集（飞预设轨迹，同步记 图像/动作/位姿/时间 → HDF5）
+- `replay_check.py` — 脚本3：采集质量验证（放成带标注 mp4 肉眼查对齐）
+- `batch_collect.py` — 脚本4：批量采多条 episode
+- `consolidate.py` — 整理：合并多目录、丢 3Hz 废帧、裁冻结尾 → 干净数据集
+- `record_approach.py` — 录"直线飞近目标"接近 episode（供目标函数标定；两条 tgt1 数据即出自此）
+
+**探针/标定（airbase 特有）**
+- `probe_image_msg.py` 🆕 — 抓一帧原始相机消息，排查解码条纹/行跨距
+- `probe_spawn.py` 🆕 — 读回真实出生位姿（新场景 UE actor 非 1 缩放，标定出生点用）
+
+**特征 + 世界模型（服务器训）**
+- `extract_dino_features.py` — 脚本5：冻结 DINOv2 抽 latent（训练前一次性预处理）
+- `train_predictor.py` — 脚本6：训世界模型核心 (z_t,a_t)→z_{t+1}
+- `verify_predictor.py` — 验世界模型是否学到动力学（vs identity 基线）
+- `train_value.py` — 训"时间距离"价值函数 V(z,z_goal)≈还差几步
+
+**目标函数 / 生死判据（离线诊断，不连仿真）**
+- `check_target_signal.py` 🆕 — 解耦生死判据：指纹 cost 有没有信号（不依赖 predictor，本场景当前主力）
+- `check_cost_monotonic.py` — 指纹 cost vs 旧整图 cost 谁随接近单调下降
+- `check_target_cost.py` — 逐帧给 target 目标函数打分
+- `check_target_action_ranking.py` — target cost+WM 会不会把合理动作排前
+- `check_lateral_reliability.py` — 横向乱漂是调参能救还是 WM 预测本身噪声
+
+**规划 / 闭环控制**
+- `plan_mppi.py` — 脚本7-A：离线潜空间 MPPI 验证（不连仿真）
+- `plan_closed_loop.py` — 脚本7-B：仿真闭环 MPPI 规划（世界模型 rollout + 指纹目标）；`--visual-servo`/`--handoff`/`--log-csv`
+- `servo_closed_loop.py` 🆕 — 方案A：纯指纹视觉伺服闭环（不用世界模型，实时 center/mass 驱动飞向目标）；跑完自动出 `viz_dump/`
+
+**可视化 / 建图**
+- `dump_servo_viz.py` 🆕 — 把伺服 run.h5 离线转成 rviz 可播 npz（轨迹+指纹热力图，不用重飞）
+- `depth_map.py` — 深度→世界系点云，给实时建图用
+
 ## 与老场景共享/不共享
 
 - **不复制、软链共享**：冻结 DINO 仓 `dinov2/` 和权重 `dinov2_vits14_pretrain.pth`。

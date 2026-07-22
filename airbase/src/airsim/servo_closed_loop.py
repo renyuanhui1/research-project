@@ -14,6 +14,7 @@
 
 import argparse
 import asyncio
+import datetime
 import math
 import threading
 import time
@@ -75,11 +76,11 @@ class Fingerprint:
         zt = self._encode(np.ascontiguousarray(tbgr[:, :, ::-1])[None])[0].to(device)
         zt = (zt - self.zm) / self.zs
         self.proto = F.normalize(F.normalize(zt, dim=-1).mean(0), dim=0)
-        P = zf.shape[1]; grid = int(round(P ** 0.5))
-        xs = torch.linspace(-1.0, 1.0, grid, device=device)
+        P = zf.shape[1]; self.grid = int(round(P ** 0.5))
+        xs = torch.linspace(-1.0, 1.0, self.grid, device=device)
         yy, xx = torch.meshgrid(xs, xs, indexing="ij")
         self.patch_xy = torch.stack([xx.reshape(-1), yy.reshape(-1)], -1)
-        print(f"指纹就绪: proto D={self.proto.shape[0]}, grid={grid}")
+        print(f"指纹就绪: proto D={self.proto.shape[0]}, grid={self.grid}")
 
     @torch.no_grad()
     def _encode(self, rgb, bs=32):
@@ -95,18 +96,68 @@ class Fingerprint:
         x = to_input_tensor(rgb224[None], self.args.image_size, self.mean, self.std, self.dev)
         z = self.dino.forward_features(x)["x_norm_patchtokens"][0].float()
         z = (z - self.zm) / self.zs
-        sim = torch.matmul(F.normalize(z, dim=-1), self.proto)      # (P,)
+        sim = torch.matmul(F.normalize(z, dim=-1), self.proto)      # (P,) 即热力图
         w = torch.softmax(sim / self.args.target_softmax_temp, dim=-1)
         center = torch.matmul(w, self.patch_xy)                     # (2,)
         mass = torch.sigmoid(
             (sim - self.args.target_mass_thresh) * self.args.target_mass_sharpness).mean()
         peak = sim.max()
-        return float(center[0]), float(center[1]), float(mass), float(peak)
+        return (float(center[0]), float(center[1]), float(mass), float(peak),
+                sim.cpu().numpy())
+
+
+def save_run(out_dir, log, args, reached, grid):
+    """存 signals.csv(标量诊断) + run.h5(每帧 rgb) + viz_dump/(rviz 可直接播: 轨迹+指纹热力图)。"""
+    if not log["step"]:
+        print("无记录可存(未进入闭环)"); return
+    out_dir.mkdir(parents=True, exist_ok=True)
+    pose = np.array(log["pose"], np.float32)   # n,e,d,yaw
+    sig = np.array(log["sig"], np.float32)     # cx,cy,mass,peak
+    act = np.array(log["act"], np.float32)     # vn,ve,vd,yaw_rate
+    tsec = np.array(log["t"], np.float32)
+    with h5py.File(out_dir / "run.h5", "w") as f:
+        f.create_dataset("rgb", data=np.stack(log["rgb"]).astype(np.uint8),
+                         compression="gzip", compression_opts=4)
+        f.create_dataset("pose", data=pose)
+        f.create_dataset("sig", data=sig)
+        f.create_dataset("action", data=act)
+        f.create_dataset("t", data=tsec)
+        f.attrs["pose_layout"] = "n,e,d,yaw"
+        f.attrs["sig_layout"] = "cx,cy,mass,peak"
+        f.attrs["action_layout"] = "vn,ve,vd,yaw_rate"
+        f.attrs["template"] = str(args.template)
+        f.attrs["stats_episode"] = str(args.stats_episode)
+        f.attrs["mass_stop"] = args.mass_stop
+        f.attrs["reached"] = bool(reached)
+    cols = ["step", "t", "n", "e", "d", "alt", "yaw", "cx", "cy", "mass", "peak",
+            "vf", "vn", "ve", "vd", "yaw_rate", "slow"]
+    with open(out_dir / "signals.csv", "w") as f:
+        f.write(f"# template={args.template} mass_stop={args.mass_stop} reached={bool(reached)}\n")
+        f.write(",".join(cols) + "\n")
+        for i in range(len(log["step"])):
+            n, e, d, yaw = pose[i]; cx, cy, mass, peak = sig[i]; vn, ve, vd, yr = act[i]
+            f.write(",".join(map(str, [
+                log["step"][i], f"{tsec[i]:.2f}", f"{n:.2f}", f"{e:.2f}", f"{d:.2f}", f"{-d:.2f}",
+                f"{yaw:.3f}", f"{cx:.3f}", f"{cy:.3f}", f"{mass:.3f}", f"{peak:.3f}",
+                f"{log['vf'][i]:.3f}", f"{vn:.3f}", f"{ve:.3f}", f"{vd:.3f}", f"{yr:.3f}",
+                f"{log['slow'][i]:.3f}"])) + "\n")
+    if grid is not None and log["sim"]:   # rviz 直接可播的每帧 npz(轨迹+热力图)
+        vdir = out_dir / "viz_dump"; vdir.mkdir(exist_ok=True)
+        for i in range(len(log["step"])):
+            np.savez_compressed(
+                vdir / f"step_{i:04d}.npz",
+                step=int(log["step"][i]), pose=pose[i], rgb=log["rgb"][i].astype(np.uint8),
+                sim=np.asarray(log["sim"][i], np.float32), grid=grid, dt=args.dt)
+        print(f"  rviz: ros2 launch src/mpc/plan_viz.launch.py dump_dir:={vdir}")
+    print(f"运行数据已存: {out_dir}  ({len(log['step'])} 步, run.h5 + signals.csv + viz_dump/)")
 
 
 async def main(args):
     device = args.device or ("cuda" if torch.cuda.is_available() else "cpu")
     print(f"device={device}")
+    log = {k: [] for k in ("step", "t", "pose", "sig", "act", "vf", "slow", "rgb", "sim")}
+    reached = False
+    grid = None
     client = projectairsim.ProjectAirSimClient(address=args.address)
     drone = None; api_on = False
     try:
@@ -117,6 +168,7 @@ async def main(args):
         drone = Drone(client, world, "Drone1")
         client.subscribe(drone.sensors[args.camera]["scene_camera"], cb)
         fp = Fingerprint(args, device)
+        grid = fp.grid
 
         assert drone.enable_api_control() and drone.arm(); api_on = True
         await (await drone.takeoff_async())
@@ -137,23 +189,29 @@ async def main(args):
             print("没收到帧"); return
 
         print("=== 进入视觉伺服闭环 ===")
-        reached = False
+        t_loop = time.monotonic()
         for step in range(args.max_steps):
             with _lock:
                 msg = _latest
             rgb = decode_image(msg)[0]
             rgb = cv2.resize(rgb, (224, 224), interpolation=cv2.INTER_AREA)
-            cx, cy, mass, peak = fp.query(rgb)
-            _, _, dz, yaw = get_pose_yaw(drone)
-
-            if mass >= args.mass_stop:
-                print(f"[{step}] mass={mass:.3f}≥{args.mass_stop} → 判定贴近目标, 停"); reached = True; break
+            cx, cy, mass, peak, sim = fp.query(rgb)
+            n, e, dz, yaw = get_pose_yaw(drone)
 
             slow = max(0.0, 1.0 - mass / args.mass_stop)      # 越近越慢
             vf = args.v_forward * slow
             vn = vf * math.cos(yaw); ve = vf * math.sin(yaw)
             vd = args.v_down * slow                            # 下降, 近了收
             yaw_rate = float(np.clip(args.k_yaw * cx, -args.yaw_max, args.yaw_max))
+            # 逐步记录(含触发停止的这一帧)
+            log["step"].append(step); log["t"].append(time.monotonic() - t_loop)
+            log["pose"].append([n, e, dz, yaw]); log["sig"].append([cx, cy, mass, peak])
+            log["act"].append([vn, ve, vd, yaw_rate]); log["vf"].append(vf); log["slow"].append(slow)
+            log["rgb"].append(rgb.copy()); log["sim"].append(sim)
+
+            if mass >= args.mass_stop:
+                print(f"[{step}] mass={mass:.3f}≥{args.mass_stop} → 判定贴近目标, 停"); reached = True; break
+
             print(f"[{step}] alt={-dz:5.1f} center=({cx:+.2f},{cy:+.2f}) mass={mass:.3f} "
                   f"peak={peak:.3f} | vf={vf:.2f} vd={vd:.2f} yaw_rate={yaw_rate:+.2f}")
             await (await drone.move_by_velocity_async(
@@ -167,6 +225,10 @@ async def main(args):
             except Exception as e:
                 print(f"释放控制异常(可忽略): {e}")
         client.disconnect(); print("已断开连接")
+        if args.out_dir:
+            tmpl = Path(args.template).stem
+            stamp = datetime.datetime.now().strftime("%m%d_%H%M%S")
+            save_run(Path(args.out_dir) / f"{tmpl}_{stamp}", log, args, reached, grid)
 
 
 def parse_args():
@@ -184,6 +246,8 @@ def parse_args():
     p.add_argument("--face-ned", type=float, nargs=2, default=None, metavar=("N", "E"),
                    help="初始一次性朝向(让目标进画面); 之后纯视觉")
     p.add_argument("--start-altitude", type=float, default=50.0)
+    p.add_argument("--out-dir", default=str(base / "outputs/runs/servo"),
+                   help="运行数据落盘根目录(每次跑自动建 <模板名>_<时间>/ 子目录存 run.h5+signals.csv); 传空关闭")
     p.add_argument("--image-size", type=int, default=224)
     p.add_argument("--device", default=None)
     # 控制增益
