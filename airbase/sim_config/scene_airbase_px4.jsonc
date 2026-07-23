@@ -1,0 +1,38 @@
+{
+  // 【airbase + PX4 SITL】场景。
+  // 渲染/相机由 Project AirSim 提供; 飞控是 PX4(经 robot-config 的 px4-api 桥接)。
+  // 伺服脚本 servo_closed_loop_px4.py 用 MAVSDK 直连 PX4 下发 offboard 速度设定值。
+  "id": "SceneAirbasePX4",
+  "actors": [
+    {
+      "type": "robot",
+      "name": "Drone1",
+      "origin": {
+        // 与 scene_airbase.jsonc 一致: 地面出生 000, 让 PX4 的 NED 原点(EKF home)=
+        // airbase 目标坐标系原点, 这样 --face-ned / --stop-alt 的坐标才对得上。
+        "xyz": "0 0 0",
+        "rpy-deg": "0 0 0"
+      },
+      // PX4 控制器 + FrontCamera(-50°) 的 airbase 变体 robot-config。
+      "robot-config": "robot_quadrotor_px4_airbase.jsonc"
+    }
+  ],
+  // PX4 SITL 联调用 steppable 时钟(与现有 scene_px4_sitl_wsl2.jsonc 一致)。
+  "clock": {
+    "type": "steppable",
+    "step-ns": 3000000,
+    "real-time-update-rate": 3000000,
+    "pause-on-start": false
+  },
+  "home-geo-point": {
+    "latitude": 47.641468,
+    "longitude": -122.140165,
+    "altitude": 122.0
+  },
+  "segmentation": {
+    "initialize-ids": true,
+    "ignore-existing": false,
+    "use-owner-name": true
+  },
+  "scene-type": "UnrealNative"
+}

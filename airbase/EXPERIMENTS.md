@@ -47,7 +47,29 @@
 
 ---
 
-## 备忘：sim-to-real（伺服转 PX4）
-- 感知（DINO+指纹）与控制律**平台无关、不动**；只换"下发/取图/取位姿"接口层（约 20 行）。
-- 下发映射近 1:1：`move_by_velocity(vn,ve,vd,yaw_rate)` → MAVSDK `offboard.set_velocity_body(forward,right,down,yawspeed)`。
-- PX4 **SITL 复现容易**；真机中等：需机载 GPU（Jetson）、向下测距（判接触高度）、相机 -50°/FOV 标定、接触安全。
+## §2026-07-23　伺服转 PX4（方案B: MAVSDK 直控，已落地待 SITL 实测）
+
+### 架构
+- 飞控从 AirSim simpleflight 换成 **PX4**；`ProjectAirSim` 只剩「渲染 + 出 FrontCamera(-50°)」；
+  起飞/位姿/下发全部走 **MAVSDK offboard 直连 PX4(14540)**（选方案B 而非经 AirSim 转发，因为将来能无缝上真机 Jetson）。
+- 感知（DINO 指纹）与控制律**平台无关、一字不动**：新脚本直接 import 老脚本的 `Fingerprint`/`save_run`，
+  控制律在新脚本放机体系副本（`compute_body_cmd`），已数值验证与老脚本世界系控制律**逐项零误差等价**。
+- 下发映射：机体系 `set_velocity_body(forward, right, down, yawspeed°/s)`，正好省掉老代码 vf→vn/ve 的 yaw 旋转；
+  `yaw_rate` rad/s → deg/s（×180/π）。取位姿：MAVSDK `position_velocity_ned` + `attitude_euler`（后台任务刷最新值）。
+
+### 产物
+- `src/airsim/servo_closed_loop_px4.py`（新，老脚本 `servo_closed_loop.py` 未动）。
+- `sim_config/robot_quadrotor_px4_airbase.jsonc`（复制自顶层 px4 config，仅 FrontCamera 俯仰 0→-50°）。
+- `sim_config/scene_airbase_px4.jsonc`（PX4 场景，出生点 000 与 airbase 一致→PX4 的 EKF home=目标坐标系原点）。
+- 依赖：`airsim` conda 环境已 `pip install mavsdk`（纯新增 grpcio+protobuf+mavsdk，零降级）。
+
+### 运行（三方联调）
+1. UE 前台开 airbase 关卡；ProjectAirSim 载 `scene_airbase_px4.jsonc`。
+2. 启 PX4 SITL：`export PX4_SIM_HOST_ADDR=172.21.192.1 && cd ~/PX4-Autopilot && make px4_sitl none_iris`。
+3. `python src/airsim/servo_closed_loop_px4.py --template pictures/尾翼.jpg --stats-episode ... --face-ned -64.2 -18.5 --start-altitude 40`。
+
+### 待 SITL 实测校准（第一次跑重点看）
+- **NED 原点对齐**：MAVSDK 的 NED 相对 PX4 EKF home；出生点已设 000，需确认 `--face-ned`/`--stop-alt` 坐标对得上。
+- **offboard 设定值频率**：闭环周期含 DINO 单帧推理，须 <0.5s（GPU 上没问题；CPU 慢会触发 offboard failsafe）。
+- 目标是否在 PX4 世界可见（同一 UE 关卡，出生点朝向能否让目标进画面）。
+- 真机（后续）：机载 GPU(Jetson)、向下测距（判接触高度）、相机 -50°/FOV 标定、接触安全。
