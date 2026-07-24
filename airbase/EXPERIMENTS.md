@@ -47,7 +47,7 @@
 
 ---
 
-## §2026-07-23　伺服转 PX4（方案B: MAVSDK 直控，已落地待 SITL 实测）
+## §2026-07-23　伺服转 PX4（方案B: MAVSDK 直控，代码落地）
 
 ### 架构
 - 飞控从 AirSim simpleflight 换成 **PX4**；`ProjectAirSim` 只剩「渲染 + 出 FrontCamera(-50°)」；
@@ -73,3 +73,44 @@
 - **offboard 设定值频率**：闭环周期含 DINO 单帧推理，须 <0.5s（GPU 上没问题；CPU 慢会触发 offboard failsafe）。
 - 目标是否在 PX4 世界可见（同一 UE 关卡，出生点朝向能否让目标进画面）。
 - 真机（后续）：机载 GPU(Jetson)、向下测距（判接触高度）、相机 -50°/FOV 标定、接触安全。
+
+---
+
+## §2026-07-24　PX4 SITL 首飞冒烟测试（三大风险全部清掉 ✅）
+
+### 设置
+- 三方联调：UE(airbase 关卡，前台) + PX4 SITL(`make px4_sitl none_iris`, `PX4_SIM_HOST_ADDR=172.21.192.1`)
+  + `servo_closed_loop_px4.py`（MAVSDK offboard 直控）。
+- 保守跑法：只验平台层，不冒险接触。
+  `--template pictures/机头.jpg --face-ned -64.2 -18.5 --start-altitude 40 --stop-alt 30`
+- 本机 GPU：RTX 4060 Ti（DINO 单帧推理够快，不会拖垮 offboard 频率）。
+
+### 结果：全链路一次跑通
+时序：ProjectAirSim 载入 `SceneAirbasePX4` → DINO 指纹就绪 → MAVSDK 连上 PX4 → 位置就绪
+→ arm → 爬升 40m → `--face-ned` 转向对准 → 视觉伺服闭环 36 步 → 40m 降到 29.9m → `--stop-alt` 正常触发停止。
+
+**07-23 记的三大风险逐条清掉：**
+
+| 风险点 | 实测结果 |
+|---|---|
+| NED 原点对齐 | ✅ 出生点 000 生效；爬升高度、`--face-ned` 转向后 `cx` 从 +0.34 收敛到 ~0.00，坐标系对得上 |
+| offboard 设定值频率 | ✅ 连续 36 步 dt=0.3 全程无 failsafe，PX4 全程听命令 |
+| 目标可见性 | ✅ 目标进画面并被指纹锁住，横向对准可靠（与 07-22 simpleflight 表现一致） |
+
+- **控制律在 PX4 上行为与 simpleflight 一致**：`cy` 在 −0.15~−0.43 间波动，`down` 随之在 0.54~1.12 调节
+  → **cy 视线角闭环在 PX4 机体系下发(`set_velocity_body`)上正常工作**，机体系移植没引入偏差。
+- `mass≈0.000~0.005`、`peak≈0.08~0.26` 偏低，但 30–40m 高度属**预期**（07-22 机头模板也是到 14m 才 mass=0.20）。
+- PX4 侧仅 `Preflight Fail: system power unavailable`（SITL 无电源模块，无害），无 offboard failsafe。
+
+### 代码修正（本次发现的坑）
+- `servo_closed_loop_px4.py` 的 `--stats-episode` 默认值是 `airbase_tgt1_100m.h5`（**7-21 录、相机还是 -35°**），
+  而当前相机是 **-50°**，对应 `airbase_tgt1_50m.h5`（7-22 录）。相机角度不同→画面分布不同→DINO 特征统计不同，
+  用错会让指纹信号整体偏掉。**默认值已改为 50m**。（docstring 例子本来就是对的，只是 argparse 默认没跟上。）
+
+### 产物
+- `outputs/runs/servo/px4_机头_0724_112632/`：`signals.csv` + `run.h5` + `viz_dump/`
+
+### 下一步
+1. **第 2 步完整伺服接触**（未跑）：`--stop-alt 7` + 机头模板，放开降到接触高度。
+2. 07-22 遗留的"低空自动减速"（治红星水平冲过头）仍未实现；因场景中各模型尺寸不一，
+   靠调 `mass` 阈值不通用，故优先级排在平台验证之后。

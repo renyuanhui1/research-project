@@ -260,7 +260,7 @@ def parse_args():
     p.add_argument("--camera", default="FrontCamera")
     p.add_argument("--template", type=Path, default=base / "pictures/尾翼.jpg")
     p.add_argument("--stats-episode", type=Path,
-                   default=base / "outputs/recordings/approach/airbase_tgt1_100m.h5")
+                   default=base / "outputs/recordings/approach/airbase_tgt1_50m.h5")
     p.add_argument("--repo-dir", type=Path, default=base / "dinov2")
     p.add_argument("--dino-weights", type=Path, default=base / "weights/dinov2_vits14_pretrain.pth")
     p.add_argument("--nadir", action="store_true", help="俯视伺服(相机须 -90°): cx/cy 水平双闭环+居中才降")
