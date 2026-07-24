@@ -110,7 +110,54 @@
 ### 产物
 - `outputs/runs/servo/px4_机头_0724_112632/`：`signals.csv` + `run.h5` + `viz_dump/`
 
+### 第 2 步：完整接触（`--stop-alt 7`）— 成功 ✅
+- `40m → 6.8m`，85 步，`--stop-alt 7` 触发停止，`已贴近 ✅`。
+- 横向对准全程锁死（`cx` 贴 0，最大 ±0.18）。
+- **视线角闭环在近距离发力**：降到 ~25m 后 `cy` 转正（+0.13→+0.49，目标沉入画面下半），
+  `down` 随之加大到 1.74 沿视线追下去——正是"沿视线接触"，无旧版"落在目标前面"的毛病。
+- 结论：PX4 平台上纯视觉伺服可从 40m 一路斜下接触到 ~7m，控制律与 simpleflight 完全一致。
+
+### 运维坑：PX4/UE 联调的重启规律（血泪，务必遵守）
+反复重启把三方联调搞挂调了很久，最后测清楚了每次重跑的**最省事配方**：
+
+> **UE 里 End PIE → 重新 Play（几秒，不用关编辑器）** + **起一个全新 PX4** + **跑一次伺服**。
+
+对照实测：
+
+| 操作 | 结果 |
+|---|---|
+| 同一个正在跑的关卡直接跑第二次（不重置） | ❌ 连不上（4560 不重建） |
+| **停关卡 + 重新 Play**，UE 编辑器不关 | ✅ 可以（最省事） |
+| 关掉整个 UE 重开 | ✅ 可以但没必要，慢 |
+
+- **根因**：① PX4 SITL 的模拟器链路（TCP 4560）**一次性**——伺服脚本退出会 `client.disconnect()`
+  断开 ProjectAirSim，PX4 的 4560 随之断且不再接受新连接，故 PX4 每次必须重起；
+  ② ProjectAirSim 在 UE 里的 px4-api 桥，客户端断开后**不自动复位**，需 End PIE + 重新 Play 才干净。
+- **失败症状**：伺服卡在"连接 PX4"、`ss` 看 TCP 4560 为空、`udpin 14540` 收不到心跳。
+  只要看到这三样，别瞎查——直接按上面配方重来一次。
+- 切忌 UE 关卡还开着时反复杀/重启 PX4，会把 UE 的桥搞进坏状态，越弄越乱。
+
+### 大坑：MAVSDK 连不上 PX4 的真正根因 = 14580/14540 端口撞车（时好时坏的元凶）
+症状：伺服卡在 `连接 PX4: udpin://0.0.0.0:14540`，但 **TCP 4560 是 ESTAB、PX4 完全正常**
+（在 `pxh>` 敲 `commander takeoff` 无人机能起飞，证明 PX4↔仿真走 4560 好好的）。问题纯在 14540 这条 MAVSDK 链路。
+
+- **根因**：PX4 的 offboard 链路是 **instance #1**（`mavlink status` 里 `mode: Onboard, UDP 14580→14540`）。
+  而 config `robot_quadrotor_px4_airbase.jsonc` 的 `control-port-local/remote: 14580` 让 **ProjectAirSim 也去连 14580**。
+  两个抢同一条链路，谁先连谁当 partner：
+  - MAVSDK 先抢到 → partner=WSL 本地 → PX4 把 14540 数据发给 MAVSDK → **成功**（早期几次的运气）
+  - ProjectAirSim(Windows 172.21.192.1) 先抢到 → PX4 把 14540 数据**全发去 Windows** → WSL 的 MAVSDK 一个包收不到 → **卡死**
+- **铁证**：`mavlink status` 的 instance #1 显示 `partner IP: 172.21.192.1`、`Received Messages: sysid:135`
+  （sysid 135 = ProjectAirSim，非 QGC——实测没开地面站也这样）。裸 python 监听 14540 八秒零包。
+- 这是**抢占竞态**，不是死锁，所以"时好时坏"。脚本里先载场景(ProjectAirSim 连 14580)再连 MAVSDK，本该总是 ProjectAirSim 赢。
+- 三条链路各司其职（别混）：`4560`=ProjectAirSim⇄PX4 传感器/电机(仿真必需)；`14580`=ProjectAirSim 多余的控制链(方案B用不到但它照连)；`14540`=PX4→MAVSDK offboard(被上面挤掉)。
+
+**解法（不改文件、不重编译）：给 MAVSDK 单开一条 ProjectAirSim 碰不到的链路（14549）：**
+1. UE Play → 起 PX4 → 跑伺服（`--mav-url udpout://127.0.0.1:14549`）→ 伺服停在"连接 PX4"干等（不会崩）。
+2. 等 PX4 打印 `Simulator connected`、`pxh>` 活了，在 pxh 敲：`mavlink start -u 14549 -r 4000000`。
+3. PX4 立刻在 14549 开链路，MAVSDK(udpout 主动连，像 QGC)接上 → arm → 爬升。
+- 只用 **14549 一个端口**，两处对齐（pxh `-u 14549` ↔ 伺服 `udpout://127.0.0.1:14549`），ProjectAirSim 只认 14580、碰不到 14549。
+- 想省掉每次手敲 `mavlink start`，可把那行写进 PX4 启动脚本 `px4-rc.mavlink`（会改 PX4 文件，暂不做）。
+
 ### 下一步
-1. **第 2 步完整伺服接触**（未跑）：`--stop-alt 7` + 机头模板，放开降到接触高度。
-2. 07-22 遗留的"低空自动减速"（治红星水平冲过头）仍未实现；因场景中各模型尺寸不一，
-   靠调 `mass` 阈值不通用，故优先级排在平台验证之后。
+- 07-22 遗留的"低空自动减速"（治红星水平冲过头）仍未实现；因场景中各模型尺寸不一，
+  靠调 `mass` 阈值不通用，故优先级排在平台验证之后。当前机头模板 + `--stop-alt` 已能稳定接触。
