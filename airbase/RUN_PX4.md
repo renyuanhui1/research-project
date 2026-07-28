@@ -69,8 +69,17 @@ cd /home/hui/my
 python airbase/src/airsim/servo_closed_loop_px4.py \
     --template airbase/pictures/机头.jpg \
     --face-ned -64.2 -18.5 \
-    --start-altitude 40 --stop-alt 7
+    --start-altitude 50 --v-down 1.6 --view
 ```
+
+⚠️ **两个必须知道的参数坑**（2026-07-28 实测，详见 EXPERIMENTS.md）：
+
+- **`--v-down 1.6` 要显式传**。脚本默认 1.2，下滑坡度浅 33%，飞到指纹能工作的距离
+  （水平 ~20m）时还挂在 30m 高，会从目标头顶飞过去。老那次成功运行用的就是 1.6。
+- **要接触就别传 `--stop-alt`**。两个停止判据是互斥的：给了 `--stop-alt` 就只看高度，
+  `mass≥0.2` 的接触判据直接被关掉。只在冒烟测试时用 `--stop-alt 30`。
+- `--view` 开实时窗口看机载画面（绿圈=指纹重心，白十字=画面中心，右上角是画面滞后）。
+  加 `--view-heat` 才叠指纹热力图。
 
 ✅ **正常时序**：`Project AirSim 已连接` → `SceneAirbasePX4` 载入 → DINO 指纹就绪 →
 `PX4 已连接` → `PX4 位置就绪` → `arm` → `爬升到 40m` → `对准目标, yaw→...` →
@@ -111,6 +120,9 @@ python airbase/src/airsim/servo_closed_loop_px4.py \
 | 伺服连上了但一直不 arm | PX4 没定位好 | 等 `PX4 位置就绪`；EKF home 要靠出生点 000，检查场景是 `scene_airbase_px4.jsonc` |
 | 闭环中途 PX4 抢回控制 | offboard failsafe（设定值间隔 >0.5s） | 检查 DINO 是不是跑在 CPU 上（脚本首行会打 `device=`，应为 `cuda`） |
 | 帧率掉到 ~3Hz | UE 跑到后台了 | 把 UE 窗口拉回前台 |
+| 闭环第一拍航向就甩 300°、之后偏航飞走 | 对准转向没停稳就交接（已修） | 确认代码有 `--yaw-settle`（默认 2s，判据=偏差<3° 且连续保持 2s）。要复现/二分飞控层问题用 `src/airsim/px4_yaw_probe.py` |
+| 飞到目标上空还挂在 30m、`mass` 一直 0.000 | 忘了传 `--v-down 1.6` | 见上面的参数坑 |
+| 明明还没贴近就 `已贴近 ✅` 结束 | 传了 `--stop-alt`，接触判据被关掉 | 去掉 `--stop-alt` |
 
 **兜底方案（只在上面那条 14588 的修法失效时临时用，用完请查原因，别固化）**：
 跑伺服时加 `--mav-url udpout://127.0.0.1:14549`，脚本会停在「连接 PX4」干等；

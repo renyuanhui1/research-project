@@ -2,13 +2,14 @@
 
 与 servo_closed_loop.py 的唯一区别是「平台层」: 飞控从 AirSim simpleflight 换成 PX4。
   · 感知(DINO 指纹)完全复用 —— 直接 import 老脚本的 Fingerprint / save_run, 老脚本一字不动。
-  · 控制律照搬, 但输出改成 **机体系速度**(forward/right/down/yawspeed), 省掉 vf→vn/ve 的 yaw 旋转。
+  · 控制律照搬; 输出为 **世界NED 速度 + 绝对航向**(set_velocity_ned)。
+    不用 yawspeed: PX4 一收到角速率就把绝对 yaw 置 NaN 自积分, 实测闭环第一拍甩头 ~300°(见 EXPERIMENTS.md)。
   · 取图仍由 Project AirSim 提供(渲染+FrontCamera -50°); 起飞/位姿/下发全部走 **MAVSDK 直连 PX4**。
 
 数据流:
   ProjectAirSim(渲染) --FrontCamera--> 本脚本 --DINO 指纹--> 速度设定值
                                               |
-  PX4 SITL <--MAVSDK offboard(set_velocity_body 直连 14540)--+
+  PX4 SITL <--MAVSDK offboard(set_velocity_ned 直连 14540)--+
        └─(经 robot-config 的 px4-api 桥) 回灌姿态给渲染
 
 前置:
@@ -40,7 +41,7 @@ import projectairsim
 from projectairsim import Drone, World
 
 from mavsdk import System
-from mavsdk.offboard import VelocityBodyYawspeed, PositionNedYaw, OffboardError
+from mavsdk.offboard import VelocityBodyYawspeed, VelocityNedYaw, PositionNedYaw, OffboardError
 
 from decode_check import decode_image
 from servo_closed_loop import Fingerprint, save_run   # 复用感知与落盘, 不改老脚本
@@ -99,6 +100,34 @@ def compute_body_cmd(args, cx, cy, mass, yaw):
         down = max(0.0, args.v_down * slow + args.k_vert * cy)
         yaw_rate = float(np.clip(args.k_yaw * cx, -args.yaw_max, args.yaw_max))
     return forward, right, down, yaw_rate, slow, vf
+
+
+def show_view(rgb, sim, grid, cx, cy, mass, peak, alt, step, scale=2, heat=False, lag=0.0):
+    """实时窗口: 默认显示**原始机载画面**, 只叠指纹重心(绿圈)、画面中心(白十字)和数值。
+    heat=True(--view-heat) 才叠指纹响应热力图(红=响应强): 绝对刻度(<0.2 不显色, 0.6 全红),
+    与 rviz 的 plan_viz_node 一致 —— 不用 min-max, 否则全图弱噪声会被拉成满屏红。"""
+    img = rgb.astype(np.float32)
+    h, w = img.shape[:2]
+    if heat and sim.size == grid * grid:
+        heat = np.clip((sim.reshape(grid, grid) - 0.2) / 0.4, 0.0, 1.0)
+        heat = np.kron(heat, np.ones((h // grid, w // grid), np.float32))
+        img[..., 0] = img[..., 0] * (1 - 0.6 * heat) + 255 * 0.6 * heat
+        img[..., 1] *= (1 - 0.5 * heat)
+        img[..., 2] *= (1 - 0.5 * heat)
+    bgr = cv2.cvtColor(img.clip(0, 255).astype(np.uint8), cv2.COLOR_RGB2BGR)
+    bgr = cv2.resize(bgr, (w * scale, h * scale), interpolation=cv2.INTER_NEAREST)
+    H, W = bgr.shape[:2]
+    cv2.drawMarker(bgr, (W // 2, H // 2), (255, 255, 255), cv2.MARKER_CROSS, 24, 1)
+    cv2.circle(bgr, (int((cx + 1) / 2 * W), int((cy + 1) / 2 * H)), 10, (0, 255, 0), 2)
+    cv2.rectangle(bgr, (0, 0), (W, 48), (0, 0, 0), -1)          # 深色底条, 浅背景上也认得清
+    cv2.putText(bgr, f"step {step}  alt {alt:.1f}m", (8, 18),
+                cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 255), 1)
+    cv2.putText(bgr, f"mass {mass:.3f}  peak {peak:.3f}", (8, 38),
+                cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 255), 1)
+    cv2.putText(bgr, f"lag {lag:+.2f}s", (W - 110, 18), cv2.FONT_HERSHEY_SIMPLEX, 0.5,
+                (0, 0, 255) if lag > 0.5 else (0, 255, 255), 1)   # >0.5s 变红: 画面已经不实时
+    cv2.imshow("airbase servo (onboard view)", bgr)
+    cv2.waitKey(1)
 
 
 async def _stream_setpoint_until(mav, sp, cond, timeout, desc, dt=0.2):
@@ -192,19 +221,41 @@ async def main(args):
             fn, fe = args.face_ned
             yaw_tgt = math.degrees(math.atan2(fe - _pos.east_m, fn - _pos.north_m))
             print(f"对准目标, yaw→{yaw_tgt:.1f}° ...")
+            # 判据不能只看"到位": 转向还带着角速度就切到速度设定值, PX4 会在目标航向两侧持续
+            # 振荡甩头(实测第一拍 +103°/s, 8s 收不住, 目标直接飞出画面)。所以要求偏差 <3° 且
+            # **连续保持 yaw_settle 秒**, 确认停稳了再进闭环。复现见 px4_yaw_probe.py 的 G 段。
+            t_ok = None
+
+            def yaw_settled():
+                nonlocal t_ok
+                if abs(((_yaw_deg - yaw_tgt + 180) % 360) - 180) >= 3.0:
+                    t_ok = None
+                    return False
+                t_ok = t_ok or time.monotonic()
+                return time.monotonic() - t_ok >= args.yaw_settle
+
             await _stream_setpoint_until(
                 mav, PositionNedYaw(_pos.north_m, _pos.east_m, -alt, yaw_tgt),
-                cond=lambda: abs((( _yaw_deg - yaw_tgt + 180) % 360) - 180) < 3.0,
-                timeout=30.0, desc="对准目标")
+                cond=yaw_settled, timeout=40.0, desc="对准目标")
+            print(f"航向已停稳: {_yaw_deg:.1f}°")
 
         if not await _wait_frame():
             print("没收到相机帧"); return
 
         print("=== 进入视觉伺服闭环(MAVSDK offboard) ===")
         t_loop = time.monotonic()
+        ts0, w0, lag = None, None, 0.0
         for step in range(args.max_steps):
             with _lock:
                 msg = _latest
+            # 画面滞后: 以第 0 帧为基准, 比较墙上时钟与帧时间戳各自走过的时间。
+            # 差值持续增大 = 订阅队列消费不过来, 看到的是旧画面(1920x1080 未压缩 20FPS ≈ 124MB/s,
+            # 而闭环只有 ~3Hz 在取帧)。差值稳定在 0 附近 = 画面是实时的。
+            ts = msg.get("time_stamp")
+            if ts is not None:
+                if ts0 is None:
+                    ts0, w0 = ts, time.monotonic()
+                lag = (time.monotonic() - w0) - (ts - ts0) / 1e9
             rgb = decode_image(msg)[0]
             rgb = cv2.resize(rgb, (224, 224), interpolation=cv2.INTER_AREA)
             cx, cy, mass, peak, sim = fp.query(rgb)
@@ -212,14 +263,22 @@ async def main(args):
             yaw = math.radians(_yaw_deg)
 
             forward, right, down, yaw_rate, slow, vf = compute_body_cmd(args, cx, cy, mass, yaw)
-            # 落盘沿用世界系布局(与老脚本 signals 可对比): 机体系→NED 仅用于记录
+            # 机体系→世界NED: 既是下发量, 也是落盘量(与老脚本 signals 布局一致, 可直接对比)
             vn = forward * math.cos(yaw) - right * math.sin(yaw)
             ve = forward * math.sin(yaw) + right * math.cos(yaw)
+            # 航向: 以**实测**航向为基准往前推一拍。不能只发 yawspeed —— PX4 收到角速率设定值
+            # 会把绝对 yaw 置 NaN 自己积分, 实测过它会在闭环第一拍甩头 ~300°, 目标直接出画面。
+            # 也不对指令自积分(真机跟不上时会跑飞), 每拍重新以 _yaw_deg 为基准即可。
+            yaw_cmd = _yaw_deg + math.degrees(yaw_rate) * args.dt
 
             log["step"].append(step); log["t"].append(time.monotonic() - t_loop)
             log["pose"].append([n, e, dz, yaw]); log["sig"].append([cx, cy, mass, peak])
             log["act"].append([vn, ve, down, yaw_rate]); log["vf"].append(vf); log["slow"].append(slow)
             log["rgb"].append(rgb.copy()); log["sim"].append(sim)
+
+            if args.view:
+                show_view(rgb, sim, grid, cx, cy, mass, peak, -dz, step,
+                          heat=args.view_heat, lag=lag)
 
             if args.stop_alt is not None and -dz <= args.stop_alt:
                 print(f"[{step}] alt={-dz:.1f}≤{args.stop_alt} → 到达接触高度, 停"); reached = True; break
@@ -227,12 +286,14 @@ async def main(args):
                 print(f"[{step}] mass={mass:.3f}≥{args.mass_stop} → 判定贴近目标, 停"); reached = True; break
 
             print(f"[{step}] alt={-dz:5.1f} center=({cx:+.2f},{cy:+.2f}) mass={mass:.3f} "
-                  f"peak={peak:.3f} | fwd={forward:.2f} down={down:.2f} yaw_rate={yaw_rate:+.2f}")
-            await mav.offboard.set_velocity_body(
-                VelocityBodyYawspeed(forward, right, down, math.degrees(yaw_rate)))
+                  f"peak={peak:.3f} | fwd={forward:.2f} down={down:.2f} yaw_rate={yaw_rate:+.2f} "
+                  f"| 画面滞后={lag:+.2f}s")
+            await mav.offboard.set_velocity_ned(VelocityNedYaw(vn, ve, down, yaw_cmd))
             await asyncio.sleep(args.dt)
         print("=== 闭环结束 ===", "已贴近 ✅" if reached else "跑满步数(未达停止阈值)")
     finally:
+        if args.view:
+            cv2.destroyAllWindows()
         for t in tel_tasks:
             t.cancel()
         if mav is not None:
@@ -275,6 +336,12 @@ def parse_args():
     # 控制增益(与老脚本一致)
     p.add_argument("--v-forward", type=float, default=3.0, help="水平速度上限")
     p.add_argument("--v-down", type=float, default=1.2)
+    p.add_argument("--view", action="store_true",
+                   help="开一个实时窗口显示原始机载画面(WSL 需要 WSLg, DISPLAY 已就绪)")
+    p.add_argument("--view-heat", action="store_true",
+                   help="在 --view 窗口上叠指纹响应热力图(红=响应强), 默认不叠")
+    p.add_argument("--yaw-settle", type=float, default=2.0,
+                   help="对准后航向需连续稳定这么多秒才进闭环(防甩头, 见 EXPERIMENTS.md)")
     p.add_argument("--k-yaw", type=float, default=0.8)
     p.add_argument("--yaw-max", type=float, default=0.6)
     p.add_argument("--k-vert", type=float, default=1.5, help="斜视: cy→下降率增益(视线角控制)")
