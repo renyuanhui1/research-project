@@ -239,9 +239,14 @@
       // 本机在 WSL2/Windows 网络里的 IPv4 地址。PX4 侧需要能访问这个地址。
       "local-host-ip": "172.21.192.1",
       // "control-ip-address": "remote",
-      // MAVLink 控制链路端口。remote/local 都设为 14580，方便 PX4 和 AirSim 对接。
-      "control-port-remote": 14580,
-      "control-port-local": 14580,
+      // MAVLink 控制链路端口。**方案B(MAVSDK 直控)下故意避开 14580**，见 EXPERIMENTS.md §07-27。
+      // 原因: PX4 的 px4-rc.mavlink 里 offboard 链路是 `-u 14580 -m onboard -o 14540` 且不带 -t，
+      //   即默认把 14540 发给 127.0.0.1(WSL 本机, MAVSDK 在此)，直到有人往 14580 发包才改发给那个来源 IP。
+      //   ProjectAirSim 在 Windows 侧往 14580 发 → PX4 把 14540 整条流拽去 Windows → MAVSDK 饿死(时好时坏的元凶)。
+      // 改成 PX4 从不监听的 14588: ProjectAirSim 的控制链发进空气(方案B 本就不用它)，
+      //   PX4 的 offboard 链路保持 localhost 模式 → MAVSDK 用默认 udpin://0.0.0.0:14540 直接连上，无需手敲 mavlink start。
+      "control-port-remote": 14588,
+      "control-port-local": 14588,
       // QGroundControl 连接配置。qgc-host-ip 为空表示使用默认/自动目标。
       "qgc-host-ip": "",
       "qgc-port": 14550,

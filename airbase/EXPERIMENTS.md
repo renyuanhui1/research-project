@@ -161,3 +161,41 @@
 ### 下一步
 - 07-22 遗留的"低空自动减速"（治红星水平冲过头）仍未实现；因场景中各模型尺寸不一，
   靠调 `mass` 阈值不通用，故优先级排在平台验证之后。当前机头模板 + `--stop-alt` 已能稳定接触。
+
+---
+
+## §2026-07-27　端口撞车根治（不碰 PX4 文件）+ 启动手册
+
+### 根因从 PX4 源码坐实（07-24 只是抓包推断，这次读到了出处）
+`~/PX4-Autopilot/ROMFS/px4fmu_common/init.d-posix/px4-rc.mavlink` 的 offboard 链路：
+
+```sh
+udp_offboard_port_local=$((14580+px4_instance))    # 14580
+udp_offboard_port_remote=$((14540+px4_instance))   # 14540
+mavlink start -x -u $udp_offboard_port_local -r 4000000 -f -m onboard -o $udp_offboard_port_remote
+```
+
+- **不带 `-t`**（且我们没设 `PX4_NET_INTERFACE`，故也没有 `-n/-p`）→ PX4 默认把 14540 发到 **`127.0.0.1`**，
+  即 WSL 本机、MAVSDK 正在监听的地方 → **本该一直好使**。
+- 但只要有人往 14580 发包，PX4 就把 partner 切成那个来源 IP。ProjectAirSim(Windows) 的
+  `control-port-remote: 14580` 正是在干这事 → 14540 整条流被拽去 Windows → MAVSDK 饿死。
+- 这解释了 07-24 观察到的一切：`mavlink status` instance #1 的 `partner IP: 172.21.192.1`、
+  裸 python 监听 14540 八秒零包、TCP 4560 却完全正常。**抢占竞态，故"时好时坏"。**
+
+### 修法：改我们仓库的 config，让 ProjectAirSim 的控制链打空
+`sim_config/robot_quadrotor_px4_airbase.jsonc`：`control-port-remote/local` **14580 → 14588**
+（PX4 全套端口 14580/14540、18570/14550、14280/14030、13030/13280 里没有 14588，它从不监听）。
+
+- ProjectAirSim 的控制链发进空气——**方案B 本来就不用它**（控制走 MAVSDK，仿真走 TCP 4560）。
+- PX4 的 offboard 链路保持 localhost 模式 → MAVSDK 用脚本默认 `udpin://0.0.0.0:14540` 直接连上。
+- **收益：彻底不用再手敲 `mavlink start -u 14549`**，也不用 `--mav-url` 传参。
+- **为什么不写进 PX4 的 `px4-rc.mavlink`**：那是 PX4 仓库的文件，换设备/重装就丢，
+  且会掩盖真正的端口冲突。原则定为 **PX4 保持原版，所有配置留在本仓库**（随 git 走）。
+- ⚠️ **待实测**：ProjectAirSim 的 px4-api 桥在收不到控制链回包时会不会拒绝初始化（理论上不会，
+  4560 才是仿真必需链路）。若真出问题，回退就是把这两行改回 14580 + 用 14549 兜底方案。
+
+### 产物
+- `RUN_PX4.md`（新）：一页式启动手册——三条链路对照、四步开机流程、成功标志、
+  失败症状查表、重跑配方、**换设备迁移 checklist**（宿主 IP 在 3 处出现：config 的
+  `local-host-ip`、脚本 `--address` 默认值、`PX4_SIM_HOST_ADDR`；一律用
+  `ip route show default | awk '{print $3}'` 现取，不写死）。
