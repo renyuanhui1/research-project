@@ -33,7 +33,8 @@ from decode_check import decode_image  # 复用脚本 1 的解码（同目录）
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_ADDRESS = "172.21.192.1"
 DEFAULT_CONFIG_DIR = PROJECT_ROOT / "sim_config"
-DEFAULT_SCENE = "scene_drone_sensors.jsonc"
+DEFAULT_SCENE = "scene_airbase.jsonc"   # 从老场景镜像过来时漏改, 原值 scene_drone_sensors.jsonc
+                                        # 在 airbase/sim_config 下不存在, 采集会直接失败
 DEFAULT_OUTPUT = PROJECT_ROOT / "outputs/datasets/episodes/episode_000.h5"
 DEFAULT_CAMERA = "FrontCamera"
 

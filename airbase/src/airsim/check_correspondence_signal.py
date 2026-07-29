@@ -41,18 +41,38 @@ from extract_dino_features import load_model, to_input_tensor, IMAGENET_MEAN, IM
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
 
+def _rank(a):
+    """秩, **并列取平均秩**(无 scipy 依赖)。
+
+    不能用 `argsort(argsort(a))` —— 那对并列值按出现顺序强行分配不同秩, 会系统性**高估**
+    相关性。本脚本里 dino_nn / sift_n 是整数计数, 并列率高达 88%/94%, 用错会把
+    ρ 从 -0.61 虚报到 -0.76(见 EXPERIMENTS.md §2026-07-29 的修正)。
+    """
+    a = np.asarray(a, np.float64)
+    order = np.argsort(a, kind="mergesort")
+    r = np.empty(len(a), np.float64)
+    sa = a[order]
+    i = 0
+    while i < len(a):
+        j = i
+        while j + 1 < len(a) and sa[j + 1] == sa[i]:
+            j += 1
+        r[order[i:j + 1]] = (i + j) / 2.0 + 1.0        # 并列段取平均秩
+        i = j + 1
+    return r
+
+
 def spearman(a, b):
-    """Spearman 秩相关(无 scipy 依赖): 对秩做 Pearson。与 check_target_signal.py 同一实现。"""
+    """Spearman 秩相关: 对(并列平均)秩做 Pearson。"""
     a, b = np.asarray(a, np.float64), np.asarray(b, np.float64)
     ok = np.isfinite(a) & np.isfinite(b)
     a, b = a[ok], b[ok]
     if len(a) < 3:
         return float("nan")
-    ra = np.argsort(np.argsort(a)).astype(np.float64)
-    rb = np.argsort(np.argsort(b)).astype(np.float64)
+    ra, rb = _rank(a), _rank(b)
     ra -= ra.mean(); rb -= rb.mean()
     denom = np.sqrt((ra ** 2).sum() * (rb ** 2).sum())
-    return float((ra * rb).sum() / denom) if denom > 0 else 0.0
+    return float((ra * rb).sum() / denom) if denom > 0 else float("nan")
 
 
 @torch.no_grad()
@@ -140,8 +160,20 @@ def main():
 
     # 帧特征与模板无关 → 只编码一次, 多个模板复用(否则每换模板要重编码一遍)
     zf = encode_all(model, rgb, a.image_size, mean, std, device)               # (N,P,D)
-    zm = zf.reshape(-1, zf.shape[-1]).mean(0)                                  # 标准化统计量
-    zs = zf.reshape(-1, zf.shape[-1]).std(0).clamp_min(1e-6)                   # (与 check_target_signal 同约定)
+
+    # 标准化统计量必须来自**独立的**episode: 用被测 episode 自身估 z_mean/z_std 是测试信息
+    # 泄漏, 会让信号看起来比实际好(见 EXPERIMENTS.md §2026-07-29 的修正)。
+    if Path(a.stats_episode).resolve() == Path(a.episode).resolve():
+        print("[warn] stats-episode 与被测 episode 同源 → 存在测试信息泄漏, 结果偏乐观")
+        zsrc = zf
+    else:
+        with h5py.File(a.stats_episode, "r") as f:
+            srgb = f["rgb"][:]
+        zsrc = encode_all(model, srgb, a.image_size, mean, std, device)
+        print(f"标准化统计量来自: {Path(a.stats_episode).name} ({len(srgb)} 帧)")
+    zm = zsrc.reshape(-1, zsrc.shape[-1]).mean(0)
+    zs = zsrc.reshape(-1, zsrc.shape[-1]).std(0).clamp_min(1e-6)
+    del zsrc
     zf = (zf - zm) / zs
     znf = F.normalize(zf, dim=-1)
 
@@ -225,6 +257,9 @@ def parse_args():
                    default=[base / f"pictures/{n}.jpg"
                             for n in ("整机", "机头", "尾翼", "红星", "驾驶舱")],
                    help="可给多个; 帧特征只编码一次, 多模板复用")
+    p.add_argument("--stats-episode", type=Path,
+                   default=base / "outputs/recordings/approach/airbase_tgt1_50m.h5",
+                   help="标准化统计量来源, 必须与 --episode 不同(否则测试信息泄漏)")
     p.add_argument("--repo-dir", type=Path, default=base / "dinov2")
     p.add_argument("--dino-weights", type=Path,
                    default=base / "weights/dinov2_vits14_pretrain.pth")

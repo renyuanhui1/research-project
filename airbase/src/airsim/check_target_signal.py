@@ -30,10 +30,26 @@ from extract_dino_features import load_model, to_input_tensor, IMAGENET_MEAN, IM
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
 
+def _rank(a):
+    """秩, **并列取平均秩**。argsort(argsort(a)) 对并列值强行分配不同秩, 会高估相关性
+    (本仓库因此虚报过 ρ, 见 EXPERIMENTS.md §2026-07-29)。"""
+    a = np.asarray(a, np.float64)
+    order = np.argsort(a, kind="mergesort")
+    r = np.empty(len(a), np.float64)
+    sa = a[order]
+    i = 0
+    while i < len(a):
+        j = i
+        while j + 1 < len(a) and sa[j + 1] == sa[i]:
+            j += 1
+        r[order[i:j + 1]] = (i + j) / 2.0 + 1.0
+        i = j + 1
+    return r
+
+
 def spearman(a, b):
-    """Spearman 秩相关(无 scipy 依赖): 对秩做 Pearson。"""
-    ra = np.argsort(np.argsort(a)).astype(np.float64)
-    rb = np.argsort(np.argsort(b)).astype(np.float64)
+    """Spearman 秩相关(无 scipy 依赖): 对(并列平均)秩做 Pearson。"""
+    ra, rb = _rank(a), _rank(b)
     ra -= ra.mean(); rb -= rb.mean()
     denom = np.sqrt((ra ** 2).sum() * (rb ** 2).sum())
     return float((ra * rb).sum() / denom) if denom > 0 else 0.0
