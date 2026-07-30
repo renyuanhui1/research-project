@@ -1,5 +1,13 @@
 # 架构文档
 
+> ⚠️ **本文档对应「老场景」（穿门/绿环），内容截至 2026-07-14，不包含 airbase。**
+> 当前主线是 **airbase**（空中接触地面 3D 飞机的指定部位）。看这些：
+> - 架构与实验台账 → `airbase/EXPERIMENTS.md`
+> - 场景/脚本说明 → `airbase/README.md`、`airbase/src/airsim/README.md`
+> - PX4 启动手册 → `airbase/RUN_PX4.md`
+>
+> 本文件保留作历史记录（老场景的结论仍有效），但**不要据此对 airbase 做决策**。
+
 > 维护本文件以描述应用内部架构与工作原理（见 `CLAUDE.md` 第 5 条）。
 
 ## 0. 当前状态速览（更新于 2026-07-13）

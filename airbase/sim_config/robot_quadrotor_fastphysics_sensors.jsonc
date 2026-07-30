@@ -398,8 +398,8 @@
         {
           // image-type 0 = 普通 RGB/Scene 图。
           "image-type": 0,
-          "width": 1920,
-          "height": 1080,
+          "width": 960,
+          "height": 540,
           "fov-degrees": 90,
           "capture-enabled": true,
           "streaming-enabled": true,
@@ -410,14 +410,28 @@
         {
           // image-type 2 = depth perspective，表示相机光心到物体点的射线距离。
           "image-type": 2,
-          "width": 1920,
-          "height": 1080,
+          "width": 960,
+          "height": 540,
           "fov-degrees": 90,
           // 建图需要深度：capture+streaming 都要开，pub/sub 才订得到（RGB 那路同理）。
           // 平时不建图想省 GPU 就改回 false。
           "capture-enabled": true,
           "streaming-enabled": true,
           "pixels-as-float": true,
+          "compress": false
+        },
+        {
+          // image-type 3 = SEGMENTATION(语义分割掩膜)。**临时开启做能力探测**。
+          // 只给 evaluator 用(真值"目标是否在视野/占画面比例"), 绝不能喂控制器。
+          // 与 RGB/深度统一为 960x540，便于逐像素对应并控制渲染带宽。
+          // 采集训练数据时改回 capture-enabled: false。
+          "image-type": 3,
+          "width": 960,
+          "height": 540,
+          "fov-degrees": 90,
+          "capture-enabled": true,
+          "streaming-enabled": true,
+          "pixels-as-float": false,
           "compress": false
         }
       ],

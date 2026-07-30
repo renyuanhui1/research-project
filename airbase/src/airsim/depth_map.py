@@ -1,7 +1,7 @@
 """深度 → 世界系点云：给闭环实时建图用。
 
-深度流实测格式(见 probe_depth.py)：encoding=16UC1，uint16 单通道，单位=毫米，
-天空/超量程为哨兵值 ~65504。这里负责：
+深度流实测格式：encoding=16UC1，uint16 单通道，**单位=米（取整）**，
+天空/超量程为哨兵值 65504（float16 最大有限值）。这里负责：
   1) pub/sub 缓存最新深度帧（和 collect_episode 的 image_callback 同套路）；
   2) decode_depth: uint16 → 米 + 有效掩码（丢 0/天空/超量程）；
   3) backproject: 深度(perspective=沿射线距离) + 内参(fov90→fx=fy=w/2) → 相机系 3D 点 + 颜色；
@@ -38,13 +38,19 @@ def reset_depth():
 
 
 def decode_depth(msg):
-    """16UC1 深度 msg → (depth_m HxW float32, valid HxW bool)。单位毫米→米。"""
+    """16UC1 深度 msg → (depth_m HxW float32, valid HxW bool)。原值**已是米**, 不换算。
+
+    曾经这里写的是 `/ 1000.0`(按 ROS 的 16UC1=毫米 惯例), 导致所有点塌在相机跟前、建图报废,
+    当时误判成"深度不是米制"。2026-07-30 用 probe_depth_seg_flight.py 实测推翻:
+    把 3 架飞机的包围盒中心投影到像素, 该处深度原值 / 真实几何距离 = 1.002/0.999/0.992,
+    且相邻取值间隔恰好 1.0 → 原值就是米、量化步长 1m。ProjectAirSim 与 ROS 惯例不同。
+    """
     h, w = msg["height"], msg["width"]
     data = msg["data"]
     raw = (np.frombuffer(data, dtype=np.uint16)
            if isinstance(data, (bytes, bytearray, memoryview))
            else np.asarray(data, dtype=np.uint16)).reshape(h, w)
-    depth_m = raw.astype(np.float32) / 1000.0
+    depth_m = raw.astype(np.float32)          # 原值即米, 不要再除 1000(见 docstring)
     valid = (raw > 0) & (raw < SKY_RAW)
     return depth_m, valid
 

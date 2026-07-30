@@ -83,7 +83,10 @@ def parse_args():
     p.add_argument("--map-stride", type=int, default=16,
                    help="建图深度像素下采样步长(越大点越稀越省)")
     p.add_argument("--map-max-range", type=float, default=40.0,
-                   help="建图丢弃超过此距离(米)的深度点")
+                   help="建图丢弃超过此距离(米)的深度点。**这个默认值从未被验证过**: 2026-07-30 之前"
+                        " depth_map 把米当毫米除了 1000, 深度值恒 <40 → 该阈值形同虚设。单位修对后"
+                        " 它变成真限制, 而画面中心地面点的斜距 ≈ 高度/sin50° (30m高→39m, 50m高→65m),"
+                        " 所以真要开 --map 前先按作业高度把它调大(近场 8~30m 建议 100)")
     p.add_argument("--map-target-peak", type=float, default=0.4,
                    help="建图时目标定位的指纹 peak 阈值(整帧 peak 高于此才启用目标高亮)")
     p.add_argument("--map-target-sim", type=float, default=0.32,
