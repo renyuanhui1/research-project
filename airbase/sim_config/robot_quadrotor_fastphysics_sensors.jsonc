@@ -1,6 +1,6 @@
 {
   // Project AirSim 机器人配置 schema，用来校验这个 JSONC 文件里的字段是否合法。
-  "$schema":"../../projectairsim/src/projectairsim/schema/robot_config_schema.jsonc",
+  "$schema":"../../ProjectAirSim/client/python/projectairsim/src/projectairsim/schema/robot_config_schema.jsonc",
 
   // 使用快速物理模型，适合四旋翼这类轻量仿真。
   "physics-type": "fast-physics",
@@ -351,8 +351,10 @@
       // 追踪/观察相机，通常用于从无人机后方观察机体。
       "id": "Chase",
       "type": "camera",
-      // 关闭：世界模型只用 FrontCamera，Chase 以 33Hz 多渲染一路相机很吃 GPU，
-      // 是采集时帧率下降的主因之一。需要从机后观察机体时再改回 true。
+      // 开着：它是 UE 窗口的视角相机（文档: robot config 里**第一个 streaming-enabled
+      // 的相机**即该机器人的 viewpoint，见 docs/transition_from_airsim.md:69）。
+      // 吃 GPU 的是下面的 capture-enabled(每帧像素 GPU→CPU 拷贝+打包)，不是 streaming
+      // (GPU 内 h.264 编码)。所以 capture 关掉、streaming 留着 —— 观察和帧率兼得。
       "enabled": true,
       "parent-link": "Frame",
       // 采集间隔 0.03s，约 33 FPS。
@@ -361,12 +363,17 @@
         {
           // image-type 0 = 普通场景 RGB 图。
           "image-type": 0,
-          "width": 1920,
-          "height": 1080,
+          // 960x540：与 FrontCamera 三路对齐（07-30 那次改漏了这一路）。capture 关掉只省了
+          // GPU→CPU 拷贝，**渲染和 h.264 编码仍按分辨率计**，1920x1080 是 4 倍像素。
+          // 宽高比仍 16:9 → vFOV 仍 58.7°，下面 origin 注释里那套视野覆盖计算不受影响。
+          "width": 960,
+          "height": 540,
           // 相机视场角，单位度。越大越容易看到机体边缘/桨叶。
           "fov-degrees": 90,
-          "capture-enabled": true,
-          // 是否开启视频流输出。
+          // false：没有任何客户端订阅 Chase，开着等于每秒 33 帧 1920x1080 白拷回 CPU。
+          // 官方就是这么建议的（docs/sensors/camera_streaming.md:31）。
+          "capture-enabled": false,
+          // 是否开启视频流输出。UE 窗口靠它显示，必须留 true。
           "streaming-enabled": true,
           // RGB 图通常用 uint8，所以这里是 false。
           "pixels-as-float": false,
@@ -380,10 +387,31 @@
         "lock-pitch": true,
         "lock-yaw": false
       },
-      // Chase 相机相对 Frame 的位置：大致在无人机后方/上方，并略微俯仰。
+      // 第三人称"越肩"跟随视角：机后 5m、**机左 2.5m**、机上 1.8m，下俯 33°、右转 18°。
+      // 直线距离 5.9m，机体占画面宽 8%（74/960 px）。
+      // gimbal 锁 roll/pitch → 俯角绝对，不随机身晃；不锁 yaw → 始终从左后方跟着。
+      //
+      // 三个旋钮（机体系 NED: x前 y右 z下）：
+      //   xyz 整体缩放 = 远近。等比缩放时斜角与方位角都不变，只有机体大小变：
+      //                  9.4m→5%  5.9m→8%(现在)  4.7m→10%  3.8m→12%  3.0m→15%
+      //   xyz 第2个    = 左右偏移，**负=左**。|y|/|x| 决定斜角（2.5/5 → 26.6°）
+      //   rpy 第3个    = yaw，**正=右转**把机体拉回画面。等于 atan(|y|/|x|)=26.6° 时机体居中；
+      //                  取 18° 略小 → 机体偏右、前方目标偏左，即越肩构图
+      //
+      // ⚠️ 拉近有个反直觉的副作用：相机跟着降低，**高站位目标的俯角反而变大**、更贴下沿
+      //    （9.4m 时 51.9° → 5.9m 时 54.6°）。所以 pitch 由 -30 补到 **-33**，下沿推到 62.4°。
+      //    以后每次大幅拉近都要重算这条，否则高站位目标会悄悄掉出画面。
+      //
+      // 视野核对（hFOV 90°，vFOV = 2*atan(tan45°*540/960) = 58.7° → 俯角覆盖 3.6°~62.4°）：
+      //   机体自身              方位  +8.6°  俯角 17.8° ✅ 画面右上，看得清左侧面
+      //   典型   r16.6/alt19.3  方位 -11.4°  俯角 44.1° ✅ 画面左下
+      //   高站位 r16.7/alt28.9  方位 -11.4°  俯角 54.6° ✅（07-31 实跑看不见的就是这条，余量 7.8°）
+      //   低站位 r18.8/alt13.9  方位 -12.0°  俯角 33.3° ✅
+      //   极端陡 r8 /alt30      方位  -7.1°  俯角 67.4° ❌ 掉出下沿。要救得 pitch<-38，
+      //                                                   但那样机体又跑画面顶上，故放弃（此类站位占比小）
       "origin": {
-        "xyz": "-3.0 0.0 -1.0",
-        "rpy-deg": "0 -11.46 0"
+        "xyz": "-5.0 -2.5 -1.8",
+        "rpy-deg": "0 -33 18"
       }
     },
     {
@@ -434,6 +462,26 @@
           "pixels-as-float": false,
           "compress": false
         }
+        // ↓↓↓ 深度可视化路（已验证可用，平时关闭以省一路渲染）。要看深度就整块取消注释。
+        //     逗号故意在块首，注释/反注释都不会留下非法的尾随逗号。
+        //     image-type 4 = DEPTH_VIS：仿真端按 max-depth-meters 归一化成 近黑→远白。
+        //     与 image-type 2 是同一份深度，区别只在"谁来定量程"：
+        //       2 = 物理米制（给算法）→ 值 4~518 远超颜色的 [0,1]，viewport 里必然全白
+        //       4 = 归一化灰度（给人眼）
+        //     ⚠️ max-depth-meters 必须显式写：C++ 默认值 1.0
+        //        （core_sim/include/core_sim/sensors/camera.hpp:108），不写则 1m 外全白＝白加。
+        // ,{
+        //   "image-type": 4,
+        //   "width": 960,
+        //   "height": 540,
+        //   "fov-degrees": 90,
+        //   "capture-enabled": false,
+        //   "streaming-enabled": true,
+        //   "max-depth-meters": 60,
+        //   "pixels-as-float": false,
+        //   "compress": false
+        // }
+        // ↑↑↑ 深度可视化路到此 ↑↑↑
       ],
       // 相机相对 Frame 向机头方向偏移 0.5m。
       // airbase 场景：斜下滑近接触地面飞机，相机下倾 pitch=-50°（较陡, 对齐从高空滑向地面目标的

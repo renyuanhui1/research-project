@@ -22,7 +22,8 @@ from projectairsim import Drone, World
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_ADDRESS = "172.21.192.1"
 DEFAULT_CONFIG_DIR = PROJECT_ROOT / "sim_config"
-DEFAULT_SCENE = "scene_drone_sensors.jsonc"
+DEFAULT_SCENE = "scene_airbase.jsonc"   # 从老场景镜像过来时漏改, 原值 scene_drone_sensors.jsonc
+                                        # 在 airbase/sim_config 下不存在, 一跑就失败
 DEFAULT_OUTPUT_DIR = PROJECT_ROOT / "outputs/captures/decode_check"
 DEFAULT_CAMERA = "FrontCamera"
 DEFAULT_FRAMES = 5          # 存几张图

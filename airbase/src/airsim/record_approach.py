@@ -99,21 +99,17 @@ async def main(args):
         await asyncio.wait_for(yaw_task, timeout=30.0)
         await asyncio.sleep(1.0)
 
-        # 3D 速度沿直线单位向量（含 v_down 下降分量；yaw_rate=0 机头保持朝目标）
-        ux, uy, uz = dn / dist3d, de / dist3d, dd / dist3d
-        vn = args.speed * ux
-        ve = args.speed * uy
-        vd = args.speed * uz                  # 正=下降
-        trajectory = [(vn, ve, vd, 0.0, steps)]
+        # 3D 速度沿直线单位向量（含 v_down 下降分量；yaw_rate=0 机头保持朝目标）。
+        # run_episode 已改为**机体系**下发：上面刚转向目标，故机体 forward 就是水平接近方向，
+        # 省掉了原来 vn/ve 的分解（等价，且不再依赖转向精度）。
+        uz = dd / dist3d
+        v_forward = args.speed * math.hypot(dn, de) / dist3d
+        v_down = args.speed * uz              # 正=下降
+        trajectory = [(v_forward, 0.0, v_down, 0.0, steps)]
 
-        # run_episode 需要的字段。altitude 置 0：内部 goto_start 按"相对当前再爬升
-        # altitude 米"工作，而我们已在上面爬到位，避免重复爬高。
         args.steps = steps
-        args.randomize_start = False
-        args.altitude = 0.0
-        rgb, act, pose, tstamp, _ = await run_episode(
-            drone, args, trajectory=trajectory, seed=args.seed)
-        save_hdf5(args.output, args, rgb, act, pose, tstamp,
+        bufs, _ = await run_episode(drone, args, trajectory, seed=args.seed)
+        save_hdf5(args.output, args, bufs, None,
                   {"kind": "approach", "goal_ned": args.goal_ned,
                    "speed": args.speed, "stop_dist": args.stop_dist})
         nf, ef, _ = get_ned(drone)

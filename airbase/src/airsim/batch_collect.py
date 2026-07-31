@@ -1,4 +1,12 @@
-"""脚本 4：batch_collect.py —— 批量采集多条 episode
+"""脚本 4：batch_collect.py —— 【已废弃，airbase 下不要用】
+
+⚠️ 2026-07-31：本脚本是老场景（绿门）遗留，功能已被 `collect_episode.py --num N` 取代
+（球内随机站位 + 机体系动作 + 三路存储 + 一次起飞串完，不再每条重载场景起降）。
+它依赖 `collect_episode.TRAJECTORY`，该常量已随近场改造删除，故 **import 即报错**——
+这是有意为之的安全失败，别加回去，直接用新的 collect_episode.py。
+
+---- 以下为原说明（老场景）----
+批量采集多条 episode
 
 目的：把脚本 2 放进循环，生成多条 episode（先 20~50 条跑通，再扩到几百条）。
 做法：

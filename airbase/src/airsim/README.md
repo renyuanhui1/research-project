@@ -3,6 +3,24 @@
 这个目录有 **29 个脚本**，平铺在一起。本文件是导航图：每个脚本干什么、**现在还能不能跑**、
 默认连哪个场景。写于 2026-07-30。
 
+---
+
+## ⚠️ 先看这条：跑脚本前确认自己在 `airbase/` 下
+
+`~/my/src/airsim/` 和 `~/my/airbase/src/airsim/` 有**十几个同名脚本**，内容已经分叉。
+在 `~/my` 下敲 `python src/airsim/xxx.py` 会命中**老场景（绿门）**那份。
+
+```bash
+cd ~/my/airbase && python src/airsim/collect_episode.py ...   # ✅ 推荐
+python airbase/src/airsim/collect_episode.py ...              # ✅ 也行
+python src/airsim/collect_episode.py ...                      # ❌ 在 ~/my 下 = 老场景脚本
+```
+
+**为什么危险**：老脚本会正常启动、连上仿真、按老场景参数飞（起点在出生点 ±3m、200 步、
+世界系动作），产出一堆看起来正常但完全没用的数据，还会写进 `~/my/outputs/` 污染老场景数据集。
+2026-07-31 实际踩到过一次，只是因为新脚本改了参数名（`--band/--num`）才被 argparse 拦住。
+这与 07-30 记录的"两个同名 `EXPERIMENTS.md`"是同一类坑，但更隐蔽——**那个会报错，这个不会**。
+
 状态标记：
 
 | 记号 | 含义 |
@@ -65,24 +83,23 @@
 
 | 脚本 | 状态 | 干什么 | 场景 |
 |---|---|---|---|
-| `decode_check.py` | 🔴 | 解码验证（数据闭环第一步）。**默认场景写的是 `scene_drone_sensors.jsonc`，airbase 下不存在 → 直接失败**，要传 `--scene scene_airbase.jsonc`（镜像残留，同 `collect_episode` 那个已修的坑） | — |
-| `collect_episode.py` | 🟡 | 单条 episode：飞预设模板轨迹，记 (图像, 动作, 位姿, 时间) → HDF5 | airbase |
-| `batch_collect.py` | 🟡 | 把上者放进循环批量采，写 manifest.json | airbase |
+| `decode_check.py` | 🟢 | 解码验证（数据闭环第一步）。默认场景已修为 `scene_airbase.jsonc`（07-31） | airbase |
+| `collect_episode.py` | 🟢 | **近场采集（07-31 重写）**：以目标为心的球内随机站位 → 机体系动作 → 同步存 RGB+深度+分割 → 一次起飞串 `--num` 条；目标 OOB 写进 h5 attrs 供 evaluator 离线补算 | airbase |
+| `batch_collect.py` | 🔴 | **已废弃**：老场景遗留，功能被 `collect_episode.py --num N` 取代；依赖已删除的 `TRAJECTORY`，**import 即报错**（有意的安全失败） | — |
 | `record_approach.py` | 🟢 | 录"直线飞向目标"的完整接近段（`recordings/approach/` 那 3 条就是它产的） | airbase |
 | `grab_nadir_frames.py` | 🟡 | 正俯视垂直下降逐高度抓帧（裁俯视整机模板用）。**没跑过**，产物 `airbase_tgt1_nadir.h5` 不存在 | airbase |
 | `replay_check.py` | 🟡 | 采集质量验证（回放 HDF5 看动作/图像对齐） | — |
 | `consolidate.py` | 🟡 | 一次性：合并多个采集目录 → 干净数据集 | — |
 
-**🟡 的共同原因 —— 现有采集脚本采不了近场数据**（世界模型需要的那种）：
+**上面三条 🟡→🟢 的由来（07-31 近场改造）**：老版三个硬伤——起点只在出生点周围抖 ±3m
+（目标在 65m 外根本不在画面里）、200 步全程绕着出生点、动作记的是世界 NED 速度
+（同一向量在不同航向下含义不同，覆盖不了 360° 切入方位）——已随重写一并解决。
+详见 `../../EXPERIMENTS.md` §2026-07-31。
 
-1. `collect_episode.py:52` `START_XY = 3.0` → `goto_start` 只在**出生点**周围抖 ±3m，
-   再爬到 `--altitude`（默认 **6m**）。目标在 65m 外，**根本不在画面里**
-2. 200 步 @10Hz、~1.2m/s → 一条只走 20~30m，全程绕着出生点
-3. `collect_episode.py:204` 记的是**世界 NED 速度**（`move_by_velocity_async`）。要覆盖
-   360° 切入方位的话，同一动作向量在不同航向下含义完全不同 → 应改用
-   `move_by_velocity_body_frame_async`（机体系）
+跑法：`python collect_episode.py --num 20`（一次起飞串 20 条，约 10 分钟）。
+站位采样已离线验证 **5000/5000 目标都在画面内**，r 中位 16.6m、<15m 占 41%。
 
-**`airbase/outputs/` 下没有 `datasets/` 目录 —— airbase 从未产出过训练集。**
+**`airbase/outputs/datasets/` 目前仍是空的 —— 采集尚未实跑。**
 
 ---
 
