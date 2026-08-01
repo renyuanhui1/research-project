@@ -117,20 +117,33 @@ def rollout_loss(model, z0, acts, tgts, loss_fn):
 
 @torch.no_grad()
 def rollout_eval(model, dataset, device, max_steps=20):
-    """对验证集第一条 episode，从 z[0] 连续 rollout，打印每步 latent MSE（看误差累积）。"""
+    """对**每条**验证 episode 从 z[0] 连续 rollout，返回逐步 MSE 的跨 episode 平均。
+
+    08-01 修：原来写死 `dataset.zs[0]`，只跑验证集第一条 —— `--val-num` 给多少都没用，
+    val_mse 永远是 n=1。实测该值在相邻评估点之间能跳 ±0.09（0.618/0.727/0.677/0.636），
+    噪声压过信号，据此判早停或挑检查点都不可靠。
+    """
     model.eval()
-    z = torch.from_numpy(dataset.zs[0][0:1].astype(np.float32)).to(device)  # (1,P,D)
-    acts = dataset.acts[0]
-    T = min(max_steps, len(acts) - 1)
-    errs = []
-    for k in range(T):
-        a = torch.from_numpy(acts[k:k + 1]).to(device)
-        z = model(z, a)
-        z_true = torch.from_numpy(dataset.zs[0][k + 1:k + 2].astype(np.float32)).to(device)
-        errs.append(float(((z - z_true) ** 2).mean()))
-    print("  多步 rollout 每步 MSE:", " ".join(f"{e:.4f}" for e in errs[:10]),
-          "..." if T > 10 else "")
-    return errs
+    per_ep = []
+    for zs, acts in zip(dataset.zs, dataset.acts):
+        T = min(max_steps, len(acts) - 1)
+        if T <= 0:
+            continue
+        z = torch.from_numpy(zs[0:1].astype(np.float32)).to(device)     # (1,P,D)
+        errs = []
+        for k in range(T):
+            a = torch.from_numpy(acts[k:k + 1]).to(device)
+            z = model(z, a)
+            z_true = torch.from_numpy(zs[k + 1:k + 2].astype(np.float32)).to(device)
+            errs.append(float(((z - z_true) ** 2).mean()))
+        per_ep.append(errs)
+    if not per_ep:
+        return []
+    n = min(len(e) for e in per_ep)                  # episode 不等长时按最短对齐
+    mean = np.mean(np.array([e[:n] for e in per_ep]), axis=0)
+    print(f"  多步 rollout 每步 MSE（跨 {len(per_ep)} 条平均）:",
+          " ".join(f"{e:.4f}" for e in mean[:10]), "..." if n > 10 else "")
+    return mean.tolist()
 
 
 def compute_latent_stats(zs):
@@ -202,6 +215,7 @@ def parse_args():
     p.add_argument("--n-layers", type=int, default=4)
     p.add_argument("--n-heads", type=int, default=8)
     p.add_argument("--val-num", type=int, default=1, help="留出做 rollout 验证的 episode 数")
+    p.add_argument("--val-every", type=int, default=5, help="每几个 epoch 评一次验证集")
     p.add_argument("--overfit", action="store_true", help="只用 1 条 episode、不留验证，验证能否学到东西")
     p.add_argument("--device", default=None)
     p.add_argument("--num-workers", type=int, default=2)
@@ -256,7 +270,15 @@ def main():
         if z_mean is not None:
             apply_latent_norm(val_set, z_mean, z_std)  # 用训练集统计标准化验证集
 
+    def save_ckpt(epoch, val_mse, hist):
+        torch.save({"model": model.state_dict(),
+                    "dim": train_set.dim, "num_patches": train_set.num_patches,
+                    "args": vars(args), "history": hist,
+                    "epoch": epoch, "val_mse": val_mse,
+                    "z_mean": z_mean, "z_std": z_std}, args.ckpt)
+
     history = []  # 每个 epoch: (epoch, train_mse, val_mse)；val_mse 没评估时为空
+    best_val, best_epoch = float("inf"), -1
     for epoch in range(1, args.epochs + 1):
         model.train()
         running, nb = 0.0, 0
@@ -270,17 +292,22 @@ def main():
         train_mse = running / max(nb, 1)
         print(f"epoch {epoch:3d}/{args.epochs}  train_mse={train_mse:.5f}")
         val_mse = None
-        if val_set is not None and (epoch % 10 == 0 or epoch == args.epochs):
+        if val_set is not None and (epoch % args.val_every == 0 or epoch == args.epochs):
             errs = rollout_eval(model, val_set, device)
             val_mse = float(np.mean(errs)) if errs else None
         history.append((epoch, train_mse, val_mse))
+        # 存**验证最优**而非最后一轮：数据量一变，最优轮数就变，靠猜 --epochs 不可靠。
+        if val_mse is not None and val_mse < best_val:
+            best_val, best_epoch = val_mse, epoch
+            save_ckpt(epoch, val_mse, history)
+            print(f"  ↑ 新的最优 val={val_mse:.5f}，已存 {args.ckpt.name}")
 
     save_loss_log(history, args.ckpt)
-    torch.save({"model": model.state_dict(),
-                "dim": train_set.dim, "num_patches": train_set.num_patches,
-                "args": vars(args), "history": history,
-                "z_mean": z_mean, "z_std": z_std}, args.ckpt)
-    print(f"已保存权重: {args.ckpt}")
+    if best_epoch < 0:                      # 没有验证集（--overfit / --val-num 0）时存最后一轮
+        save_ckpt(args.epochs, None, history)
+        print(f"已保存权重（最后一轮，无验证集）: {args.ckpt}")
+    else:
+        print(f"已保存权重（第 {best_epoch} 轮，val={best_val:.5f}）: {args.ckpt}")
 
 
 if __name__ == "__main__":

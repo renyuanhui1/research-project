@@ -105,19 +105,32 @@ BANDS = {
 #    **A 条件（纯伺服）在 far 带预期会失败**，这是对照组该有的结果，不是配置错误。
 # ⑤ alt 下限由几何自动兜底（见 sample_station 的 alt_lo），r=40 时会自动抬到 15.04m。
 
-# 动作噪声（叠加在标称动作上）
-NOISE_V = 0.2           # 速度噪声 (m/s)
-NOISE_YAW = 0.1         # 偏航率噪声 (rad/s)
+# 动作噪声（叠加在标称动作上）。
+# 08-01 从 0.2 降到 0.05：飞控速度环要 ~11 步(1.5s)才跟上指令，每步独立的 0.2m/s 白噪声
+# 被完全滤掉、产生不了可观测位移差异 —— 那不是激励，是**动作输入上的标签噪声**，
+# 等于反复教模型"动作扰动不影响结果"。真正的激励靠下面的分段随机化。
+NOISE_V = 0.05          # 速度噪声 (m/s)
+NOISE_YAW = 0.03        # 偏航率噪声 (rad/s)
 
-# 近场轨迹模板：分段 (v_forward, v_right, v_down, yaw_rate, steps)，**机体系**。
-# 覆盖"接近/绕飞/纠偏/飞离"四类行为——只采接近的话，模型没见过偏了怎么办。
-TEMPLATES = {
-    "approach":  [(2.5, 0.0, 1.0, 0.0, 60), (2.0, 0.0, 1.2, 0.0, 40)],
-    "orbit":     [(1.0, 2.0, 0.3, -0.35, 50), (1.0, -2.0, 0.3, 0.35, 50)],
-    "correct":   [(2.0, 1.5, 0.5, 0.0, 30), (2.0, -1.5, 0.5, 0.3, 40), (2.5, 0.0, 1.0, 0.0, 30)],
-    "drift":     [(1.5, 0.0, -0.3, 0.5, 40), (2.0, 0.0, 0.5, -0.2, 60)],
-    "scan":      [(0.5, 0.0, 0.2, 0.6, 50), (0.5, 0.0, 0.2, -0.6, 50)],
-}
+# 动作基元池：(v_forward, v_right, v_down, yaw_rate)，**机体系**。
+# 覆盖"直冲/绕飞/纠偏/爬升/扫视"，一条 episode 随机串若干段。
+SEG_POOL = [
+    (2.5, 0.0, 1.0, 0.0),      # 直冲下压
+    (2.0, 0.0, 1.2, 0.0),
+    (1.0, 2.0, 0.3, -0.35),    # 右移绕飞
+    (1.0, -2.0, 0.3, 0.35),    # 左移绕飞
+    (2.0, 1.5, 0.5, 0.0),      # 右前纠偏
+    (2.0, -1.5, 0.5, 0.3),     # 左前纠偏 + 右偏航
+    (1.5, 0.0, -0.3, 0.5),     # 爬升 + 右偏航
+    (2.0, 0.0, 0.5, -0.2),     # 前进 + 左偏航
+    (0.5, 0.0, 0.2, 0.6),      # 近乎原地右扫
+    (0.5, 0.0, 0.2, -0.6),     # 近乎原地左扫
+]
+
+# 每段步数。**下界由飞控速度环决定**：08-01 实测位移/指令比值从第 1 步的 0.23 爬到
+# 第 19 步的 0.86，约 11 步(1.5s)才稳定。段长若短于此，指令根本没被执行到就换了下一个，
+# 动作与位移的对应关系被暂态糊掉。取 13 步 → 100 步一条约 7~8 段。
+SEG_STEPS = 13
 
 
 # ---- 共享缓存：三路相机各存最新一帧 ----
@@ -222,6 +235,26 @@ def build_nominal(trajectory, steps):
     return np.array(seq[:steps], dtype=np.float32)
 
 
+def build_random_traj(rng, steps, seg_steps=SEG_STEPS):
+    """从基元池随机串出一条分段轨迹，相邻段不重复。
+
+    08-01 的阴性结果决定了这个设计：原来"一条 episode 一个模板"→ 动作在 episode 内只变
+    1~2 次，且与视觉上下文绑死（approach 模板必然配"正对目标"的画面）。模型学会"看图猜
+    模板"就能预测运动，动作那一路输入退化成死输入 —— eval_wm 实测 model/zero-act≈1.00、
+    model/swap≈1.03，即给真动作、给零动作、给别条的动作，预测误差完全一样。
+    老场景（三条判据全过）恰恰相反：每条 episode 内部把 6 类动作走一遍，动作与上下文解耦。
+    """
+    n_seg = max(1, math.ceil(steps / seg_steps))
+    traj, prev = [], -1
+    for _ in range(n_seg):
+        i = int(rng.integers(len(SEG_POOL)))
+        while i == prev and len(SEG_POOL) > 1:      # 相邻段不重复，保证动作真的在变
+            i = int(rng.integers(len(SEG_POOL)))
+        prev = i
+        traj.append((*SEG_POOL[i], seg_steps))
+    return traj
+
+
 def require_success(name, result):
     print(f"{name}: {result}")
     if result is not True:
@@ -262,29 +295,24 @@ def safe_alt_of(target):
     return float(target["size"][2]) / 2.0 + SAFE_MARGIN
 
 
-def fit_to_station(name, traj, r, alt, dt, target):
-    """把模板按站位调准。固定速度的模板没法同时适配 15m 和 40m 的起点。
+def fit_to_station(traj, r, alt, dt, target):
+    """按站位缩放，保证**最坏情况下也撞不到目标**。
 
-    - 接近类（approach/correct）：缩放速度，使**终点停在目标外的安全壳上**（见 SAFE_* 常量）。
-      注意终点必须按目标**体积**留间隙，不能按起始距离的百分比 —— 07-31 首次实跑
-      用 r×0.9 直接撞进机身：r=20/alt=25 时终点距中心仅 2m、高出中心 2.5m，
-      而飞机水平半对角 17.1m、半高 3.24m，那个点就在机身里面。
-    - orbit：yaw_rate 按 r 反比缩放。以 r=16.7、yaw_rate 0.35（实测目标全程在画面中）
-      为基准，r 变大时机头必须转得更慢才跟得住目标。
-    - drift/scan：不动（本来就不要求精确到达）。
+    终点必须按目标**体积**留间隙，不能按起始距离的百分比 —— 07-31 首次实跑用 r×0.9
+    直接撞进机身：r=20/alt=25 时终点距中心仅 2m、高出中心 2.5m，而飞机水平半对角 17.1m、
+    半高 3.24m，那个点就在机身里面。
+
+    缩放系数按"全程直线冲向目标"这个**最坏情况**算：随机段里有绕飞/偏航/爬升，实际净接近
+    远小于各段前进量之和，所以这样算是保守的。系数**上限 1.0**（只缩不放）——放大会把速度
+    推到 4m/s 以上，超出闭环时的动作范围，采出来的是用不上的分布。
     """
-    if name in ("approach", "correct"):
-        fwd = sum(vf * n for vf, _, _, _, n in traj) * dt
-        dwn = sum(vd * n for _, _, vd, _, n in traj) * dt
-        need_f = max(0.0, r - SAFE_R)          # 只飞到安全壳，不是飞到中心
-        need_d = max(0.0, alt - safe_alt_of(target))
-        kf = need_f / fwd if fwd > 1e-6 else 0.0
-        kd = need_d / dwn if dwn > 1e-6 else 0.0
-        return [(vf * kf, vr * kf, vd * kd, yr, n) for vf, vr, vd, yr, n in traj]
-    if name == "orbit":
-        k = 16.7 / max(r, 1e-6)
-        return [(vf, vr, vd, yr * k, n) for vf, vr, vd, yr, n in traj]
-    return traj
+    fwd = sum(vf * n for vf, _, _, _, n in traj) * dt
+    dwn = sum(vd * n for _, _, vd, _, n in traj) * dt
+    need_f = max(0.0, r - SAFE_R)              # 只飞到安全壳，不是飞到中心
+    need_d = max(0.0, alt - safe_alt_of(target))
+    kf = min(1.0, need_f / fwd) if fwd > 1e-6 else 1.0
+    kd = min(1.0, need_d / dwn) if dwn > 1e-6 else 1.0
+    return [(vf * kf, vr * kf, vd * kd, yr, n) for vf, vr, vd, yr, n in traj]
 
 
 def sample_station(rng, target, band="near", az_frac=None):
@@ -528,8 +556,8 @@ def parse_args():
     p.add_argument("--overwrite", action="store_true",
                    help="允许覆盖同名 episode（默认拒绝，防止 --start-index 用错抹掉已采数据）")
     p.add_argument("--seed", type=int, default=0)
-    p.add_argument("--template", default=None, choices=list(TEMPLATES),
-                   help="只用指定模板；默认轮询全部")
+    p.add_argument("--seg-steps", type=int, default=SEG_STEPS,
+                   help=f"每段动作持续步数（默认 {SEG_STEPS}；不要低于速度环稳定时间 ~11 步）")
     p.add_argument("--no-depth", action="store_true", help="不订阅深度")
     p.add_argument("--no-seg", action="store_true", help="不订阅分割")
     return p.parse_args()
@@ -538,7 +566,6 @@ def parse_args():
 async def main(args):
     out_dir = args.output_dir.expanduser().resolve()
     out_dir.mkdir(parents=True, exist_ok=True)
-    names = [args.template] if args.template else list(TEMPLATES)
     bands = list(BANDS) if args.band == "both" else [args.band]
 
     client = projectairsim.ProjectAirSimClient(address=args.address)
@@ -590,8 +617,7 @@ async def main(args):
         for k in range(args.num):
             idx = args.start_index + k
             # 用**全局编号 idx** 轮询，不是批内 k：分批续采时 k 每次都从 0 开始，
-            # `--num 1 --start-index N` 连采就会条条都是 approach/near，样本严重失衡。
-            name = names[idx % len(names)]
+            # `--num 1 --start-index N` 连采就会条条都是同一个带，样本严重失衡。
             band = bands[idx % len(bands)]      # both 时近/远交替，保证两带样本量相当
             seed = args.seed + idx
             # 一条 episode 一个 RNG，按顺序取值。原来用同 seed 建两个 RNG，
@@ -602,15 +628,17 @@ async def main(args):
             az_frac = (k + rng_ep.uniform(0.0, 1.0)) / args.num
             station = sample_station(rng_ep, target, band, az_frac)
             n, e, d, yaw, r, alt = station
-            traj = fit_to_station(name, TEMPLATES[name], r, alt, dt_use, target)
-            print(f"\n=== [{k+1}/{args.num}] episode_{idx:04d} 模板={name} 带={band} "
+            raw = build_random_traj(rng_ep, args.steps, args.seg_steps)
+            traj = fit_to_station(raw, r, alt, dt_use, target)
+            segs = " ".join(f"{SEG_POOL.index(s[:4])}" for s in raw)
+            print(f"\n=== [{k+1}/{args.num}] episode_{idx:04d} 带={band} "
                   f"站位 r={r:.1f}m alt={alt:.1f}m 斜距={math.hypot(r, alt):.1f}m "
-                  f"yaw={math.degrees(yaw):+.0f}° ===")
+                  f"yaw={math.degrees(yaw):+.0f}° 段序列=[{segs}] ===")
             try:
                 reset_cache()
                 await goto_station(drone, station)
                 bufs, stats = await run_episode(drone, args, traj, seed, tags, dt_use=dt_use)
-                extra = {"seed": seed, "template": name, "band": band,
+                extra = {"seed": seed, "seg_ids": segs, "seg_steps": args.seg_steps, "band": band,
                          "station_r": r, "station_alt": alt, "station_yaw": yaw,
                          "station_slant": math.hypot(r, alt)}
                 # 质量诊断一并落盘：事后不用重算就能筛掉跳帧/指令异常的 episode

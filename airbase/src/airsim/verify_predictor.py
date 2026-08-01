@@ -27,7 +27,10 @@ def parse_args():
     p.add_argument("--ckpt", default=f"{base}/weights/predictor_h5.pt")
     p.add_argument("--latent-dir", default=f"{base}/outputs/features/latents")
     p.add_argument("--episode-dir", default=f"{base}/outputs/datasets/episodes_dataset")
-    p.add_argument("--val-num", type=int, default=3, help="末尾留作验证的 episode 数（与训练一致）")
+    # 默认 None = 从 ckpt 里读训练时用的值。写死默认值曾导致：训练留 1 条、验证取 3 条，
+    # 后两条是模型见过的 → 成绩虚高且不自知。
+    p.add_argument("--val-num", type=int, default=None,
+                   help="末尾留作验证的 episode 数；默认读 ckpt 里训练时的 val_num")
     p.add_argument("--device", default=None)
     return p.parse_args()
 
@@ -46,7 +49,12 @@ def main():
     model.load_state_dict(ck["model"])
     model.eval()
 
-    val_files = sorted(glob.glob(str(Path(args.latent_dir) / "episode_*_dino.h5")))[-args.val_num:]
+    val_num = args.val_num
+    if val_num is None:
+        a = ck.get("args") or {}
+        val_num = int(a.get("val_num", 1)) if isinstance(a, dict) else getattr(a, "val_num", 1)
+        print(f"val_num 取自 ckpt: {val_num}")
+    val_files = sorted(glob.glob(str(Path(args.latent_dir) / "episode_*_dino.h5")))[-val_num:]
     print(f"验证集 {len(val_files)} 条: {[Path(f).name for f in val_files]}")
 
     mse_model, mse_id = [], []

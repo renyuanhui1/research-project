@@ -23,6 +23,7 @@ def main():
     ap.add_argument("--repo-dir", default=None, help="dinov2 仓库路径；默认 {base}/dinov2")
     ap.add_argument("--dino-weights", default=None, help="DINO 权重；默认 {base}/weights/dinov2_vits14_pretrain.pth")
     ap.add_argument("--data-dir", default=None, help="episodes 数据集目录；默认 {base}/outputs/datasets/episodes_dataset")
+    ap.add_argument("--ckpt", default=None, help="predictor 权重；默认 {base}/weights/predictor_h5.pt")
     ap.add_argument("--steps", type=int, default=30, help="rollout 步数")
     ap.add_argument("--roll-from", type=int, default=0, help="从第几帧起 rollout")
     cli = ap.parse_args()
@@ -37,7 +38,10 @@ def main():
     DEV = "cuda" if torch.cuda.is_available() else "cpu"
     STEPS, ROLL_FROM = cli.steps, cli.roll_from
 
-    ck = torch.load(f"{BASE}/weights/predictor_h5.pt", map_location="cpu", weights_only=False)
+    ckpt_path = cli.ckpt or f"{BASE}/weights/predictor_h5.pt"
+    ck = torch.load(ckpt_path, map_location="cpu", weights_only=False)
+    print(f"权重: {ckpt_path}" + (f"  (第 {ck['epoch']} 轮, val={ck['val_mse']:.5f})"
+                                  if ck.get("epoch") and ck.get("val_mse") else ""))
     a = ck["args"]
     val_num = int(a.get("val_num", 1)) if isinstance(a, dict) else getattr(a, "val_num", 1)
     model = LatentPredictor(ck["dim"], ck["num_patches"]).to(DEV).eval()
