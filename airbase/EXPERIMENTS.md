@@ -976,3 +976,59 @@ uint16 深度的精度前提、空中 `disarm` 仅限仿真的警告。
 同样 150 轮，60 条 = 12150 步、300 条 = 62400 步（batch 64）。
 决定收敛的是**梯度步数**不是轮数。上次 val 在 e40（3240 步）触底、平到 e90（7290 步）后爬升 →
 300 条设 `--epochs 60`（24960 步）已是拐点的 3 倍多。修 #2 之后这个数不再关键：脚本自己挑最优轮。
+
+### 八、收尾状态（08-01 日终）
+
+**数据集清单**（三份不可混用，动作结构不同）：
+
+| 目录 | 条数 | 动作结构 | 用途 |
+|---|---|---|---|
+| `outputs/datasets/nearfield/` | 40 | 模板（每条 1 个模板、2~3 段） | 阴性结果的来源，留作对照 |
+| `outputs/datasets/randseg/` | 60 | 随机分段（8 段 × 13 步） | 单目标，验证修法有效 |
+| `outputs/datasets/wm300/` | **300** | 随机分段 | **主数据集**，5 目标 × 2 带 × 30 |
+
+`wm300` 已用 `tools/interleave_dataset.py` 按 (目标 × 带) 轮转重编号为 `0000~0299`，
+**末尾 20 条 = 5 目标 × 2 带 × 2 条**，故 `--val-num 20` 的 held-out 覆盖均衡。
+重编号在**本地做完再 rsync**，避免两端各做一次导致顺序不一致。
+
+**权重对应关系**（`weights/`）：
+
+| 文件 | 数据 | 三判据 (held-out) |
+|---|---|---|
+| `predictor_tmpl40.pt` | nearfield 40 条 | identity 0.72~0.60 / **zero-act ≈1.00** / **swap ≈1.03** |
+| `predictor_h5.pt` | randseg 60 条 | identity 0.68~0.60 / zero-act 0.76~0.96 / **swap 0.91~0.98** |
+| `predictor_wm300.pt` | wm300 300 条 | **待训** |
+
+**卡在哪**：`model/swap` —— 模型能分辨"有动作 vs 无动作"，分辨不出"这个动作 vs 另一个动作"，
+而 MPPI 挑候选正靠后者。目标 ≤0.80（老场景 0.60）。
+判断依据：训练集 0.73 vs held-out 0.95 的缺口若随数据量收窄，说明"泛化不足"这个归因成立。
+
+**下一步（服务器 `192.168.31.237` / env `ryh-dinov2`）**：
+
+```bash
+cd ~/works/2025ryh/research-project/airbase
+python src/airsim/extract_dino_features.py --input-dir outputs/datasets/wm300 \
+  --output-dir outputs/features/latents_wm300 \
+  --repo-dir /home/pc/works/2025ryh/dinov2 \
+  --weights  /home/pc/works/2025ryh/dinov2/weights/dinov2_vits14_pretrain.pth
+python src/airsim/train_predictor.py --latent-dir outputs/features/latents_wm300 \
+  --episode-dir outputs/datasets/wm300 --ckpt weights/predictor_wm300.pt \
+  --horizon 5 --val-num 20 --val-every 5 --epochs 60
+python src/airsim/tools/eval_wm.py --data-dir outputs/datasets/wm300 \
+  --ckpt weights/predictor_wm300.pt \
+  --repo-dir /home/pc/works/2025ryh/dinov2 \
+  --dino-weights /home/pc/works/2025ryh/dinov2/weights/dinov2_vits14_pretrain.pth
+```
+
+耗时估计：300 条留 20 → 416 步/epoch，按 60 条那次实测的 ~0.39 s/步外推，60 轮约 **2.7 小时**。
+内存 ~13 GB（latent 全量常驻并转 float32），服务器 93 GB，无压力。
+
+**并行的待办（与世界模型主线不冲突）**：
+- 深度进伺服闭环四条（距离减速/停止、尺度一致性排除误检、盲区预警、替掉 `k_vert` 魔数），
+  落点在 `servo_closed_loop_px4.py` 一处，是消融的 A 条件
+- `eval_run.py`（evaluator L0+L1，纯离线，成功判据 = 到部位锚点的距离，`d` 不写死、记最小距离并在多个 `d` 下报成功率）
+- 训 value 时按分割掩膜生成的可见性标签过滤（300 条里 22 条可见率 <50%）
+
+**记一句方法论**：val_mse 的绝对值不可跨数据集比较（量纲随标准化/rollout 长度/每步画面变化量而变），
+wm300 目标更多样，val 完全可能更高而模型更好。**唯一正当用途是同一次训练内挑最优轮**，
+判死活只看 `eval_wm` 的三条比值。
