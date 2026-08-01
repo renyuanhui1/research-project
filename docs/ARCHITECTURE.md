@@ -70,8 +70,8 @@
 
 ## 3. 世界模型数据流水线（DINO-WM，脚本 1→7）
 
-目标见 `docs/claude_code_task_pipeline.md`：采集 (图像, 动作) 序列训练
-action-conditioned latent predictor。脚本按 1→7 顺序、逐个跑通验证。
+目标：采集 (图像, 动作) 序列训练 action-conditioned latent predictor。
+脚本按 1→7 顺序、逐个跑通验证。
 
 - **脚本 1 `src/airsim/decode_check.py`（已跑通验证）**：Pub/Sub 订阅
   `FrontCamera/scene_camera`，回调缓存最新帧，`decode_image()` 把 `image_msg["data"]`
@@ -246,7 +246,7 @@ action-conditioned latent predictor。脚本按 1→7 顺序、逐个跑通验�
 ## 9. 约定
 
 -生成的数据集、缓存、评估、运行记录按 `outputs/README.md` 分类；模型放 `weights/`。
-- 目录布局与迁移见 `docs/FILE_LAYOUT.md`；源码模块划分见 `src/README.md`。
+- 源码模块划分见 `src/README.md`。
 - **conda 环境**：本地 `airsim`（仿真采集 / DINO 抽特征 / 训练 / 本地闭环 / ROS2 可视化）；
   **服务器 `ryh-dinov2`**（编码 + 世界模型 + MPPI，分布式闭环，§5）。
 - 数据流：仿真采集 → `episode_*.h5` → DINO 抽特征 → 世界模型训练 → 目标函数 → MPPI/伺服闭环。
