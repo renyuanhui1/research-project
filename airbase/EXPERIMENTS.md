@@ -997,28 +997,46 @@ uint16 深度的精度前提、空中 `disarm` 仅限仿真的警告。
 |---|---|---|
 | `predictor_tmpl40.pt` | nearfield 40 条 | identity 0.72~0.60 / **zero-act ≈1.00** / **swap ≈1.03** |
 | `predictor_h5.pt` | randseg 60 条 | identity 0.68~0.60 / zero-act 0.76~0.96 / **swap 0.91~0.98** |
-| `predictor_wm300.pt` | wm300 300 条 | **待训** |
+| `predictor_wm300.pt` | wm300 300 条 | identity 0.65~0.61 / zero-act 0.83~0.76 / **swap 0.92~0.83** |
+| `predictor_wm300_h4.pt` | wm300 + `--action-hist 4` | **待训**（见 §九 修法 A） |
 
-**卡在哪**：`model/swap` —— 模型能分辨"有动作 vs 无动作"，分辨不出"这个动作 vs 另一个动作"，
-而 MPPI 挑候选正靠后者。目标 ≤0.80（老场景 0.60）。
-判断依据：训练集 0.73 vs held-out 0.95 的缺口若随数据量收窄，说明"泛化不足"这个归因成立。
+⚠️ 下面这段"卡在哪"写于 §九 之前，其归因（泛化不足）**已被 §九 否定**，保留以存留判断过程：
 
-**下一步（服务器 `192.168.31.237` / env `ryh-dinov2`）**：
+> **卡在哪**：`model/swap` —— 模型能分辨"有动作 vs 无动作"，分辨不出"这个动作 vs 另一个动作"，
+> 而 MPPI 挑候选正靠后者。目标 ≤0.80（老场景 0.60）。
+> 判断依据：训练集 0.73 vs held-out 0.95 的缺口若随数据量收窄，说明"泛化不足"这个归因成立。
+
+**实际结论（§九）**：缺口确实消失了，但**不是 held-out 追上来，是训练集掉下去**（swap 0.73→0.89）
+—— 模型在见过的数据上也做不到动作特异，是**欠信息不是过拟合**，加数据无效。
+真因是 `forward(z, a_t)` 的输入里没有速度状态（单帧看不出速度），而段长 13 步 < 速度环 11 步稳定时间，
+导致 `a_t` 只能解释 47% 的位移。修法 A（动作历史）已实现待验。
+
+**下一步（服务器 `192.168.31.237` / env `ryh-dinov2`）** —— latent 已抽好（`latents_wm300`，300 个），
+图像没变故**不用重抽**，只需重训 + 重评：
 
 ```bash
-cd ~/works/2025ryh/research-project/airbase
-python src/airsim/extract_dino_features.py --input-dir outputs/datasets/wm300 \
-  --output-dir outputs/features/latents_wm300 \
-  --repo-dir /home/pc/works/2025ryh/dinov2 \
-  --weights  /home/pc/works/2025ryh/dinov2/weights/dinov2_vits14_pretrain.pth
-python src/airsim/train_predictor.py --latent-dir outputs/features/latents_wm300 \
-  --episode-dir outputs/datasets/wm300 --ckpt weights/predictor_wm300.pt \
-  --horizon 5 --val-num 20 --val-every 5 --epochs 60
+cd ~/works/2025ryh/research-project && git pull && cd airbase
+
+python src/airsim/train_predictor.py \
+  --latent-dir  outputs/features/latents_wm300 \
+  --episode-dir outputs/datasets/wm300 \
+  --ckpt        weights/predictor_wm300_h4.pt \
+  --horizon 5 --val-num 20 --val-every 5 --epochs 60 \
+  --action-hist 4
+# 开头应打印 action_hist=4(动作维 16)
+
 python src/airsim/tools/eval_wm.py --data-dir outputs/datasets/wm300 \
-  --ckpt weights/predictor_wm300.pt \
+  --ckpt weights/predictor_wm300_h4.pt \
   --repo-dir /home/pc/works/2025ryh/dinov2 \
   --dino-weights /home/pc/works/2025ryh/dinov2/weights/dinov2_vits14_pretrain.pth
 ```
+
+**只改了一个变量**（`--action-hist` 1→4），与 `predictor_wm300.pt` 直接可比。看两处：
+`model/swap` 能否从 0.83~0.92 掉到 ≤0.80；`h1` 列的 zero-act/swap（现 1.07/1.05）应最先降到 1 以下。
+没掉就上修法 B（200 步 × 30 步段重采）。
+
+⚠️ `torch.save` **没有覆盖保护**（与 `save_hdf5` 不同，后者会抛 `FileExistsError`）。
+`--ckpt` 漏传或写错名字会静默盖掉已有权重，跑之前先 `ls weights/` 确认。
 
 耗时估计：300 条留 20 → 416 步/epoch，按 60 条那次实测的 ~0.39 s/步外推，60 轮约 **2.7 小时**。
 内存 ~13 GB（latent 全量常驻并转 float32），服务器 93 GB，无压力。
