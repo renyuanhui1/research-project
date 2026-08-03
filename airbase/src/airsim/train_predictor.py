@@ -32,10 +32,30 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
 
 # ---------------- Dataset ----------------
+def stack_action_history(a, k):
+    """(T,4) → (T, 4k)：每步拼上最近 k 条指令 [a_t, a_{t-1}, ..., a_{t-k+1}]，开头补零。
+
+    为什么需要（08-01 实测）：无人机这一步怎么动，取决于**当前速度**，而速度是过去十几步
+    指令累积的结果（飞控速度环 ~11 步才跟上指令）——单帧图像里看不出速度。
+    对 wm300 做线性回归：位移只用 a_t 时 R²=0.468，只用 a_{t-1} 反而 R²=0.576，
+    用 a_t..a_{t-3} 到 0.737。即模型只拿 a_t 时，信息上限就锁死在 47%，
+    学不到动作特异性（实测 model/swap 0.83~0.92，训练集上同样差 → 不是过拟合是欠信息）。
+
+    补零 = "此前静止"，与事实相符：goto_station 到位后有 rotate + 0.8s settle。
+    闭环合法性：历史指令是控制器自己发出去的，不是特权信息；MPPI 评估候选序列时，
+    第 k 步的历史就是它自己前面几步的候选值，训练与部署的输入构造方式一致。
+    """
+    if k <= 1:
+        return a.astype(np.float32)
+    pad = np.zeros((k - 1, a.shape[1]), np.float32)
+    p = np.concatenate([pad, a.astype(np.float32)], 0)         # (T+k-1, 4)
+    return np.concatenate([p[k - 1 - j:len(p) - j] for j in range(k)], axis=1)
+
+
 class LatentActionDataset(Dataset):
     """把 latent + action 构造成 (z_t, actions[t:t+h], z[t+1:t+h+1]) 样本。"""
 
-    def __init__(self, latent_dir, episode_dir, horizon=1, episodes=None):
+    def __init__(self, latent_dir, episode_dir, horizon=1, episodes=None, action_hist=1):
         latent_dir = Path(latent_dir)
         episode_dir = Path(episode_dir)
         files = sorted(glob.glob(str(latent_dir / "episode_*_dino.h5")))
@@ -57,12 +77,15 @@ class LatentActionDataset(Dataset):
             self.dim, self.num_patches = z.shape[2], z.shape[1]
             ep = len(self.zs)
             self.zs.append(z)
-            self.acts.append(a.astype(np.float32))
+            self.acts.append(stack_action_history(a, action_hist))
             for t in range(len(z) - horizon):
                 self.samples.append((ep, t))
         self.horizon = horizon
+        self.action_hist = action_hist
+        self.action_dim = self.acts[0].shape[1]
         print(f"Dataset：{len(files)} 条 episode，{len(self.samples)} 个样本，"
-              f"dim={self.dim} num_patches={self.num_patches} horizon={horizon}")
+              f"dim={self.dim} num_patches={self.num_patches} horizon={horizon} "
+              f"action_hist={action_hist}(动作维 {self.action_dim})")
 
     def __len__(self):
         return len(self.samples)
@@ -209,6 +232,8 @@ def parse_args():
     p.add_argument("--episode-dir", type=Path, default=PROJECT_ROOT / "outputs/datasets/episodes_dataset")
     p.add_argument("--ckpt", type=Path, default=PROJECT_ROOT / "weights/predictor_h5.pt")
     p.add_argument("--horizon", type=int, default=1, help="训练步数：1=单步，>1=多步 rollout")
+    p.add_argument("--action-hist", type=int, default=1,
+                   help="每步拼最近几条指令作为动作输入（1=只用 a_t，即旧行为；4=实测 R² 0.47→0.74）")
     p.add_argument("--epochs", type=int, default=50)
     p.add_argument("--batch-size", type=int, default=64)
     p.add_argument("--lr", type=float, default=1e-4)
@@ -245,7 +270,8 @@ def main():
     print(f"设备={device} seed={args.seed} 训练集 episode={train_eps} 验证集 episode={val_eps}")
 
     train_set = LatentActionDataset(args.latent_dir, args.episode_dir,
-                                    horizon=args.horizon, episodes=train_eps)
+                                    horizon=args.horizon, episodes=train_eps,
+                                    action_hist=args.action_hist)
     if args.no_normalize:
         z_mean = z_std = None
         print("未做 latent 标准化（--no-normalize）")
@@ -257,6 +283,7 @@ def main():
                         num_workers=args.num_workers, drop_last=True)
 
     model = LatentPredictor(train_set.dim, train_set.num_patches,
+                            action_dim=train_set.action_dim,
                             n_layers=args.n_layers, n_heads=args.n_heads).to(device)
     opt = torch.optim.AdamW(model.parameters(), lr=args.lr)
     loss_fn = nn.MSELoss()
@@ -266,13 +293,16 @@ def main():
     val_set = None
     if val_eps:
         val_set = LatentActionDataset(args.latent_dir, args.episode_dir,
-                                      horizon=1, episodes=val_eps)
+                                      horizon=1, episodes=val_eps,
+                                      action_hist=args.action_hist)
         if z_mean is not None:
             apply_latent_norm(val_set, z_mean, z_std)  # 用训练集统计标准化验证集
 
     def save_ckpt(epoch, val_mse, hist):
         torch.save({"model": model.state_dict(),
                     "dim": train_set.dim, "num_patches": train_set.num_patches,
+                    # 评估/规划脚本按这两个字段重建同样的动作输入，防止训练与推理格式对不上
+                    "action_hist": train_set.action_hist, "action_dim": train_set.action_dim,
                     "args": vars(args), "history": hist,
                     "epoch": epoch, "val_mse": val_mse,
                     "z_mean": z_mean, "z_std": z_std}, args.ckpt)

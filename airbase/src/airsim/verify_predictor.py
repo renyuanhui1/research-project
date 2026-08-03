@@ -16,7 +16,7 @@ import h5py
 import numpy as np
 import torch
 
-from train_predictor import LatentPredictor
+from train_predictor import LatentPredictor, stack_action_history
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
@@ -45,7 +45,9 @@ def main():
     m = torch.tensor(np.asarray(ck["z_mean"]), device=device)
     s = torch.tensor(np.asarray(ck["z_std"]), device=device)
 
-    model = LatentPredictor(ck["dim"], ck["num_patches"]).to(device)
+    a_hist = int(ck.get("action_hist", 1))          # 训练时怎么拼的，这里就怎么拼
+    model = LatentPredictor(ck["dim"], ck["num_patches"],
+                            action_dim=int(ck.get("action_dim", 4))).to(device)
     model.load_state_dict(ck["model"])
     model.eval()
 
@@ -64,7 +66,8 @@ def main():
                 z = torch.tensor(h["z"][:].astype(np.float32), device=device)
                 src = str(h.attrs["source"])
             with h5py.File(Path(args.episode_dir) / src, "r") as h:
-                a = torch.tensor(h["action"][:].astype(np.float32), device=device)
+                a = torch.tensor(stack_action_history(
+                    h["action"][:].astype(np.float32), a_hist), device=device)
             zn = (z - m) / s                          # 用训练集统计标准化
             pred = model(zn[:-1], a[:-1])             # a_t 驱动 z_t→z_{t+1}
             mse_model.append(((pred - zn[1:]) ** 2).mean().item())

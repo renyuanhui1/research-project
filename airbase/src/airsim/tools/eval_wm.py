@@ -33,7 +33,7 @@ def main():
     data_dir = cli.data_dir or f"{BASE}/outputs/datasets/episodes_dataset"
     sys.path.insert(0, f"{BASE}/src/airsim")
     from extract_dino_features import load_model, to_input_tensor, IMAGENET_MEAN, IMAGENET_STD
-    from train_predictor import LatentPredictor
+    from train_predictor import LatentPredictor, stack_action_history
 
     DEV = "cuda" if torch.cuda.is_available() else "cpu"
     STEPS, ROLL_FROM = cli.steps, cli.roll_from
@@ -44,7 +44,9 @@ def main():
                                   if ck.get("epoch") and ck.get("val_mse") else ""))
     a = ck["args"]
     val_num = int(a.get("val_num", 1)) if isinstance(a, dict) else getattr(a, "val_num", 1)
-    model = LatentPredictor(ck["dim"], ck["num_patches"]).to(DEV).eval()
+    a_hist = int(ck.get("action_hist", 1))          # 训练时怎么拼的，这里就怎么拼
+    model = LatentPredictor(ck["dim"], ck["num_patches"],
+                            action_dim=int(ck.get("action_dim", 4))).to(DEV).eval()
     model.load_state_dict(ck["model"])
     zm = torch.tensor(np.asarray(ck["z_mean"]), device=DEV)
     zs = torch.tensor(np.asarray(ck["z_std"]), device=DEV)
@@ -67,7 +69,7 @@ def main():
     def encode_ep(path, nframes):
         with h5py.File(path, "r") as f:
             rgb = f["rgb"][:nframes]
-            act = f["action"][:nframes].astype(np.float32)
+            act = stack_action_history(f["action"][:nframes].astype(np.float32), a_hist)
         zl = []
         for r in rgb:
             x = to_input_tensor(r[None], 224, mean, std, DEV)
