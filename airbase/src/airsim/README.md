@@ -175,14 +175,15 @@ sys.path[:0] = [str(_AIRBASE_SRC)] + [各流程目录]      # 跨分组 import
 
 | 脚本 | 状态 | 干什么 | 场景 |
 |---|---|---|---|
-| `px4/servo_closed_loop_px4.py` | 🟢 | **当前主力**：指纹视觉伺服闭环 PX4 版（消融的 A 条件）。`runs/servo/px4_*` 都是它产的 | **airbase_px4** |
-| `loop/servo_closed_loop.py` | 🟡 | 同上的 Simple Flight 版。`Fingerprint`/`save_run` 被 PX4 版复用 | airbase |
+| `loop/servo_closed_loop.py` | 🟢 | **当前主力**：指纹视觉伺服闭环（消融的 A 条件），ProjectAirSim API 控制。08-01 改机体系下发 + 深度进控制(`--stop-dist`/`--slow-dist`/`--dist-min-peak`) + `stop_reason` + 录深度分割。`Fingerprint`/`save_run`/`compute_body_cmd` 是**单一实现**，PX4 版 import 它 | airbase |
+| `px4/servo_closed_loop_px4.py` | 🟡 | 同上的 PX4 版。**暂时搁置** —— 先用 API 控制把 A/B/C 消融跑通，PX4 留作后续部署验证。`runs/servo/px4_*` 是它早先产的 | **airbase_px4** |
 | `loop/plan_mppi.py` | 🟡 | 离线潜空间 MPPI 验证（不连仿真）。**前置已具备**，尚未在 airbase 实跑 | — |
 | `loop/plan_closed_loop.py` | 🟡 | 仿真闭环 MPPI 规划（消融的 B 条件）。同上 | — |
 
-⚠️ **A 与 B 跑在两条控制栈上**：`px4/servo_closed_loop_px4.py` 走 MAVSDK offboard，
-`loop/plan_closed_loop.py` 走 ProjectAirSim `move_by_velocity_async`（Simple Flight）。
-**不可公平比较** —— 做消融前必须先统一（建议 A/B/C 都先走 Simple Flight，跑通再整体接 PX4）。
+✅ **控制栈已统一（08-01）**：A（`loop/servo_closed_loop.py`）与 B（`loop/plan_closed_loop.py`）
+都走 ProjectAirSim API，且**都发机体系速度**，与采集（`action_frame="body"`）和世界模型一致。
+这两件事之前都不成立：两条控制栈不可比；而 `plan_closed_loop` 发世界系 NED 喂机体系训的模型，
+**不报错但全错**。PX4 版暂时搁置，留作后续部署验证。
 
 **PX4 伺服三个坑**（都踩过）：
 - 甩头 ~300°：根因是**交接前航向没停稳** → `--yaw-settle`（默认 2s）
