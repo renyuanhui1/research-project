@@ -18,7 +18,8 @@ airbase/
 ```
 
 **关键：脚本保持"场景根下第 2 层"(`src/airsim/`)，故 `PROJECT_ROOT=parents[2]` 自动指到本文件夹，
-默认参数全落进 `airbase/`——路径代码无需改。** 直接 `python airbase/src/airsim/xxx.py` 即可。
+默认参数全落进 `airbase/`——路径代码无需改。** 直接 `python airbase/src/airsim/<组>/xxx.py` 即可（08-01 按流程分成 wm/ loop/ px4/ probe/，
+脚本开头的引导向上找 `sim_config/` 定位本文件夹，与层级无关）。
 
 ## 已做的配置改动（相对老场景）
 

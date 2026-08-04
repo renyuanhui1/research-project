@@ -1,0 +1,96 @@
+"""验证脚本：训练好的世界模型在验证集上到底有没有学到动力学。
+
+判定标准（与尺度无关）：模型单步预测 MSE 应明显低于 identity 基线
+（identity = 预测 z_{t+1}=z_t）。两者都在"训练集统计标准化"的空间里算才可比。
+
+用法（默认路径按服务器目录，可命令行覆盖）：
+  python verify_predictor.py
+  python verify_predictor.py --ckpt .../predictor.pt --latent-dir .../latents \
+      --episode-dir .../episodes_dataset --val-num 3
+"""
+import argparse
+import glob
+from pathlib import Path
+
+import h5py
+import numpy as np
+import torch
+
+import sys
+from pathlib import Path      # 引导块自足：不依赖上面的 import 顺序
+# 向上找 sim_config/ 来定位 airbase/ —— 与脚本放在第几层无关。
+# 原来写死 parents[2]，脚本一挪进子目录就指错，README 为此专门警告过「不要把脚本挪进子目录」。
+_AIRBASE_ROOT = next(p for p in Path(__file__).resolve().parents if (p / "sim_config").is_dir())
+_AIRBASE_SRC = _AIRBASE_ROOT / "src/airsim"
+# 跨分组 import（如 loop/servo_closed_loop → wm/decode_check）：各流程目录都挂上 sys.path
+sys.path[:0] = [str(_AIRBASE_SRC)] + [str(d) for d in _AIRBASE_SRC.iterdir()
+                                      if d.is_dir() and not d.name.startswith(("_", "."))]
+from train_predictor import LatentPredictor, stack_action_history
+
+PROJECT_ROOT = _AIRBASE_ROOT
+
+
+def parse_args():
+    base = str(PROJECT_ROOT)
+    p = argparse.ArgumentParser(description="验证世界模型是否超过 identity 基线")
+    p.add_argument("--ckpt", default=f"{base}/weights/predictor_h5.pt")
+    p.add_argument("--latent-dir", default=f"{base}/outputs/features/latents")
+    p.add_argument("--episode-dir", default=f"{base}/outputs/datasets/episodes_dataset")
+    # 默认 None = 从 ckpt 里读训练时用的值。写死默认值曾导致：训练留 1 条、验证取 3 条，
+    # 后两条是模型见过的 → 成绩虚高且不自知。
+    p.add_argument("--val-num", type=int, default=None,
+                   help="末尾留作验证的 episode 数；默认读 ckpt 里训练时的 val_num")
+    p.add_argument("--device", default=None)
+    return p.parse_args()
+
+
+def main():
+    args = parse_args()
+    device = args.device or ("cuda" if torch.cuda.is_available() else "cpu")
+
+    ck = torch.load(args.ckpt, map_location="cpu", weights_only=False)
+    if ck.get("z_mean") is None:
+        raise SystemExit("ckpt 里没有 z_mean/z_std，该模型训练时没开标准化，无法可比验证")
+    m = torch.tensor(np.asarray(ck["z_mean"]), device=device)
+    s = torch.tensor(np.asarray(ck["z_std"]), device=device)
+
+    a_hist = int(ck.get("action_hist", 1))          # 训练时怎么拼的，这里就怎么拼
+    model = LatentPredictor(ck["dim"], ck["num_patches"],
+                            action_dim=int(ck.get("action_dim", 4))).to(device)
+    model.load_state_dict(ck["model"])
+    model.eval()
+
+    val_num = args.val_num
+    if val_num is None:
+        a = ck.get("args") or {}
+        val_num = int(a.get("val_num", 1)) if isinstance(a, dict) else getattr(a, "val_num", 1)
+        print(f"val_num 取自 ckpt: {val_num}")
+    val_files = sorted(glob.glob(str(Path(args.latent_dir) / "episode_*_dino.h5")))[-val_num:]
+    print(f"验证集 {len(val_files)} 条: {[Path(f).name for f in val_files]}")
+
+    mse_model, mse_id = [], []
+    with torch.no_grad():
+        for f in val_files:
+            with h5py.File(f, "r") as h:
+                z = torch.tensor(h["z"][:].astype(np.float32), device=device)
+                src = str(h.attrs["source"])
+            with h5py.File(Path(args.episode_dir) / src, "r") as h:
+                a = torch.tensor(stack_action_history(
+                    h["action"][:].astype(np.float32), a_hist), device=device)
+            zn = (z - m) / s                          # 用训练集统计标准化
+            pred = model(zn[:-1], a[:-1])             # a_t 驱动 z_t→z_{t+1}
+            mse_model.append(((pred - zn[1:]) ** 2).mean().item())
+            mse_id.append(((zn[:-1] - zn[1:]) ** 2).mean().item())  # identity 基线
+
+    mm, mi = float(np.mean(mse_model)), float(np.mean(mse_id))
+    print(f"模型 单步 MSE   = {mm:.4f}")
+    print(f"identity 基线   = {mi:.4f}")
+    drop = (1 - mm / mi) * 100
+    print(f"相对 identity 降低 = {drop:.1f}%")
+    verdict = "通过：模型在没见过的数据上确实学到了动力学" if mm < mi * 0.9 else \
+              ("勉强：略好于 identity，泛化有限" if mm < mi else "未通过：未超过 identity，没学到泛化的动力学")
+    print("结论:", verdict)
+
+
+if __name__ == "__main__":
+    main()

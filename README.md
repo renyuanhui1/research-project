@@ -13,8 +13,8 @@
 | `src/` + `docs/` + `outputs/` | 老场景（绿门） | 📦 **只读存档**，结论仍有效，代码不再改 |
 
 ```bash
-cd ~/my/airbase && python src/airsim/collect_episode.py ...   # ✅
-python src/airsim/collect_episode.py                          # ❌ 在 ~/my 下 = 老场景脚本
+cd ~/my/airbase && python src/airsim/wm/collect_episode.py ...   # ✅
+python src/airsim/collect_episode.py                             # ❌ 在 ~/my 下 = 老场景脚本
 ```
 
 第二条会正常启动、连上仿真、按老场景参数飞，**产出一堆看起来正常但完全没用的数据**，
@@ -67,8 +67,8 @@ conda activate airsim
 conda activate airsim
 cd ~/my/airbase
 
-python src/airsim/decode_check.py                            # 1) 确认能连上、能解码
-python src/airsim/collect_episode.py --band near --num 20    # 2) 采一批近场数据
+python src/airsim/wm/decode_check.py                            # 1) 确认能连上、能解码
+python src/airsim/wm/collect_episode.py --band near --num 20    # 2) 采一批近场数据
 ```
 
 其余脚本的前置条件和当前状态，查 [`airbase/src/airsim/README.md`](airbase/src/airsim/README.md)

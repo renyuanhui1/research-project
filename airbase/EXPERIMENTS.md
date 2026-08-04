@@ -1018,7 +1018,7 @@ uint16 深度的精度前提、空中 `disarm` 仅限仿真的警告。
 ```bash
 cd ~/works/2025ryh/research-project && git pull && cd airbase
 
-python src/airsim/train_predictor.py \
+python src/airsim/wm/train_predictor.py \
   --latent-dir  outputs/features/latents_wm300 \
   --episode-dir outputs/datasets/wm300 \
   --ckpt        weights/predictor_wm300_h4.pt \
@@ -1026,7 +1026,7 @@ python src/airsim/train_predictor.py \
   --action-hist 4
 # 开头应打印 action_hist=4(动作维 16)
 
-python src/airsim/tools/eval_wm.py --data-dir outputs/datasets/wm300 \
+python src/airsim/wm/eval_wm.py --data-dir outputs/datasets/wm300 \
   --ckpt weights/predictor_wm300_h4.pt \
   --repo-dir /home/pc/works/2025ryh/dinov2 \
   --dino-weights /home/pc/works/2025ryh/dinov2/weights/dinov2_vits14_pretrain.pth
