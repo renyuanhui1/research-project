@@ -235,9 +235,14 @@ def main():
         succ[d] = ok
         print(f"    d = {d:4.1f} m   {'✅ 成功' if ok else '❌ 失败'}")
 
-    if "reached" in attrs:
+    sr = attrs.get("stop_reason")
+    if sr:
+        note = {"contact": "深度判据，最接近真接触", "altitude": "只是降到某高度，**不等于接触**",
+                "mass": "目标充满视野，可能只是近而未触", "timeout": "跑满步数未触发任何判据"}
+        print(f"\n  停止原因：{sr}（{note.get(sr, '?')}）")
+    elif "reached" in attrs:
         print(f"\n  参考：run.h5 里的 reached={attrs['reached']} —— "
-              f"**该字段混淆高度停止与 mass 停止，不作为成功判据**")
+              f"**该字段混淆高度停止与 mass 停止，不作为成功判据**（08-01 起改记 stop_reason）")
 
     if args.json:
         out = {"run": str(h5), "target": name, "part": args.part,

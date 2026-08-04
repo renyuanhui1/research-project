@@ -185,8 +185,19 @@ class Planner:
         ck = torch.load(args.ckpt, map_location="cpu", weights_only=False)
         if ck.get("z_mean") is None:
             raise SystemExit("ckpt 无 z_mean/z_std，无法在标准化潜空间规划")
-        self.model = LatentPredictor(ck["dim"], ck["num_patches"]).to(device).eval()
+        # 动作输入格式必须跟 ckpt 一致，否则要么 load_state_dict 直接崩（维度不匹配），
+        # 要么更糟：维度碰巧对上而语义错位。08-01 起世界模型用**动作历史**条件
+        # （每步拼最近 action_hist 条指令），因为单帧 latent 看不出速度，
+        # 而飞控速度环 ~11 步才跟上指令 → 只给 a_t 时位移的可解释方差只有 47%。
+        self.action_hist = int(ck.get("action_hist", 1))
+        self.action_dim = int(ck.get("action_dim", 4))
+        self.model = LatentPredictor(ck["dim"], ck["num_patches"],
+                                     action_dim=self.action_dim).to(device).eval()
         self.model.load_state_dict(ck["model"])
+        # 已执行动作的历史，**最新在前**；初值全零 = "此前静止"，与训练时的补零一致
+        self.hist = torch.zeros(max(self.action_hist - 1, 0), 4, device=device)
+        if self.action_hist > 1:
+            print(f"世界模型用动作历史条件: action_hist={self.action_hist} (动作输入 {self.action_dim} 维)")
         self.zm = torch.tensor(np.asarray(ck["z_mean"]), device=device)
         self.zs = torch.tensor(np.asarray(ck["z_std"]), device=device)
         self.mean = torch.tensor(IMAGENET_MEAN, device=device).view(1, 3, 1, 1)
@@ -223,6 +234,32 @@ class Planner:
     def _autocast(self):
         return torch.autocast("cuda", dtype=torch.float16,
                               enabled=self.fp16 and self.dev == "cuda")
+
+    # ---- 动作历史：训练与推理必须用同一套拼法（train_predictor.stack_action_history）----
+    def act_input(self, a):
+        """一条动作 (…,4) → 模型输入 (…,4K)：[a_t, a_{t-1}, …]。K=1 时原样返回。"""
+        if self.action_hist <= 1:
+            return a
+        h = self.hist.reshape(1, -1).expand(a.shape[0], -1) if a.dim() == 2 else self.hist.reshape(-1)
+        return torch.cat([a, h], dim=-1)
+
+    def push_action(self, a):
+        """登记一条**已执行**的动作，返回它当时的模型输入（含历史）。先取输入再更新历史。"""
+        inp = self.act_input(a.view(1, 4)).squeeze(0)
+        if self.action_hist > 1:
+            self.hist = torch.cat([a.view(1, 4), self.hist[:-1]], dim=0)
+        return inp
+
+    def rollout_inputs(self, acts):
+        """(N,H,4) 候选动作 → 每步的模型输入 (N,H,4K)。前 K-1 步的历史取自**真实已执行**的动作。"""
+        if self.action_hist <= 1:
+            return acts
+        N, H, _ = acts.shape
+        K = self.action_hist
+        pre = self.hist.flip(0).unsqueeze(0).expand(N, -1, -1)     # 旧→新
+        full = torch.cat([pre, acts], dim=1)                       # (N, K-1+H, 4) 旧→新
+        win = full.unfold(1, K, 1).permute(0, 1, 3, 2)             # (N,H,K,4) 每步的 K 帧窗口
+        return win.flip(2).reshape(N, H, K * 4)                    # 翻成"最新在前"再摊平
 
     @torch.no_grad()
     def encode(self, rgb224):
@@ -377,9 +414,10 @@ class Planner:
                 acts = params.clamp(self.a_lo, self.a_hi)
             with self._autocast():
                 zb = z0.unsqueeze(0).expand(N, -1, -1).contiguous()
+                acts_in = self.rollout_inputs(acts)      # 含动作历史；K=1 时就是 acts 本身
                 path_cost = 0.0
                 for k in range(Hsteps):
-                    zb = self.model(zb, acts[:, k])
+                    zb = self.model(zb, acts_in[:, k])
                     if self.args.cost_metric in ("target", "value"):
                         path_cost = path_cost + self.goal_cost(zb, z_goal)
                 terminal_cost = self.goal_cost(zb, z_goal)  # (N,)
@@ -489,8 +527,8 @@ async def servo_stage(planner, args, drone, n_steps, step0=0):
         if args.servo_stop_mass > 0 and mass >= args.servo_stop_mass:
             print(f"  目标充满视野(mass={mass:.3f} ≥ {args.servo_stop_mass})，接触在即，停")
             break
-        await drone.move_by_velocity_async(
-            v_north=a[0], v_east=vy, v_down=vz,
+        await drone.move_by_velocity_body_frame_async(
+            v_forward=a[0], v_right=vy, v_down=vz,
             duration=args.dt * args.dur_factor, yaw=0.0, yaw_is_rate=True)
     print("  伺服段结束")
 
@@ -546,8 +584,8 @@ async def closed_loop(planner, args):
             print(f"=== 截获段：原地旋转搜索目标（rate={args.acquire_rate} rad/s）===")
             acq_ts, found = -1, False
             for _ in range(int(args.acquire_timeout / args.dt)):
-                await drone.move_by_velocity_async(
-                    v_north=0.0, v_east=0.0, v_down=0.0,
+                await drone.move_by_velocity_body_frame_async(
+                    v_forward=0.0, v_right=0.0, v_down=0.0,
                     duration=args.dt * args.dur_factor,
                     yaw=args.acquire_rate, yaw_is_rate=True)
                 msg, _ = await ce.wait_new_frame(acq_ts)
@@ -563,15 +601,15 @@ async def closed_loop(planner, args):
             if not found:
                 print("  截获超时，按当前朝向继续（目标可能不在有效距离内）")
             # 停转稳定
-            await drone.move_by_velocity_async(v_north=0.0, v_east=0.0, v_down=0.0,
-                                               duration=0.5, yaw=0.0, yaw_is_rate=True)
+            await drone.move_by_velocity_body_frame_async(v_forward=0.0, v_right=0.0, v_down=0.0,
+                                                          duration=0.5, yaw=0.0, yaw_is_rate=True)
             await asyncio.sleep(0.5)
 
         if args.record_goal:  # 自飞录目标：直飞 max-steps 步，存末帧为保证可达的目标图
             rec_ts, msg = -1, None
             for _ in range(args.max_steps):
-                await drone.move_by_velocity_async(
-                    v_north=min(args.init_vx, args.v_max), v_east=0.0, v_down=0.0,
+                await drone.move_by_velocity_body_frame_async(
+                    v_forward=min(args.init_vx, args.v_max), v_right=0.0, v_down=0.0,
                     duration=args.dt * args.dur_factor, yaw=0.0, yaw_is_rate=True)
                 msg, _ = await ce.wait_new_frame(rec_ts)
                 rec_ts = int(msg["time_stamp"])
@@ -593,8 +631,8 @@ async def closed_loop(planner, args):
             print(f"=== sanity 开环: 固定前进 vx={fwd}, 世界模型 rollout vs 真实 ===")
             print(f"{'step':>4}{'预测vs真实':>12}{'真实vs起点':>12}{'比值(<1好)':>12}")
             for k in range(args.max_steps):
-                await drone.move_by_velocity_async(
-                    v_north=fwd, v_east=0.0, v_down=0.0,
+                await drone.move_by_velocity_body_frame_async(
+                    v_forward=fwd, v_right=0.0, v_down=0.0,
                     duration=args.dt * args.dur_factor, yaw=0.0, yaw_is_rate=True)
                 msg, _ = await ce.wait_new_frame(last_ts)
                 last_ts = int(msg["time_stamp"])
@@ -602,7 +640,8 @@ async def closed_loop(planner, args):
                                  interpolation=cv2.INTER_AREA)
                 z_real = planner.encode(rgb)
                 with torch.no_grad(), planner._autocast():
-                    z_pred = planner.model(z_pred.unsqueeze(0), a_t.unsqueeze(0))[0].float()
+                    a_in = planner.push_action(a_t)          # 含动作历史
+                    z_pred = planner.model(z_pred.unsqueeze(0), a_in.unsqueeze(0))[0].float()
                 pred_err = ((z_pred - z_real) ** 2).mean().item()
                 base = ((z0 - z_real) ** 2).mean().item()  # 真实离起点(identity 基线)
                 print(f"{k:>4}{pred_err:>12.3f}{base:>12.3f}{pred_err / max(base, 1e-6):>12.2f}")
@@ -632,6 +671,7 @@ async def closed_loop(planner, args):
             dist = planner.goal_cost(z_t, z_goal).item()
             if args.diag and z_prev is not None:
                 with torch.no_grad(), planner._autocast():
+                    # a_prev 已是 push_action 返回的**含历史**输入，不能再拼一次
                     z_hat = planner.model(z_prev.unsqueeze(0), a_prev.unsqueeze(0))[0].float()
                 pred_err = ((z_hat - z_t) ** 2).mean().item()    # 模型预测 vs 真实
                 move_err = ((z_prev - z_t) ** 2).mean().item()   # 这一步 z 实际变化量
@@ -699,12 +739,16 @@ async def closed_loop(planner, args):
                 else:
                     print(f"  到达目标（dist={dist:.3f} ≤ {args.goal_thresh}）")
                 break
-            z_prev, a_prev = z_t, acts_exec[0].clone()  # 记录本步起点与即将执行的第一个动作
+            z_prev = z_t                              # 诊断用：本步起点
             # 连续执行接下来 stride 个规划动作（不中途换向），指令时长拉长以保持连续运动
             for j in range(stride):
+                a_prev = planner.push_action(acts_exec[j])   # 登记历史，拿到含历史的模型输入
                 a = acts_exec[j].tolist()
-                pending.append(await drone.move_by_velocity_async(
-                    v_north=a[0], v_east=a[1], v_down=a[2],
+                # **机体系**：与 collect_episode 存的 action_frame="body" 一致。
+                # 原来发世界系 NED —— 那是老场景的约定，airbase 的世界模型是机体系训的，
+                # 同一个 4 维向量在两个坐标系里含义完全不同，模型会照常输出预测、只是全错。
+                pending.append(await drone.move_by_velocity_body_frame_async(
+                    v_forward=a[0], v_right=a[1], v_down=a[2],
                     duration=args.dt * args.dur_factor, yaw=a[3], yaw_is_rate=True))
                 step += 1
                 if j < stride - 1:

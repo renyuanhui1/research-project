@@ -53,7 +53,7 @@ _AIRBASE_SRC = _AIRBASE_ROOT / "src/airsim"
 sys.path[:0] = [str(_AIRBASE_SRC)] + [str(d) for d in _AIRBASE_SRC.iterdir()
                                       if d.is_dir() and not d.name.startswith(("_", "."))]
 from decode_check import decode_image
-from servo_closed_loop import Fingerprint, save_run   # 复用感知与落盘, 不改老脚本
+from servo_closed_loop import Fingerprint, save_run, compute_body_cmd  # 感知/落盘/控制律单一实现
 
 PROJECT_ROOT = _AIRBASE_ROOT
 DEFAULT_CONFIG_DIR = PROJECT_ROOT / "sim_config"
@@ -85,30 +85,6 @@ async def _telemetry_att(mav):
         _yaw_deg = a.yaw_deg
 
 
-def compute_body_cmd(args, cx, cy, mass, yaw):
-    """指纹信号 → 机体系速度设定值。控制律与 servo_closed_loop.py 等价, 但直接出机体系。
-    返回 (forward, right, down, yaw_rate[rad/s], slow, vf)。"""
-    slow = max(0.0, 1.0 - mass / args.mass_stop)      # 越近越慢
-    if args.nadir:
-        # 俯视: cx/cy 双轴闭环压目标到画面中心; 越居中降得越快。机体系直接给 forward/right, 无需旋转。
-        forward = -args.k_xy * cy
-        right = args.k_xy * cx
-        sp = math.hypot(forward, right)
-        if sp > args.v_forward:
-            forward *= args.v_forward / sp
-            right *= args.v_forward / sp
-        err = math.hypot(cx, cy)
-        down = args.v_down * max(0.0, 1.0 - err / args.center_gate)
-        yaw_rate = 0.0
-        vf = math.hypot(forward, right)
-    else:
-        # 斜视(-50°): 前进 + cy 垂直闭环(视线角控制, 让目标保持画面中心, 沿视线接触) + cx 转向。
-        vf = args.v_forward * slow
-        forward = vf
-        right = 0.0
-        down = max(0.0, args.v_down * slow + args.k_vert * cy)
-        yaw_rate = float(np.clip(args.k_yaw * cx, -args.yaw_max, args.yaw_max))
-    return forward, right, down, yaw_rate, slow, vf
 
 
 def show_view(rgb, sim, grid, cx, cy, mass, peak, alt, step, scale=2, heat=False, lag=0.0):
