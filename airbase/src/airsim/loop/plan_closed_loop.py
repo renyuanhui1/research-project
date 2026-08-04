@@ -794,11 +794,13 @@ async def closed_loop(planner, args):
             print(f"  到达最大步数 {args.max_steps}，结束")
         await asyncio.gather(*pending, return_exceptions=True)
     finally:
+        # **结束即断连，不等降落**（项目约定，与 collect_episode 一致）：闭环起点高达 20~30m，
+        # land 要磨半分钟，卡住时整个脚本挂在这儿；数据此时已全部落盘，降落没有意义。
+        # ⚠️ 只适用于一次性的仿真闭环。**真机/PX4 绝不可空中 disarm**。
         try:
-            await asyncio.wait_for(await drone.land_async(), timeout=30.0)
             drone.disarm(); drone.disable_api_control()
         except Exception as e:
-            print(f"降落/释放异常（可忽略）: {e}")
+            print(f"释放控制异常（可忽略）: {e}")
         client.unsubscribe(topic)
         if dtopic is not None:
             client.unsubscribe(dtopic)
