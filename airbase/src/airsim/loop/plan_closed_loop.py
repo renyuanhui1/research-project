@@ -72,11 +72,18 @@ def parse_args():
                    help="集成分歧惩罚权重 λ：cost += λ·跨模型预测方差")
     p.add_argument("--init-vx", type=float, default=0.7,
                    help="mu 前进初始化速度(训练数据 vx 均值~1.2)，避免从零速起步搜索")
-    p.add_argument("--vx-min", type=float, default=None,
-                   help="调试用：硬性最小 v_north；默认关闭。打开后不再是纯 MPPI 目标驱动")
-    p.add_argument("--v-max", type=float, default=1.2)
-    p.add_argument("--vz-max", type=float, default=0.15, help="垂直速度(v_down)上限，压小防往下飘/撞地")
-    p.add_argument("--yaw-max", type=float, default=0.35)
+    # 动作上下界必须罩住**训练动作分布**, 否则要么发不出有用动作、要么搜到模型没见过的动作。
+    # 下面的默认值按 wm300 实测重标(08-04); 原值是老场景标的, 在 airbase 上覆盖率极低:
+    #   v_forward 1%/50%/99% = +0.29/+1.39/+2.55  旧界±1.2 → 只覆盖 45%
+    #   v_right               -2.04/ 0.00/+2.05   旧界±1.2 → 70%
+    #   v_down                -0.37/+0.41/+1.27   旧界±0.15 → **3%**(等于不让下降)
+    #   yaw_rate              -0.64/+0.02/+0.64   旧界±0.35 → 60%
+    p.add_argument("--vx-min", type=float, default=0.1,
+                   help="v_forward 下限。训练数据里 v_forward 从不为负(最小+0.14), 放开负值="
+                        "让规划器搜模型没见过的动作")
+    p.add_argument("--v-max", type=float, default=2.7)
+    p.add_argument("--vz-max", type=float, default=1.4, help="垂直速度(v_down)上限")
+    p.add_argument("--yaw-max", type=float, default=0.7)
     # 闭环
     p.add_argument("--max-steps", type=int, default=120)
     p.add_argument("--cost-metric", choices=["value", "target", "poolcos", "patchmse"], default="target",
@@ -100,6 +107,12 @@ def parse_args():
                    help="建图时目标定位的指纹 peak 阈值(整帧 peak 高于此才启用目标高亮)")
     p.add_argument("--map-target-sim", type=float, default=0.32,
                    help="单个 patch 判为目标的 sim 阈值(落其上的点高亮成目标)")
+    p.add_argument("--start-station", action="store_true",
+                   help="先转场到目标周围的近场站位再规划(复用采集的 sample_station/goto_station)。"
+                        "远段是脚手架、近场才是实验区; 不加这个会从出生点起飞, 指纹 20m 外全平→cost 恒定")
+    p.add_argument("--target", default=ce.DEFAULT_TARGET, help="--start-station 用: 目标 actor 名")
+    p.add_argument("--band", default="near", choices=["near", "far"], help="--start-station 用: 距离带")
+    p.add_argument("--station-seed", type=int, default=0, help="--start-station 用: 站位随机种子")
     p.add_argument("--acquire", action="store_true",
                    help="截获段：起飞后原地旋转搜索目标（peak 过阈值且居中即停），出生朝向可任意")
     p.add_argument("--acquire-rate", type=float, default=0.3, help="截获段旋转速率 rad/s")
@@ -571,7 +584,22 @@ async def closed_loop(planner, args):
         await asyncio.sleep(1.0)
         await ce.wait_first_frame()
 
-        if args.face_ned is not None:              # 一次性朝向目标, 让其进画面
+        if args.start_station:
+            # 转场到近场站位：直接复用采集那套 sample_station/goto_station（已跑过 400 条），
+            # 于是**起点分布 = 世界模型的训练分布**，站位还自带朝向目标的 yaw。
+            #
+            # 为什么必须有这一步：架构定案(07-28) 里远段 67m→25m 就是坐标直线的**脚手架**
+            # （明确不算贡献），近场 25m→接触才是实验区。不先飞过去的话，指纹在 20m 外全平 →
+            # cost 恒定 → MPPI 在优化噪声。08-04 首测实录：从出生点起飞、目标 65m 外，
+            # peak≈0.01、best 卡在 1.0 纹丝不动、60 步只挪了 8m 且方向朝北（目标在西南）。
+            tgt = ce.read_target(world, args.target)
+            station = ce.sample_station(np.random.default_rng(args.station_seed), tgt, args.band)
+            r_s, alt_s = station[4], station[5]
+            print(f"=== 转场到近场站位: r={r_s:.1f}m alt={alt_s:.1f}m "
+                  f"斜距={float(np.hypot(r_s, alt_s)):.1f}m yaw={np.degrees(station[3]):+.0f}° ===")
+            await ce.goto_station(drone, station)
+            await ce.wait_first_frame()
+        elif args.face_ned is not None:            # 一次性朝向目标, 让其进画面
             fn, fe = args.face_ned
             nn, ee, _ = ce.get_ned(drone)
             await asyncio.wait_for(await drone.rotate_to_yaw_async(
