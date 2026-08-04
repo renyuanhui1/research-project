@@ -43,3 +43,6 @@ update.bundle
 /airbase/outputs/
 /airbase/weights/
 /airbase/dinov2
+
+# Claude Code 会话用量报告(一次性产物)
+session-report-*.html
