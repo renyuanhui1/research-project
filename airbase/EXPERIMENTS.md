@@ -998,7 +998,8 @@ uint16 深度的精度前提、空中 `disarm` 仅限仿真的警告。
 | `predictor_tmpl40.pt` | nearfield 40 条 | identity 0.72~0.60 / **zero-act ≈1.00** / **swap ≈1.03** |
 | `predictor_h5.pt` | randseg 60 条 | identity 0.68~0.60 / zero-act 0.76~0.96 / **swap 0.91~0.98** |
 | `predictor_wm300.pt` | wm300 300 条 | identity 0.65~0.61 / zero-act 0.83~0.76 / **swap 0.92~0.83** |
-| `predictor_wm300_h4.pt` | wm300 + `--action-hist 4` | **待训**（见 §九 修法 A） |
+| `predictor_wm300_h4.pt` | wm300 + `--action-hist 4` | identity 0.52~0.58 / zero-act 0.71~0.81 / swap 0.75~0.78 |
+| **`predictor_wm300_h8.pt`** | wm300 + `--action-hist 8` | **identity 0.51~0.56 / zero-act 0.66~0.74 / swap 0.71~0.70 ← 主力**（§十） |
 
 ⚠️ 下面这段"卡在哪"写于 §九 之前，其归因（泛化不足）**已被 §九 否定**，保留以存留判断过程：
 
@@ -1009,7 +1010,7 @@ uint16 深度的精度前提、空中 `disarm` 仅限仿真的警告。
 **实际结论（§九）**：缺口确实消失了，但**不是 held-out 追上来，是训练集掉下去**（swap 0.73→0.89）
 —— 模型在见过的数据上也做不到动作特异，是**欠信息不是过拟合**，加数据无效。
 真因是 `forward(z, a_t)` 的输入里没有速度状态（单帧看不出速度），而段长 13 步 < 速度环 11 步稳定时间，
-导致 `a_t` 只能解释 47% 的位移。修法 A（动作历史）已实现待验。
+导致 `a_t` 只能解释 47% 的位移。修法 A（动作历史）**已实现并验证通过，见 §十**。
 
 **下一步（服务器 `192.168.31.237` / env `ryh-dinov2`）** —— latent 已抽好（`latents_wm300`，300 个），
 图像没变故**不用重抽**，只需重训 + 重评：
@@ -1031,9 +1032,9 @@ python src/airsim/tools/eval_wm.py --data-dir outputs/datasets/wm300 \
   --dino-weights /home/pc/works/2025ryh/dinov2/weights/dinov2_vits14_pretrain.pth
 ```
 
-**只改了一个变量**（`--action-hist` 1→4），与 `predictor_wm300.pt` 直接可比。看两处：
-`model/swap` 能否从 0.83~0.92 掉到 ≤0.80；`h1` 列的 zero-act/swap（现 1.07/1.05）应最先降到 1 以下。
-没掉就上修法 B（200 步 × 30 步段重采）。
+**只改了一个变量**（`--action-hist`），与 `predictor_wm300.pt` 直接可比。
+**结果见 §十：1→4→8 三版递进，swap 0.89→0.75→0.68，三条判据全部通过，修法 B 不需要了。**
+主力权重是 `--action-hist 8` 那版。
 
 ⚠️ `torch.save` **没有覆盖保护**（与 `save_hdf5` 不同，后者会抛 `FileExistsError`）。
 `--ckpt` 漏传或写错名字会静默盖掉已有权重，跑之前先 `ls weights/` 确认。
