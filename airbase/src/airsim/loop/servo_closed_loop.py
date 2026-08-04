@@ -296,7 +296,11 @@ async def main(args):
 
             fwd, rgt, vd, yaw_rate, slow, vf = compute_body_cmd(args, cx, cy, mass)
             dmsg = get_latest("depth")
-            dist_t = None if dmsg is None else sample_depth(dmsg, cx, cy)
+            # 指纹不可信时重心是噪声，采出来的深度是画面里随便某个点 —— 实测 08-01：
+            # 20m 外 mass≈0.001、peak≈0.1~0.3，dist 在 44~60m 之间乱跳。
+            # 不门控的话，飞过任何近处物体都会被误判成"接触"。
+            trust = peak >= args.dist_min_peak
+            dist_t = None if (dmsg is None or not trust) else sample_depth(dmsg, cx, cy)
             if dist_t is not None and args.slow_dist > 0:     # 按**到目标的距离**减速，而非按 mass
                 vf_scale = min(1.0, max(args.slow_min, dist_t / args.slow_dist))
                 fwd *= vf_scale; rgt *= vf_scale; vd *= vf_scale
@@ -325,7 +329,7 @@ async def main(args):
                 reached, stop_reason = True, "mass"; break
 
             print(f"[{step}] alt={-dz:5.1f} center=({cx:+.2f},{cy:+.2f}) mass={mass:.3f} "
-                  f"peak={peak:.3f} dist={'--' if dist_t is None else f'{dist_t:5.1f}'} | "
+                  f"peak={peak:.3f} dist={'  n/a' if dist_t is None else f'{dist_t:5.1f}'} | "
                   f"vf={fwd:.2f} vd={vd:.2f} yaw_rate={yaw_rate:+.2f}")
             # **机体系**：与采集(action_frame="body")和世界模型一致，A/B 两条件才可比。
             await (await drone.move_by_velocity_body_frame_async(
@@ -380,6 +384,8 @@ def parse_args():
     p.add_argument("--center-gate", type=float, default=0.5,
                    help="俯视: 偏差超此值不下降, 以内线性放开下降")
     p.add_argument("--mass-stop", type=float, default=0.20, help="前视: mass 超过即判定贴近停止")
+    p.add_argument("--dist-min-peak", type=float, default=0.35,
+                   help="指纹 peak 低于此值时不信任重心, 深度判据自动失效(防误判接触)")
     p.add_argument("--stop-dist", type=float, default=None,
                    help="接触判据: 指纹重心处深度 ≤ 此值(米)即判接触。比 --stop-alt/--mass-stop 都直接")
     p.add_argument("--slow-dist", type=float, default=0.0,
