@@ -209,7 +209,8 @@ sys.path[:0] = [str(_AIRBASE_SRC)] + [各流程目录]      # 跨分组 import
 | `predictor_tmpl40.pt` | 模板采集 40 条 | zero-act ≈1.00、swap ≈1.03（**动作输入等于没接**） |
 | `predictor_h5.pt` | 随机分段 60 条 | zero-act 0.76~0.96、swap 0.91~0.98 |
 | `predictor_wm300_h4.pt` | 300 条 + 动作历史 4 | zero-act 0.71~0.81、swap 0.75~0.78 |
-| **`predictor_wm300_h8.pt`** | 300 条 + 动作历史 8 | **identity 0.51~0.56 / zero-act 0.66~0.74 / swap 0.71~0.70 ← 主力** |
+| `predictor_wm300_h8.pt` | 300 条 + 动作历史 8（60 轮，未收敛） | identity 0.51~0.56 / zero-act 0.66~0.74 / swap 0.71~0.70 |
+| **`predictor_wm300_h8e150.pt`** | 同上训满 150 轮 | **identity 0.48~0.55 / zero-act 0.60~0.66 / swap 0.65~0.62 ← 主力，swap 追平老场景** |
 
 数据：`outputs/datasets/` 下三份（`nearfield` 40 / `randseg` 60 / **`wm300` 300**，
 5 目标 × 2 距离带 × 30）。**三份动作结构不同，不可混用**。
