@@ -78,12 +78,17 @@ def parse_args():
     #   v_right               -2.04/ 0.00/+2.05   旧界±1.2 → 70%
     #   v_down                -0.37/+0.41/+1.27   旧界±0.15 → **3%**(等于不让下降)
     #   yaw_rate              -0.64/+0.02/+0.64   旧界±0.35 → 60%
-    p.add_argument("--vx-min", type=float, default=0.1,
-                   help="v_forward 下限。训练数据里 v_forward 从不为负(最小+0.14), 放开负值="
-                        "让规划器搜模型没见过的动作")
-    p.add_argument("--v-max", type=float, default=2.7)
-    p.add_argument("--vz-max", type=float, default=1.4, help="垂直速度(v_down)上限")
-    p.add_argument("--yaw-max", type=float, default=0.7)
+    # **按维度各取实测 0.5%/99.5% 分位, 不要对称**。08-04 首测栽在这: 我把 v_down 设成对称
+    # ±1.4, 而训练里爬升最多只到 -0.48; 规划器立刻顶在 -1.40 一路爬(22m→34m) ——
+    # 那是训练分布外的动作, 模型在那儿的预测不可信, MPPI 正是在那儿找到"预测很美好"的方向。
+    # 这就是模型利用(model exploitation), 根子在边界给错而不是规划器有问题。
+    p.add_argument("--vx-min", type=float, default=0.25, help="v_forward 下限(训练 0.5% 分位)")
+    p.add_argument("--v-max", type=float, default=2.57, help="v_forward 上限(训练 99.5% 分位)")
+    p.add_argument("--vy-max", type=float, default=2.07, help="v_right 幅值上限(训练分布对称)")
+    p.add_argument("--vz-min", type=float, default=-0.38,
+                   help="v_down 下限 = **爬升上限**。训练里最多爬到 -0.48, 放宽即出分布")
+    p.add_argument("--vz-max", type=float, default=1.28, help="v_down 上限(下降)")
+    p.add_argument("--yaw-max", type=float, default=0.65)
     # 闭环
     p.add_argument("--max-steps", type=int, default=120)
     p.add_argument("--cost-metric", choices=["value", "target", "poolcos", "patchmse"], default="target",
@@ -218,8 +223,8 @@ class Planner:
         vx_lo = -args.v_max if args.vx_min is None else args.vx_min
         if vx_lo > args.v_max:
             raise SystemExit(f"--vx-min({vx_lo}) 不能大于 --v-max({args.v_max})")
-        self.a_lo = torch.tensor([vx_lo, -args.v_max, -args.vz_max, -args.yaw_max], device=device)
-        self.a_hi = torch.tensor([args.v_max, args.v_max, args.vz_max, args.yaw_max], device=device)
+        self.a_lo = torch.tensor([vx_lo, -args.vy_max, args.vz_min, -args.yaw_max], device=device)
+        self.a_hi = torch.tensor([args.v_max, args.vy_max, args.vz_max, args.yaw_max], device=device)
         # B样条(Bernstein/Bézier)基矩阵 (H, C)：C 个控制点 → H 步平滑动作轨迹
         self.spline_B = None
         if args.use_spline:
