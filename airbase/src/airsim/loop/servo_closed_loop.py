@@ -5,7 +5,7 @@
 不依赖 predictor。用于验证"指纹信号能不能实时把无人机领到目标跟前"。
 
 两种模式:
-  默认斜视(相机 -35°, 当前主用): --face-ned 一次性对准 → cx 转向 + 前进 +
+  默认斜视(相机 -50°, 当前主用): --face-ned 一次性对准 → cx 转向 + 前进 +
            **cy 垂直闭环(视线角控制)** 让目标保持画面中心 → 沿视线接触; mass 够大停。
   --nadir  俯视伺服(相机须 -90°, 备选): --goto-ned 开环到目标上空 → cx/cy 双轴水平闭环 +
            居中才降, --stop-alt 按高度判接触。
@@ -56,6 +56,16 @@ DEFAULT_CONFIG_DIR = PROJECT_ROOT / "sim_config"
 _lock = threading.Lock()
 _msgs = {}                       # tag → 最新一帧（rgb / depth / seg）
 
+# ProjectAirSim 分割相机输出的是调色板 BGR，不是原始 ID。下列颜色来自本场景
+# 07-30/08-01 的实测记录；--seg-color 可覆盖，避免场景改动后把旧颜色当真。
+SEG_COLORS_BGR = {
+    "StaticMeshActor_16": (96, 138, 60),
+    "StaticMeshActor_18": (247, 61, 22),
+    "StaticMeshActor_20": (4, 154, 16),
+    "StaticMeshActor_22": (190, 68, 107),
+    "StaticMeshActor_24": (131, 43, 106),
+}
+
 
 def make_cb(tag):
     def _cb(*args):
@@ -70,6 +80,73 @@ cb = make_cb("rgb")              # 兼容旧调用（PX4 版有自己的 cb，�
 def get_latest(tag="rgb"):
     with _lock:
         return _msgs.get(tag)
+
+
+def reset_messages():
+    """清掉上次场景/上次运行遗留的消息，避免把旧帧当作新场景首帧。"""
+    with _lock:
+        _msgs.clear()
+
+
+async def wait_new_message(tag, last_ts=-1, timeout=2.0, poll=0.002):
+    """等待指定传感器的新时间戳；控制循环由 RGB 新帧驱动，不再靠固定 sleep。"""
+    start = time.monotonic()
+    while time.monotonic() - start < timeout:
+        msg = get_latest(tag)
+        if msg is not None and int(msg.get("time_stamp", -1)) != last_ts:
+            return msg
+        await asyncio.sleep(poll)
+    raise TimeoutError(f"等待 {tag} 新帧超时 {timeout:.1f}s")
+
+
+def ema_update(previous, current, alpha):
+    """一阶指数滤波；alpha 是当前观测权重，首帧直接采用当前值。"""
+    current = float(current)
+    return current if previous is None else float(alpha * current + (1.0 - alpha) * previous)
+
+
+def make_target_mask(seg_bgr, color_bgr, tolerance=0, dilate_px=0):
+    """从调色板 BGR 分割图提取目标 Actor 掩膜。"""
+    seg = np.asarray(seg_bgr)[..., :3].astype(np.int16)
+    color = np.asarray(color_bgr, np.int16).reshape(1, 1, 3)
+    mask = np.all(np.abs(seg - color) <= int(tolerance), axis=-1).astype(np.uint8)
+    if dilate_px > 0:
+        k = 2 * int(dilate_px) + 1
+        mask = cv2.dilate(mask, np.ones((k, k), np.uint8), iterations=1)
+    return mask.astype(bool)
+
+
+def sample_depth_array(depth, cx, cy, half=3, target_mask=None, min_pixels=3):
+    """在归一化目标点附近采深度；给掩膜时只接受目标 Actor 像素。"""
+    d = np.asarray(depth, np.float32)
+    if d.ndim == 3:
+        d = d[..., 0]
+    h, w = d.shape
+    u = int(round((float(cx) + 1.0) * 0.5 * (w - 1)))
+    v = int(round((float(cy) + 1.0) * 0.5 * (h - 1)))
+    u0, u1 = max(0, u - half), min(w, u + half + 1)
+    v0, v1 = max(0, v - half), min(h, v + half + 1)
+    valid = np.isfinite(d[v0:v1, u0:u1]) & (d[v0:v1, u0:u1] > 0.1) \
+        & (d[v0:v1, u0:u1] < 60000.0)
+    if target_mask is not None:
+        m = np.asarray(target_mask, bool)
+        if m.shape != d.shape:
+            m = cv2.resize(m.astype(np.uint8), (w, h), interpolation=cv2.INTER_NEAREST).astype(bool)
+        valid &= m[v0:v1, u0:u1]
+    values = d[v0:v1, u0:u1][valid]
+    if values.size < int(min_pixels):
+        return None
+    return float(np.median(values))
+
+
+def depth_speed_scale(distance, slow_dist, stop_dist, slow_min):
+    """距离减速比例：slow_dist 外全速，stop_dist 处降到 slow_min。"""
+    if distance is None or slow_dist <= 0:
+        return 1.0
+    stop = 0.0 if stop_dist is None else float(stop_dist)
+    span = max(float(slow_dist) - stop, 1e-6)
+    ratio = (float(distance) - stop) / span
+    return float(np.clip(ratio, float(slow_min), 1.0))
 
 
 def get_pose_yaw(drone):
@@ -170,15 +247,30 @@ def sample_depth(msg, cx, cy, half=3):
     用它不破坏"无度量、目标坐标未知"的设定（台账 §2026-07-31 已界定）。
     返回 None 表示该处无有效深度（天空哨兵/越界）。
     """
-    d = ce.decode(msg)[..., 0].astype(np.float32)
-    h, w = d.shape
-    u = int(round((cx + 1) * 0.5 * (w - 1)))
-    v = int(round((cy + 1) * 0.5 * (h - 1)))
-    u0, u1 = max(0, u - half), min(w, u + half + 1)
-    v0, v1 = max(0, v - half), min(h, v + half + 1)
-    patch = d[v0:v1, u0:u1]
-    ok = patch[np.isfinite(patch) & (patch > 0.1) & (patch < 60000.0)]
-    return float(np.median(ok)) if ok.size else None
+    return sample_depth_array(ce.decode(msg), cx, cy, half=half, min_pixels=1)
+
+
+def sample_target_depth(depth_msg, seg_msg, cx, cy, color_bgr, half=12,
+                        color_tolerance=0, min_pixels=3):
+    """只在目标 Actor 分割掩膜内取深度。
+
+    返回 (distance, seg_valid, target_pixels)。分割只负责确认像素属于目标主体，
+    部位方向仍由 DINO 指纹给出；不能把整机掩膜冒充机头/机翼定位。
+    """
+    if depth_msg is None or seg_msg is None or color_bgr is None:
+        return None, False, 0
+    depth = ce.decode(depth_msg)
+    seg = ce.decode(seg_msg)[..., :3]
+    dh, dw = depth.shape[:2]
+    if seg.shape[:2] != (dh, dw):
+        seg = cv2.resize(seg, (dw, dh), interpolation=cv2.INTER_NEAREST)
+    mask = make_target_mask(seg, color_bgr, tolerance=color_tolerance)
+    n_target = int(mask.sum())
+    if n_target == 0:
+        return None, False, 0
+    dist = sample_depth_array(depth, cx, cy, half=half, target_mask=mask,
+                              min_pixels=min_pixels)
+    return dist, dist is not None, n_target
 
 
 def save_run(out_dir, log, args, reached, grid, stop_reason=None):
@@ -202,6 +294,18 @@ def save_run(out_dir, log, args, reached, grid, stop_reason=None):
         f.attrs["action_layout"] = "v_forward,v_right,v_down,yaw_rate"   # 08-01 改机体系
         f.attrs["template"] = str(args.template)
         f.attrs["stats_episode"] = str(args.stats_episode)
+        f.attrs["controller"] = "servo_v2"
+        f.attrs["target"] = str(args.target)
+        f.attrs["seg_depth_enabled"] = not bool(args.no_seg_depth)
+        f.attrs["seg_color_bgr"] = (-1, -1, -1) if args.seg_color is None else args.seg_color
+        f.attrs["ema_alpha"] = args.ema_alpha
+        f.attrs["depth_ema_alpha"] = args.depth_ema_alpha
+        f.attrs["control_min_peak"] = args.control_min_peak
+        f.attrs["dist_min_peak"] = args.dist_min_peak
+        f.attrs["stop_dist"] = -1.0 if args.stop_dist is None else args.stop_dist
+        f.attrs["slow_dist"] = args.slow_dist
+        f.attrs["stop_confirm_frames"] = args.stop_confirm_frames
+        f.attrs["cmd_duration_factor"] = args.cmd_duration_factor
         f.attrs["mass_stop"] = args.mass_stop
         f.attrs["reached"] = bool(reached)
         # reached 单独看没有意义: 它把"到接触高度"和"目标充满视野"混为一谈。
@@ -210,28 +314,37 @@ def save_run(out_dir, log, args, reached, grid, stop_reason=None):
         f.attrs["action_frame"] = "body"       # 与采集/世界模型一致
         if log.get("dist"):
             f.create_dataset("dist", data=np.array(log["dist"], np.float32))   # 重心处深度(米), -1=无效
+        if log.get("control"):
+            f.create_dataset("control", data=np.array(log["control"], np.float32))
+            f.attrs["control_layout"] = (
+                "cx_f,cy_f,mass_f,peak_f,dist_f,locked,seg_valid,frame_dt,contact_count"
+            )
         if log.get("seg"):
             f.create_dataset("seg", data=np.stack(log["seg"]).astype(np.uint8),
                              compression="gzip", compression_opts=4)
     cols = ["step", "t", "n", "e", "d", "alt", "yaw", "cx", "cy", "mass", "peak",
-            "vf", "vn", "ve", "vd", "yaw_rate", "slow"]
+            "vf", "vn", "ve", "vd", "yaw_rate", "slow", "cx_f", "cy_f", "mass_f",
+            "peak_f", "dist_f", "locked", "seg_valid", "frame_dt", "contact_count"]
     with open(out_dir / "signals.csv", "w") as f:
         f.write(f"# template={args.template} mass_stop={args.mass_stop} reached={bool(reached)}\n")
         f.write(",".join(cols) + "\n")
         for i in range(len(log["step"])):
             n, e, d, yaw = pose[i]; cx, cy, mass, peak = sig[i]; vn, ve, vd, yr = act[i]
+            ctrl = log["control"][i] if log.get("control") else [np.nan] * 9
             f.write(",".join(map(str, [
                 log["step"][i], f"{tsec[i]:.2f}", f"{n:.2f}", f"{e:.2f}", f"{d:.2f}", f"{-d:.2f}",
                 f"{yaw:.3f}", f"{cx:.3f}", f"{cy:.3f}", f"{mass:.3f}", f"{peak:.3f}",
                 f"{log['vf'][i]:.3f}", f"{vn:.3f}", f"{ve:.3f}", f"{vd:.3f}", f"{yr:.3f}",
-                f"{log['slow'][i]:.3f}"])) + "\n")
+                f"{log['slow'][i]:.3f}", *[f"{float(v):.4f}" for v in ctrl]])) + "\n")
     if grid is not None and log["sim"]:   # rviz 直接可播的每帧 npz(轨迹+热力图)
         vdir = out_dir / "viz_dump"; vdir.mkdir(exist_ok=True)
         for i in range(len(log["step"])):
+            mass_f, peak_f = log["control"][i][2:4] if log.get("control") else sig[i, 2:4]
             np.savez_compressed(
                 vdir / f"step_{i:04d}.npz",
                 step=int(log["step"][i]), pose=pose[i], rgb=log["rgb"][i].astype(np.uint8),
-                sim=np.asarray(log["sim"][i], np.float32), grid=grid, dt=args.dt)
+                sim=np.asarray(log["sim"][i], np.float32), grid=grid, dt=args.dt,
+                mass=np.float32(mass_f), peak=np.float32(peak_f))
         print(f"  rviz: ros2 launch src/mpc/plan_viz.launch.py dump_dir:={vdir}")
     print(f"运行数据已存: {out_dir}  ({len(log['step'])} 步, run.h5 + signals.csv + viz_dump/)")
 
@@ -240,25 +353,37 @@ async def main(args):
     device = args.device or ("cuda" if torch.cuda.is_available() else "cpu")
     print(f"device={device}")
     log = {k: [] for k in ("step", "t", "pose", "sig", "act", "vf", "slow",
-                           "rgb", "sim", "dist", "seg")}
+                           "rgb", "sim", "dist", "seg", "control")}
     reached = False
     stop_reason = "timeout"          # 跑满 max_steps 而没触发任何判据
     grid = None
     client = projectairsim.ProjectAirSimClient(address=args.address)
     drone = None; api_on = False
+    pending = []
+    reset_messages()
     try:
         client.connect(); print("已连接")
         world = World(client, args.scene,
                       sim_config_path=str(args.sim_config_dir.expanduser().resolve()),
                       delay_after_load_sec=2)
+        if not args.no_seg_depth:
+            ce.setup_segmentation(world)
         drone = Drone(client, world, "Drone1")
         client.subscribe(drone.sensors[args.camera]["scene_camera"], make_cb("rgb"))
-        # 深度进控制(距离减速/接触判据), 分割只进评价器。缺任一路不影响主流程: 取不到就退回老判据。
+        # 深度进距离控制；分割只确认该深度属于目标主体，不负责区分机头/机翼等部位。
         for sensor, tag in (("depth_camera", "depth"), ("segmentation_camera", "seg")):
             try:
                 client.subscribe(drone.sensors[args.camera][sensor], make_cb(tag))
             except Exception as err:
                 print(f"未订阅 {sensor}（{err}）—— 该路数据缺失，相关判据自动退化")
+        seg_color = tuple(args.seg_color) if args.seg_color is not None \
+            else SEG_COLORS_BGR.get(args.target)
+        args.seg_color = seg_color
+        if not args.no_seg_depth:
+            if seg_color is None:
+                print(f"目标 {args.target} 没有已标定分割颜色；深度不会用于接触判据，请传 --seg-color B G R")
+            else:
+                print(f"目标分割约束: {args.target} BGR={seg_color}")
         fp = Fingerprint(args, device)
         grid = fp.grid
 
@@ -278,63 +403,150 @@ async def main(args):
             nn, ee, _, _ = get_pose_yaw(drone)
             await asyncio.wait_for(await drone.rotate_to_yaw_async(
                 yaw=math.atan2(fe - ee, fn - nn)), timeout=30.0)
-        # 等一帧
-        t0 = time.monotonic()
-        while get_latest("rgb") is None and time.monotonic() - t0 < 10:
-            await asyncio.sleep(0.1)
-        if get_latest("rgb") is None:
+        # 等一张属于当前场景的新帧。
+        try:
+            await wait_new_message("rgb", timeout=10.0)
+        except TimeoutError:
             print("没收到帧"); return
 
-        print("=== 进入视觉伺服闭环 ===")
+        print(f"=== 进入视觉伺服闭环 v2 ({1 / args.dt:.1f}Hz, "
+              f"cmd={args.dt * args.cmd_duration_factor:.2f}s) ===")
         t_loop = time.monotonic()
+        last_rgb_ts = -1
+        last_wall = None
+        last_contact_depth_ts = -1
+        filtered = {k: None for k in ("cx", "cy", "mass", "peak", "dist")}
+        lost_frames = 0
+        lock_streak = 0
+        tracking_acquired = False
+        contact_count = 0
         for step in range(args.max_steps):
-            msg = get_latest("rgb")
+            msg = await wait_new_message("rgb", last_rgb_ts, timeout=args.frame_timeout)
+            rgb_ts = int(msg.get("time_stamp", -1))
+            last_rgb_ts = rgb_ts
+            now = time.monotonic()
+            frame_dt = args.dt if last_wall is None else now - last_wall
+            last_wall = now
             rgb = decode_image(msg)[0]
             rgb = cv2.resize(rgb, (224, 224), interpolation=cv2.INTER_AREA)
             cx, cy, mass, peak, sim = fp.query(rgb)
             n, e, dz, yaw = get_pose_yaw(drone)
 
-            fwd, rgt, vd, yaw_rate, slow, vf = compute_body_cmd(args, cx, cy, mass)
+            filtered["cx"] = ema_update(filtered["cx"], cx, args.ema_alpha)
+            filtered["cy"] = ema_update(filtered["cy"], cy, args.ema_alpha)
+            filtered["mass"] = ema_update(filtered["mass"], mass, args.ema_alpha)
+            filtered["peak"] = ema_update(filtered["peak"], peak, args.ema_alpha)
+            cx_f, cy_f = filtered["cx"], filtered["cy"]
+            mass_f, peak_f = filtered["mass"], filtered["peak"]
+            locked = peak_f >= args.control_min_peak
+            lock_streak = lock_streak + 1 if locked else 0
+            tracking_acquired = tracking_acquired or lock_streak >= args.lock_confirm_frames
+            lost_frames = 0 if locked else lost_frames + 1
+
             dmsg = get_latest("depth")
-            # 指纹不可信时重心是噪声，采出来的深度是画面里随便某个点 —— 实测 08-01：
-            # 20m 外 mass≈0.001、peak≈0.1~0.3，dist 在 44~60m 之间乱跳。
-            # 不门控的话，飞过任何近处物体都会被误判成"接触"。
-            trust = peak >= args.dist_min_peak
-            dist_t = None if (dmsg is None or not trust) else sample_depth(dmsg, cx, cy)
-            if dist_t is not None and args.slow_dist > 0:     # 按**到目标的距离**减速，而非按 mass
-                vf_scale = min(1.0, max(args.slow_min, dist_t / args.slow_dist))
-                fwd *= vf_scale; rgt *= vf_scale; vd *= vf_scale
+            smsg = get_latest("seg")
+            # 消息跨流偏差过大时宁可不用深度，也不把旧掩膜套到新画面上。
+            def fresh(sensor_msg):
+                if sensor_msg is None or rgb_ts < 0:
+                    return False
+                return abs(int(sensor_msg.get("time_stamp", -1)) - rgb_ts) / 1e9 \
+                    <= args.max_sensor_skew
+
+            trust_depth = peak_f >= args.dist_min_peak and fresh(dmsg)
+            seg_valid = False
+            target_pixels = 0
+            dist_t = None
+            if trust_depth and args.no_seg_depth:
+                dist_t = sample_depth(dmsg, cx_f, cy_f, half=args.depth_half)
+            elif trust_depth and fresh(smsg):
+                dist_t, seg_valid, target_pixels = sample_target_depth(
+                    dmsg, smsg, cx_f, cy_f, seg_color, half=args.depth_half,
+                    color_tolerance=args.seg_color_tolerance,
+                    min_pixels=args.depth_min_pixels,
+                )
+            if dist_t is not None:
+                filtered["dist"] = ema_update(filtered["dist"], dist_t, args.depth_ema_alpha)
+            dist_f = filtered["dist"] if dist_t is not None else None
+
+            # 信号可靠时按正常伺服控制；失锁初期沿原航向低速爬行，持续失锁则悬停。
+            if locked:
+                depth_mode = dist_f is not None and (args.stop_dist is not None or args.slow_dist > 0)
+                mass_for_control = 0.0 if depth_mode else mass_f
+                fwd, rgt, vd, yaw_rate, slow, _ = compute_body_cmd(
+                    args, cx_f, cy_f, mass_for_control)
+            else:
+                creep_allowed = not tracking_acquired or lost_frames <= args.lost_creep_frames
+            if not locked and creep_allowed:
+                fwd, rgt, vd, yaw_rate, slow = args.lost_forward, 0.0, 0.0, 0.0, 1.0
+            elif not locked:
+                fwd, rgt, vd, yaw_rate, slow = 0.0, 0.0, 0.0, 0.0, 0.0
+
+            range_scale = depth_speed_scale(dist_f, args.slow_dist, args.stop_dist, args.slow_min)
+            if dist_f is not None and args.slow_dist > 0:
+                # 保持视线方向比例，只让偏航继续全速修正。
+                fwd *= range_scale; rgt *= range_scale; vd *= range_scale
+
+            # 接触必须是可靠目标深度连续命中，不能用同一张旧深度重复计数。
+            depth_ts = -1 if dmsg is None else int(dmsg.get("time_stamp", -1))
+            contact_hit = args.stop_dist is not None and dist_f is not None \
+                and dist_f <= args.stop_dist and locked and depth_ts != last_contact_depth_ts
+            if contact_hit:
+                contact_count += 1
+                last_contact_depth_ts = depth_ts
+            elif depth_ts != last_contact_depth_ts:
+                contact_count = 0
+                last_contact_depth_ts = depth_ts
+            if contact_count > 0:       # 候选接触期间先悬停，等独立新深度帧确认
+                fwd = rgt = vd = yaw_rate = 0.0
+
+            stop_now = None
+            if args.stop_dist is not None and contact_count >= args.stop_confirm_frames:
+                stop_now = "contact"
+            elif args.stop_alt is not None and -dz <= args.stop_alt:
+                stop_now = "altitude"
+            elif args.stop_alt is None and args.stop_dist is None and mass_f >= args.mass_stop:
+                stop_now = "mass"
 
             # 逐步记录(含触发停止的这一帧)
             log["step"].append(step); log["t"].append(time.monotonic() - t_loop)
             log["pose"].append([n, e, dz, yaw]); log["sig"].append([cx, cy, mass, peak])
-            log["act"].append([fwd, rgt, vd, yaw_rate]); log["vf"].append(vf); log["slow"].append(slow)
+            log["act"].append([fwd, rgt, vd, yaw_rate]); log["vf"].append(fwd); log["slow"].append(slow)
             log["rgb"].append(rgb.copy()); log["sim"].append(sim)
             log["dist"].append(-1.0 if dist_t is None else dist_t)
-            smsg = get_latest("seg")                          # 只为评价器留真值，不进控制
-            if smsg is not None:
+            log["control"].append([
+                cx_f, cy_f, mass_f, peak_f, -1.0 if dist_f is None else dist_f,
+                float(locked), float(seg_valid), frame_dt, contact_count,
+            ])
+            if smsg is None:
+                log["seg"].append(np.zeros_like(rgb))
+            else:
                 log["seg"].append(cv2.resize(ce.decode(smsg)[..., :3], rgb.shape[1::-1],
                                              interpolation=cv2.INTER_NEAREST))
 
-            # 停止判据。**分清是哪一种** —— 老版只有一个 reached=True，把"到接触高度"
-            # 和"目标充满视野"混为一谈，评价时说不清到底接触没接触（台账 07-30 待办）。
-            if args.stop_dist is not None and dist_t is not None and dist_t <= args.stop_dist:
-                print(f"[{step}] 目标距离={dist_t:.1f}m ≤{args.stop_dist} → 接触判定, 停")
-                reached, stop_reason = True, "contact"; break
-            if args.stop_alt is not None and -dz <= args.stop_alt:
-                print(f"[{step}] alt={-dz:.1f}≤{args.stop_alt} → 到达接触高度, 停")
-                reached, stop_reason = True, "altitude"; break
-            if args.stop_alt is None and args.stop_dist is None and mass >= args.mass_stop:
-                print(f"[{step}] mass={mass:.3f}≥{args.mass_stop} → 判定贴近目标, 停")
-                reached, stop_reason = True, "mass"; break
+            state = "LOCK" if locked else ("CREEP" if creep_allowed else "HOLD")
+            print(f"[{step}] {state} alt={-dz:5.1f} center=({cx_f:+.2f},{cy_f:+.2f}) "
+                  f"mass={mass_f:.3f} peak={peak_f:.3f} "
+                  f"dist={'  n/a' if dist_f is None else f'{dist_f:5.1f}'} "
+                  f"seg={int(seg_valid)}({target_pixels}) | vf={fwd:.2f} vd={vd:.2f} "
+                  f"yaw_rate={yaw_rate:+.2f} dt={frame_dt:.3f}")
 
-            print(f"[{step}] alt={-dz:5.1f} center=({cx:+.2f},{cy:+.2f}) mass={mass:.3f} "
-                  f"peak={peak:.3f} dist={'  n/a' if dist_t is None else f'{dist_t:5.1f}'} | "
-                  f"vf={fwd:.2f} vd={vd:.2f} yaw_rate={yaw_rate:+.2f}")
-            # **机体系**：与采集(action_frame="body")和世界模型一致，A/B 两条件才可比。
-            await (await drone.move_by_velocity_body_frame_async(
-                v_forward=fwd, v_right=rgt, v_down=vd, duration=args.dt,
+            if stop_now is not None:
+                reached, stop_reason = True, stop_now
+                print(f"[{step}] 停止判据={stop_now}，连续深度确认={contact_count}")
+                await (await drone.move_by_velocity_body_frame_async(
+                    v_forward=0.0, v_right=0.0, v_down=0.0,
+                    duration=max(args.dt, 0.2), yaw=0.0, yaw_is_rate=True))
+                break
+
+            # **机体系**；只提交任务、不等动作结束。下一帧的 DINO 推理期间该指令仍持续。
+            # ProjectAirSim 的新 SingleTaskCall 会抢占旧任务，CancelledError 属正常；
+            # duration 加余量，避免新帧/DINO稍慢时出现无控制空档。
+            pending.append(await drone.move_by_velocity_body_frame_async(
+                v_forward=fwd, v_right=rgt, v_down=vd,
+                duration=args.dt * args.cmd_duration_factor,
                 yaw=yaw_rate, yaw_is_rate=True))
+        if pending:
+            await asyncio.gather(*pending, return_exceptions=True)
         print("=== 闭环结束 ===", "已贴近 ✅" if reached else "跑满步数(未达停止阈值)")
     finally:
         if api_on and drone is not None:
@@ -357,9 +569,11 @@ def parse_args():
     p.add_argument("--scene", default="scene_airbase.jsonc")
     p.add_argument("--sim-config-dir", type=Path, default=DEFAULT_CONFIG_DIR)
     p.add_argument("--camera", default="FrontCamera")
+    p.add_argument("--target", default=ce.DEFAULT_TARGET,
+                   help="目标 Actor；用于运行时分割 ID 覆盖和目标主体深度校验")
     p.add_argument("--template", type=Path, default=base / "pictures/尾翼.jpg")
     p.add_argument("--stats-episode", type=Path,
-                   default=base / "outputs/recordings/approach/airbase_tgt1_100m.h5")
+                   default=base / "outputs/recordings/approach/airbase_tgt1_50m.h5")
     p.add_argument("--repo-dir", type=Path, default=base / "dinov2")
     p.add_argument("--dino-weights", type=Path, default=base / "weights/dinov2_vits14_pretrain.pth")
     p.add_argument("--nadir", action="store_true",
@@ -384,6 +598,18 @@ def parse_args():
     p.add_argument("--center-gate", type=float, default=0.5,
                    help="俯视: 偏差超此值不下降, 以内线性放开下降")
     p.add_argument("--mass-stop", type=float, default=0.20, help="前视: mass 超过即判定贴近停止")
+    p.add_argument("--control-min-peak", type=float, default=0.12,
+                   help="低于此 peak 不使用指纹误差转向；先低速直行，持续失锁后悬停")
+    p.add_argument("--ema-alpha", type=float, default=0.4,
+                   help="cx/cy/mass/peak EMA 的当前帧权重，1=不滤波")
+    p.add_argument("--depth-ema-alpha", type=float, default=0.5,
+                   help="有效目标深度 EMA 的当前帧权重")
+    p.add_argument("--lost-creep-frames", type=int, default=5,
+                   help="已经稳定截获后，失锁时允许低速直行的帧数，之后悬停")
+    p.add_argument("--lost-forward", type=float, default=0.5,
+                   help="首次截获前/短暂失锁时的直行速度；不偏航、不下降")
+    p.add_argument("--lock-confirm-frames", type=int, default=3,
+                   help="连续多少帧达到 control-min-peak 才认为曾稳定截获")
     p.add_argument("--dist-min-peak", type=float, default=0.35,
                    help="指纹 peak 低于此值时不信任重心, 深度判据自动失效(防误判接触)")
     p.add_argument("--stop-dist", type=float, default=None,
@@ -391,15 +617,47 @@ def parse_args():
     p.add_argument("--slow-dist", type=float, default=0.0,
                    help=">0 时按到目标的距离线性减速(dist/slow_dist)，替代只按 mass 减速")
     p.add_argument("--slow-min", type=float, default=0.15, help="距离减速的下限系数")
+    p.add_argument("--stop-confirm-frames", type=int, default=3,
+                   help="接触深度需由多少张独立深度帧连续确认")
+    p.add_argument("--no-seg-depth", action="store_true",
+                   help="不使用目标 Actor 分割约束深度（部署无分割时的退化模式）")
+    p.add_argument("--seg-color", type=int, nargs=3, default=None, metavar=("B", "G", "R"),
+                   help="目标分割调色板 BGR；默认按 --target 使用本场景实测颜色")
+    p.add_argument("--seg-color-tolerance", type=int, default=0,
+                   help="分割 BGR 逐通道容差；调色板图通常用 0")
+    p.add_argument("--depth-half", type=int, default=12,
+                   help="指纹点周围深度采样窗口半径（像素，原始深度分辨率）")
+    p.add_argument("--depth-min-pixels", type=int, default=3,
+                   help="窗口内至少多少个目标掩膜深度像素才算有效")
+    p.add_argument("--max-sensor-skew", type=float, default=0.25,
+                   help="RGB 与 depth/seg 允许的最大时间差（秒；分割实测约滞后一帧）")
     p.add_argument("--stop-alt", type=float, default=None,
                    help="俯视: 高度降到此值即判定接触停止(俯视 mass 早饱和用高度判; 如接触≈14.6m 设 16)")
     p.add_argument("--max-steps", type=int, default=200)
-    p.add_argument("--dt", type=float, default=0.3)
+    p.add_argument("--dt", type=float, default=0.1,
+                   help="控制/相机标称周期；当前 FrontCamera 为 10Hz")
+    p.add_argument("--cmd-duration-factor", type=float, default=2.0,
+                   help="速度指令保活时长=dt×该系数，用于覆盖下一帧等待和DINO推理")
+    p.add_argument("--frame-timeout", type=float, default=2.0,
+                   help="等待下一张 RGB 的超时秒数")
     # 指纹参数(与离线判据一致)
     p.add_argument("--target-softmax-temp", type=float, default=0.08)
     p.add_argument("--target-mass-thresh", type=float, default=0.35)
     p.add_argument("--target-mass-sharpness", type=float, default=20.0)
-    return p.parse_args()
+    args = p.parse_args()
+    for name in ("ema_alpha", "depth_ema_alpha"):
+        value = getattr(args, name)
+        if not 0.0 < value <= 1.0:
+            p.error(f"--{name.replace('_', '-')} 必须在 (0,1]，当前 {value}")
+    if args.dt <= 0 or args.cmd_duration_factor <= 0:
+        p.error("--dt 和 --cmd-duration-factor 必须为正数")
+    if args.stop_confirm_frames < 1 or args.lock_confirm_frames < 1 or args.depth_min_pixels < 1:
+        p.error("--stop-confirm-frames、--lock-confirm-frames 和 --depth-min-pixels 必须 ≥1")
+    if args.slow_dist > 0 and args.stop_dist is not None and args.slow_dist <= args.stop_dist:
+        p.error("--slow-dist 必须大于 --stop-dist，才能形成有效减速区间")
+    if not 0.0 <= args.slow_min <= 1.0:
+        p.error("--slow-min 必须在 [0,1]")
+    return args
 
 
 if __name__ == "__main__":

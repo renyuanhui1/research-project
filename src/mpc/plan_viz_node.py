@@ -108,8 +108,13 @@ class PlanVizNode(Node):
             arr.markers.append(self.best_marker(now, pos, d['act_best'], dt))
             arr.markers.append(self.text_marker(now, pos,
                 f"step {int(d['step'])}  dist={float(d['dist']):.3f}  best={float(d['best']):.3f}"))
-        else:                               # 纯建图 dump：只标无人机 + 步数
+        elif 'mass' in d.files and 'peak' in d.files:  # 伺服 dump：显示控制实际使用的滤波信号
+            arr.markers.append(self.text_marker(now, pos,
+                f"step {int(d['step'])}  mass={float(d['mass']):.3f}  peak={float(d['peak']):.3f}"))
+        elif 'pts' in d.files:              # 纯建图 dump：只标无人机 + 步数
             arr.markers.append(self.text_marker(now, pos, f"step {int(d['step'])}  (mapping)"))
+        else:
+            arr.markers.append(self.text_marker(now, pos, f"step {int(d['step'])}"))
         self.marker_pub.publish(arr)
 
         if 'rgb' in d.files:

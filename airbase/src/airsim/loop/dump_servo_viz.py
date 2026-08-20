@@ -4,7 +4,8 @@
 patch 响应热力图，连 pose 打包成 step_XXXX.npz，喂给 src/mpc/plan_viz_node.py。
 指纹算法与 check_target_signal.py / servo 一致(同一 stats-episode 标准化 + 模板 proto)。
 
-产出每帧 npz 键: pose(n,e,d,yaw; 节点取[:3]画轨迹) / rgb / sim(P,=热力图) / grid / step / dt。
+产出每帧 npz 键: pose(n,e,d,yaw; 节点取[:3]画轨迹) / rgb / sim(P,=热力图) /
+grid / step / dt / mass / peak。mass/peak 优先取伺服 v2 实际控制用的滤波值。
 
 用法(有 GPU):
   python airbase/src/airsim/dump_servo_viz.py \
@@ -68,6 +69,12 @@ def main():
     with h5py.File(run_h5, "r") as f:
         rgb = f["rgb"][:]
         pose = f["pose"][:]                      # (T,4) n,e,d,yaw
+        if "control" in f:                       # v2: cx_f,cy_f,mass_f,peak_f,...
+            mass_peak = f["control"][:, 2:4]
+        elif "sig" in f:                         # 旧记录退化为原始 mass/peak
+            mass_peak = f["sig"][:, 2:4]
+        else:
+            mass_peak = None
         tmpl = a.template or f.attrs.get("template")
         stats = a.stats_episode or f.attrs.get("stats_episode")
     print(f"run.h5: {len(rgb)} 帧  模板={tmpl}  stats={stats}")
@@ -98,10 +105,12 @@ def main():
     P = zf.shape[1]; grid = int(round(P ** 0.5))
 
     for i in range(len(rgb)):
-        np.savez_compressed(
-            out_dir / f"step_{i:04d}.npz",
-            step=i, pose=pose[i].astype(np.float32), rgb=rgb[i].astype(np.uint8),
-            sim=sim[i].astype(np.float32), grid=grid, dt=a.dt)
+        payload = dict(step=i, pose=pose[i].astype(np.float32), rgb=rgb[i].astype(np.uint8),
+                       sim=sim[i].astype(np.float32), grid=grid, dt=a.dt)
+        if mass_peak is not None:
+            payload.update(mass=np.float32(mass_peak[i, 0]),
+                           peak=np.float32(mass_peak[i, 1]))
+        np.savez_compressed(out_dir / f"step_{i:04d}.npz", **payload)
     print(f"已写 {len(rgb)} 个 npz → {out_dir}")
     print(f"rviz: ros2 launch src/mpc/plan_viz.launch.py dump_dir:={out_dir}")
 
