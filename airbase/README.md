@@ -131,9 +131,21 @@ depth + 目标 Actor 分割 ─┴→ 目标主体内深度 → 距离减速 / �
 - `dump_servo_viz.py` 🆕 — 把伺服 run.h5 离线转成 rviz 可播 npz（轨迹+指纹热力图+
   `step/mass/peak` 标签，不用重飞）
 - `depth_map.py` — 深度→世界系点云，给实时建图用
+- `probe_voxel_map.py` → `../src/mpc/voxel_map_viz_node.py` — ProjectAirSim 碰撞体素离线落盘后，
+  将地面薄片和场景障碍分层、按 NED→ENU 发布静态 `/voxel_map/markers`；默认显示 2 km 全局图，
+  `voxel_map_viz.launch.py` 默认用五个已标定对象的 OOB 真值区域隐藏机场建筑（仅辅助显示，非语义识别），
+  将 10 m 全局地面与五张 `60×60×20 m / 1 m` 目标局部图叠加。推荐先单独运行
+  `rviz2 -d /home/hui/my/src/mpc/voxel_map_viz.rviz`，再重复运行
+  `ros2 launch src/mpc/voxel_map_viz.launch.py` 播放轨迹；播放节点完成后自动退出，RViz 保持打开。
+  RViz 连接 `/voxel_map/trajectory` 后，默认按真实记录时间以 2 倍速单次播放
+  `机头_0805_103801`（黄线，500点）和 `红星_0722_194121`（洋红线，100点）两条历史轨迹；
+  绿球使用每条数据的首帧位姿，红球跟随当前轨迹末端移动，播放结束后保留最终画面。
+  `--trajectory-dir` 可重复传入；launch 参数 `start_rviz:=true` 可恢复同时启动 RViz，
+  节点显式传入 `--loop` 才会循环播放。
 
 ## 与老场景共享/不共享
 
 - **不复制、软链共享**：冻结 DINO 仓 `dinov2/` 和权重 `dinov2_vits14_pretrain.pth`。
 - **完全不动**：`../sim_config/`、`../weights/`、`../outputs/`、`../src/`。
-- **rviz 可视化**：仍用共享的 `../src/mpc/plan_viz*`（本地 ROS2，靠 `--dump-dir` 读，无需 fork）。
+- **rviz 可视化**：闭环回放使用共享的 `../src/mpc/plan_viz*`；离线体素地图使用
+  `../src/mpc/voxel_map_viz*`。两者均为本地 ROS2，无需 colcon 构建。
