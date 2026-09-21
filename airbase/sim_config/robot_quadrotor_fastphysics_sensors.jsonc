@@ -353,26 +353,23 @@
       "type": "camera",
       // 开着：它是 UE 窗口的视角相机（文档: robot config 里**第一个 streaming-enabled
       // 的相机**即该机器人的 viewpoint，见 docs/transition_from_airsim.md:69）。
-      // 吃 GPU 的是下面的 capture-enabled(每帧像素 GPU→CPU 拷贝+打包)，不是 streaming
-      // (GPU 内 h.264 编码)。所以 capture 关掉、streaming 留着 —— 观察和帧率兼得。
+      // streaming 供 Unreal 单路观察；capture 供 --show-cameras 同时读取三架机的 Chase RGB。
       "enabled": true,
       "parent-link": "Frame",
-      // 采集间隔 0.03s，约 33 FPS。
-      "capture-interval": 0.03,
+      // 三路实时预览以 10 FPS 采集，控制 GPU→CPU 拷贝开销。
+      "capture-interval": 0.1,
       "capture-settings": [
         {
           // image-type 0 = 普通场景 RGB 图。
           "image-type": 0,
-          // 960x540：与 FrontCamera 三路对齐（07-30 那次改漏了这一路）。capture 关掉只省了
-          // GPU→CPU 拷贝，**渲染和 h.264 编码仍按分辨率计**，1920x1080 是 4 倍像素。
+          // 960x540：与 FrontCamera 三路对齐。
           // 宽高比仍 16:9 → vFOV 仍 58.7°，下面 origin 注释里那套视野覆盖计算不受影响。
           "width": 960,
           "height": 540,
           // 相机视场角，单位度。越大越容易看到机体边缘/桨叶。
           "fov-degrees": 90,
-          // false：没有任何客户端订阅 Chase，开着等于每秒 33 帧 1920x1080 白拷回 CPU。
-          // 官方就是这么建议的（docs/sensors/camera_streaming.md:31）。
-          "capture-enabled": false,
+          // --show-cameras 订阅这一路，组成三机 Chase 三联窗口。
+          "capture-enabled": true,
           // 是否开启视频流输出。UE 窗口靠它显示，必须留 true。
           "streaming-enabled": true,
           // RGB 图通常用 uint8，所以这里是 false。
@@ -387,31 +384,10 @@
         "lock-pitch": true,
         "lock-yaw": false
       },
-      // 第三人称"越肩"跟随视角：机后 5m、**机左 2.5m**、机上 1.8m，下俯 33°、右转 18°。
-      // 直线距离 5.9m，机体占画面宽 8%（74/960 px）。
-      // gimbal 锁 roll/pitch → 俯角绝对，不随机身晃；不锁 yaw → 始终从左后方跟着。
-      //
-      // 三个旋钮（机体系 NED: x前 y右 z下）：
-      //   xyz 整体缩放 = 远近。等比缩放时斜角与方位角都不变，只有机体大小变：
-      //                  9.4m→5%  5.9m→8%(现在)  4.7m→10%  3.8m→12%  3.0m→15%
-      //   xyz 第2个    = 左右偏移，**负=左**。|y|/|x| 决定斜角（2.5/5 → 26.6°）
-      //   rpy 第3个    = yaw，**正=右转**把机体拉回画面。等于 atan(|y|/|x|)=26.6° 时机体居中；
-      //                  取 18° 略小 → 机体偏右、前方目标偏左，即越肩构图
-      //
-      // ⚠️ 拉近有个反直觉的副作用：相机跟着降低，**高站位目标的俯角反而变大**、更贴下沿
-      //    （9.4m 时 51.9° → 5.9m 时 54.6°）。所以 pitch 由 -30 补到 **-33**，下沿推到 62.4°。
-      //    以后每次大幅拉近都要重算这条，否则高站位目标会悄悄掉出画面。
-      //
-      // 视野核对（hFOV 90°，vFOV = 2*atan(tan45°*540/960) = 58.7° → 俯角覆盖 3.6°~62.4°）：
-      //   机体自身              方位  +8.6°  俯角 17.8° ✅ 画面右上，看得清左侧面
-      //   典型   r16.6/alt19.3  方位 -11.4°  俯角 44.1° ✅ 画面左下
-      //   高站位 r16.7/alt28.9  方位 -11.4°  俯角 54.6° ✅（07-31 实跑看不见的就是这条，余量 7.8°）
-      //   低站位 r18.8/alt13.9  方位 -12.0°  俯角 33.3° ✅
-      //   极端陡 r8 /alt30      方位  -7.1°  俯角 67.4° ❌ 掉出下沿。要救得 pitch<-38，
-      //                                                   但那样机体又跑画面顶上，故放弃（此类站位占比小）
+      // airbase 初始跟随视角：机后 3 m、机上 1 m，俯视 11.46°。
       "origin": {
-        "xyz": "-5.0 -2.5 -1.8",
-        "rpy-deg": "0 -33 18"
+        "xyz": "-3.0 0.0 -1.0",
+        "rpy-deg": "0 -11.46 0"
       }
     },
     {
@@ -430,6 +406,7 @@
           "height": 540,
           "fov-degrees": 90,
           "capture-enabled": true,
+          // 保留 RGB viewport 流，Tab 可在 Chase 与第一人称画面之间切换。
           "streaming-enabled": true,
           "pixels-as-float": false,
           "compress": false,
@@ -441,10 +418,9 @@
           "width": 960,
           "height": 540,
           "fov-degrees": 90,
-          // 建图需要深度：capture+streaming 都要开，pub/sub 才订得到（RGB 那路同理）。
-          // 平时不建图想省 GPU 就改回 false。
+          // 建图通过 capture/pub-sub 读取；关闭 viewport 流，避免 Tab 切到深度画面。
           "capture-enabled": true,
-          "streaming-enabled": true,
+          "streaming-enabled": false,
           "pixels-as-float": true,
           "compress": false
         },
@@ -458,7 +434,8 @@
           "height": 540,
           "fov-degrees": 90,
           "capture-enabled": true,
-          "streaming-enabled": true,
+          // 分割仍供控制器的距离门控使用，但不加入 Unreal 的 Tab 视角列表。
+          "streaming-enabled": false,
           "pixels-as-float": false,
           "compress": false
         }

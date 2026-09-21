@@ -28,7 +28,9 @@ python src/airsim/collect_episode.py                             # ❌ 在 ~/my 
 | 想知道 | 看 |
 |---|---|
 | airbase 每天的实验结论、踩过的坑 | [`airbase/EXPERIMENTS.md`](airbase/EXPERIMENTS.md) ← **主台账** |
-| airbase 的 29 个脚本分别干什么、还能不能跑 | [`airbase/src/airsim/README.md`](airbase/src/airsim/README.md) |
+| airbase 的 39 个脚本分别干什么、还能不能跑 | [`airbase/src/airsim/README.md`](airbase/src/airsim/README.md) |
+| 别人做到哪了（抵近/视觉伺服/停在阈值） | [`airbase/RELATED_WORK.md`](airbase/RELATED_WORK.md) |
+| 两个场景 20 个同名脚本的重构提案（**待定，未执行**） | [`airbase/REFACTOR_PROPOSAL.md`](airbase/REFACTOR_PROPOSAL.md) |
 | airbase 场景配置、相机几何 | [`airbase/README.md`](airbase/README.md) |
 | PX4 联调怎么起 | [`airbase/RUN_PX4.md`](airbase/RUN_PX4.md) |
 | 方法本身（世界模型/cost/MPPI 怎么组织） | [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) |

@@ -173,18 +173,40 @@ class Fingerprint:
         zf = self._encode(srgb)                      # (N,P,D)
         self.zm = zf.reshape(-1, zf.shape[-1]).mean(0).to(device)
         self.zs = zf.reshape(-1, zf.shape[-1]).std(0).clamp_min(1e-6).to(device)
-        # 模板 proto
+        # 模板 proto：默认保留全模板；可选 ROI 原型只在显式传 --template-roi 时创建。
         tbgr = cv2.imread(str(args.template))
         if tbgr is None:
             raise SystemExit(f"读不到模板: {args.template}")
         zt = self._encode(np.ascontiguousarray(tbgr[:, :, ::-1])[None])[0].to(device)
         zt = (zt - self.zm) / self.zs
-        self.proto = F.normalize(F.normalize(zt, dim=-1).mean(0), dim=0)
         P = zf.shape[1]; self.grid = int(round(P ** 0.5))
+        if self.grid * self.grid != P:
+            raise SystemExit(f"DINO patch 数不是方形网格: {P}")
         xs = torch.linspace(-1.0, 1.0, self.grid, device=device)
         yy, xx = torch.meshgrid(xs, xs, indexing="ij")
         self.patch_xy = torch.stack([xx.reshape(-1), yy.reshape(-1)], -1)
-        print(f"指纹就绪: proto D={self.proto.shape[0]}, grid={self.grid}")
+        self.protos = {
+            "full": F.normalize(F.normalize(zt, dim=-1).mean(0), dim=0),
+        }
+        self.roi_patch_count = 0
+        if args.template_roi is not None:
+            x0, y0, x1, y1 = args.template_roi
+            axis = (torch.arange(self.grid, device=device, dtype=torch.float32) + 0.5) / self.grid
+            vv, uu = torch.meshgrid(axis, axis, indexing="ij")
+            mask = ((uu.reshape(-1) >= x0) & (uu.reshape(-1) <= x1)
+                    & (vv.reshape(-1) >= y0) & (vv.reshape(-1) <= y1))
+            if not mask.any():
+                raise SystemExit(f"--template-roi {args.template_roi} 没覆盖任何模板 patch")
+            self.protos["roi"] = F.normalize(
+                F.normalize(zt[mask], dim=-1).mean(0), dim=0)
+            self.roi_patch_count = int(mask.sum())
+        detail = (f", ROI={args.template_roi} ({self.roi_patch_count} patches)"
+                  if self.has_roi else "")
+        print(f"指纹就绪: proto D={self.protos['full'].shape[0]}, grid={self.grid}{detail}")
+
+    @property
+    def has_roi(self):
+        return "roi" in self.protos
 
     @torch.no_grad()
     def _encode(self, rgb, bs=32):
@@ -195,12 +217,13 @@ class Fingerprint:
         return torch.cat(out, 0)
 
     @torch.no_grad()
-    def query(self, rgb224):
+    def query(self, rgb224, use_roi=False):
         """rgb224:(224,224,3) uint8 → (center_x, center_y, mass, peak)。"""
         x = to_input_tensor(rgb224[None], self.args.image_size, self.mean, self.std, self.dev)
         z = self.dino.forward_features(x)["x_norm_patchtokens"][0].float()
         z = (z - self.zm) / self.zs
-        sim = torch.matmul(F.normalize(z, dim=-1), self.proto)      # (P,) 即热力图
+        proto = self.protos["roi" if use_roi and self.has_roi else "full"]
+        sim = torch.matmul(F.normalize(z, dim=-1), proto)           # (P,) 即热力图
         w = torch.softmax(sim / self.args.target_softmax_temp, dim=-1)
         center = torch.matmul(w, self.patch_xy)                     # (2,)
         mass = torch.sigmoid(
@@ -294,7 +317,13 @@ def save_run(out_dir, log, args, reached, grid, stop_reason=None):
         f.attrs["action_layout"] = "v_forward,v_right,v_down,yaw_rate"   # 08-01 改机体系
         f.attrs["template"] = str(args.template)
         f.attrs["stats_episode"] = str(args.stats_episode)
+        f.attrs["template_roi"] = (-1.0, -1.0, -1.0, -1.0) \
+            if args.template_roi is None else args.template_roi
+        f.attrs["roi_switch_dist"] = args.roi_switch_dist
+        f.attrs["roi_switch_confirm_frames"] = args.roi_switch_confirm_frames
         f.attrs["controller"] = "servo_v2"
+        if hasattr(args, "drone_name"):
+            f.attrs["drone_name"] = str(args.drone_name)
         f.attrs["target"] = str(args.target)
         f.attrs["seg_depth_enabled"] = not bool(args.no_seg_depth)
         f.attrs["seg_color_bgr"] = (-1, -1, -1) if args.seg_color is None else args.seg_color
@@ -317,20 +346,22 @@ def save_run(out_dir, log, args, reached, grid, stop_reason=None):
         if log.get("control"):
             f.create_dataset("control", data=np.array(log["control"], np.float32))
             f.attrs["control_layout"] = (
-                "cx_f,cy_f,mass_f,peak_f,dist_f,locked,seg_valid,frame_dt,contact_count"
-            )
+                "cx_f,cy_f,mass_f,peak_f,dist_f,locked,seg_valid,frame_dt,contact_count,"
+                "target_pixels,roi_active"
+            )   # 旧 run: 9列; 09-15 加 target_pixels; 09-16 加 roi_active
         if log.get("seg"):
             f.create_dataset("seg", data=np.stack(log["seg"]).astype(np.uint8),
                              compression="gzip", compression_opts=4)
     cols = ["step", "t", "n", "e", "d", "alt", "yaw", "cx", "cy", "mass", "peak",
             "vf", "vn", "ve", "vd", "yaw_rate", "slow", "cx_f", "cy_f", "mass_f",
-            "peak_f", "dist_f", "locked", "seg_valid", "frame_dt", "contact_count"]
+            "peak_f", "dist_f", "locked", "seg_valid", "frame_dt", "contact_count",
+            "target_pixels", "roi_active"]
     with open(out_dir / "signals.csv", "w") as f:
         f.write(f"# template={args.template} mass_stop={args.mass_stop} reached={bool(reached)}\n")
         f.write(",".join(cols) + "\n")
         for i in range(len(log["step"])):
             n, e, d, yaw = pose[i]; cx, cy, mass, peak = sig[i]; vn, ve, vd, yr = act[i]
-            ctrl = log["control"][i] if log.get("control") else [np.nan] * 9
+            ctrl = log["control"][i] if log.get("control") else [np.nan] * 11
             f.write(",".join(map(str, [
                 log["step"][i], f"{tsec[i]:.2f}", f"{n:.2f}", f"{e:.2f}", f"{d:.2f}", f"{-d:.2f}",
                 f"{yaw:.3f}", f"{cx:.3f}", f"{cy:.3f}", f"{mass:.3f}", f"{peak:.3f}",
@@ -420,6 +451,8 @@ async def main(args):
         lock_streak = 0
         tracking_acquired = False
         contact_count = 0
+        roi_active = False
+        roi_switch_count = 0
         for step in range(args.max_steps):
             msg = await wait_new_message("rgb", last_rgb_ts, timeout=args.frame_timeout)
             rgb_ts = int(msg.get("time_stamp", -1))
@@ -429,7 +462,7 @@ async def main(args):
             last_wall = now
             rgb = decode_image(msg)[0]
             rgb = cv2.resize(rgb, (224, 224), interpolation=cv2.INTER_AREA)
-            cx, cy, mass, peak, sim = fp.query(rgb)
+            cx, cy, mass, peak, sim = fp.query(rgb, use_roi=roi_active)
             n, e, dz, yaw = get_pose_yaw(drone)
 
             filtered["cx"] = ema_update(filtered["cx"], cx, args.ema_alpha)
@@ -467,6 +500,15 @@ async def main(args):
             if dist_t is not None:
                 filtered["dist"] = ema_update(filtered["dist"], dist_t, args.depth_ema_alpha)
             dist_f = filtered["dist"] if dist_t is not None else None
+
+            # 全模板负责远段截获；可信目标距离连续进入阈值后，一次性切到局部部位原型。
+            # 切换在本帧记录/控制之后生效，下一帧清空方向与距离 EMA，避免两种原型混滤。
+            activate_roi_after_frame = False
+            if fp.has_roi and not roi_active:
+                roi_switch_hit = dist_f is not None and locked \
+                    and dist_f <= args.roi_switch_dist
+                roi_switch_count = roi_switch_count + 1 if roi_switch_hit else 0
+                activate_roi_after_frame = roi_switch_count >= args.roi_switch_confirm_frames
 
             # 信号可靠时按正常伺服控制；失锁初期沿原航向低速爬行，持续失锁则悬停。
             if locked:
@@ -516,6 +558,8 @@ async def main(args):
             log["control"].append([
                 cx_f, cy_f, mass_f, peak_f, -1.0 if dist_f is None else dist_f,
                 float(locked), float(seg_valid), frame_dt, contact_count,
+                float(target_pixels),          # 目标掩膜像素数: 标定 --stop-dist 时要看
+                float(roi_active),              # 0=全模板，1=模板 ROI
             ])
             if smsg is None:
                 log["seg"].append(np.zeros_like(rgb))
@@ -525,7 +569,7 @@ async def main(args):
 
             state = "LOCK" if locked else ("CREEP" if creep_allowed else "HOLD")
             print(f"[{step}] {state} alt={-dz:5.1f} center=({cx_f:+.2f},{cy_f:+.2f}) "
-                  f"mass={mass_f:.3f} peak={peak_f:.3f} "
+                  f"proto={'ROI' if roi_active else 'FULL'} mass={mass_f:.3f} peak={peak_f:.3f} "
                   f"dist={'  n/a' if dist_f is None else f'{dist_f:5.1f}'} "
                   f"seg={int(seg_valid)}({target_pixels}) | vf={fwd:.2f} vd={vd:.2f} "
                   f"yaw_rate={yaw_rate:+.2f} dt={frame_dt:.3f}")
@@ -537,6 +581,17 @@ async def main(args):
                     v_forward=0.0, v_right=0.0, v_down=0.0,
                     duration=max(args.dt, 0.2), yaw=0.0, yaw_is_rate=True))
                 break
+
+            if activate_roi_after_frame:
+                roi_active = True
+                roi_switch_count = 0
+                for key in ("cx", "cy", "mass", "peak", "dist"):
+                    filtered[key] = None
+                lock_streak = 0
+                lost_frames = 0
+                contact_count = 0
+                print(f"[{step}] 原型切换 FULL→ROI：连续 {args.roi_switch_confirm_frames} 帧 "
+                      f"dist≤{args.roi_switch_dist:.1f}m；下一帧重置 EMA")
 
             # **机体系**；只提交任务、不等动作结束。下一帧的 DINO 推理期间该指令仍持续。
             # ProjectAirSim 的新 SingleTaskCall 会抢占旧任务，CancelledError 属正常；
@@ -562,7 +617,7 @@ async def main(args):
                      stop_reason=stop_reason)
 
 
-def parse_args():
+def build_parser():
     base = PROJECT_ROOT
     p = argparse.ArgumentParser()
     p.add_argument("--address", default="172.21.192.1")
@@ -572,6 +627,13 @@ def parse_args():
     p.add_argument("--target", default=ce.DEFAULT_TARGET,
                    help="目标 Actor；用于运行时分割 ID 覆盖和目标主体深度校验")
     p.add_argument("--template", type=Path, default=base / "pictures/尾翼.jpg")
+    p.add_argument("--template-roi", type=float, nargs=4, default=None,
+                   metavar=("X0", "Y0", "X1", "Y1"),
+                   help="模板归一化 ROI；不传则始终使用全模板。机头已验证区域: 0.20 0.68 0.80 1.00")
+    p.add_argument("--roi-switch-dist", type=float, default=50.0,
+                   help="有 --template-roi 时，可信目标深度连续低于此值后从全模板切到 ROI")
+    p.add_argument("--roi-switch-confirm-frames", type=int, default=3,
+                   help="FULL→ROI 切换所需连续可信距离帧数")
     p.add_argument("--stats-episode", type=Path,
                    default=base / "outputs/recordings/approach/airbase_tgt1_50m.h5")
     p.add_argument("--repo-dir", type=Path, default=base / "dinov2")
@@ -610,8 +672,11 @@ def parse_args():
                    help="首次截获前/短暂失锁时的直行速度；不偏航、不下降")
     p.add_argument("--lock-confirm-frames", type=int, default=3,
                    help="连续多少帧达到 control-min-peak 才认为曾稳定截获")
-    p.add_argument("--dist-min-peak", type=float, default=0.35,
-                   help="指纹 peak 低于此值时不信任重心, 深度判据自动失效(防误判接触)")
+    p.add_argument("--dist-min-peak", type=float, default=0.12,
+                   help="指纹 peak 低于此值时不信任重心, 深度判据自动失效(防误判接触)。"
+                        "默认与控制门控 --control-min-peak 对齐: 同一个 peak_f 不该一个说"
+                        "\"可以转向\"、另一个说\"不能信距离\"。原值 0.35 会把末段深度整段关掉"
+                        "(8 次实飞实测可用率 26%% → 0.12 时 86%%, 见 EXPERIMENTS.md §2026-09-15)")
     p.add_argument("--stop-dist", type=float, default=None,
                    help="接触判据: 指纹重心处深度 ≤ 此值(米)即判接触。比 --stop-alt/--mass-stop 都直接")
     p.add_argument("--slow-dist", type=float, default=0.0,
@@ -644,7 +709,10 @@ def parse_args():
     p.add_argument("--target-softmax-temp", type=float, default=0.08)
     p.add_argument("--target-mass-thresh", type=float, default=0.35)
     p.add_argument("--target-mass-sharpness", type=float, default=20.0)
-    args = p.parse_args()
+    return p
+
+
+def validate_args(p, args):
     for name in ("ema_alpha", "depth_ema_alpha"):
         value = getattr(args, name)
         if not 0.0 < value <= 1.0:
@@ -653,11 +721,24 @@ def parse_args():
         p.error("--dt 和 --cmd-duration-factor 必须为正数")
     if args.stop_confirm_frames < 1 or args.lock_confirm_frames < 1 or args.depth_min_pixels < 1:
         p.error("--stop-confirm-frames、--lock-confirm-frames 和 --depth-min-pixels 必须 ≥1")
+    if args.roi_switch_confirm_frames < 1:
+        p.error("--roi-switch-confirm-frames 必须 ≥1")
+    if args.template_roi is not None:
+        x0, y0, x1, y1 = args.template_roi
+        if not (0 <= x0 < x1 <= 1 and 0 <= y0 < y1 <= 1):
+            p.error("--template-roi 必须满足 0 ≤ x0 < x1 ≤ 1 且 0 ≤ y0 < y1 ≤ 1")
+        if args.roi_switch_dist <= 0:
+            p.error("使用 --template-roi 时 --roi-switch-dist 必须为正数")
     if args.slow_dist > 0 and args.stop_dist is not None and args.slow_dist <= args.stop_dist:
         p.error("--slow-dist 必须大于 --stop-dist，才能形成有效减速区间")
     if not 0.0 <= args.slow_min <= 1.0:
         p.error("--slow-min 必须在 [0,1]")
     return args
+
+
+def parse_args(argv=None):
+    p = build_parser()
+    return validate_args(p, p.parse_args(argv))
 
 
 if __name__ == "__main__":

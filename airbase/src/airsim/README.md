@@ -1,12 +1,12 @@
 # airbase 脚本索引
 
-**35 个脚本，按「一条完整流程」分成 4 个目录**（2026-08-01 重组，原先 30 个平铺在一起）。
+**39 个脚本，按「一条完整流程」分成 4 个目录**（2026-08-01 重组，原先 30 个平铺在一起）。
 本文件是导航图：每个脚本干什么、**现在还能不能跑**、默认连哪个场景。
 
 ```
 src/airsim/
-├── wm/      世界模型流水线：采集 → 抽特征 → 训练 → 评估训练效果        (14)
-├── loop/    闭环：规划/伺服 → 信号验证 → 运行评价 → 可视化            (13)
+├── wm/      世界模型流水线：采集 → 抽特征 → 训练 → 评估训练效果        (16)
+├── loop/    闭环：规划/伺服 → 信号验证 → 运行评价 → 可视化            (15)
 ├── px4/     PX4 部署                                                 (2)
 └── probe/   场景标定探针（一次性，查完就完）                          (6)
 ```
@@ -45,11 +45,12 @@ python src/airsim/collect_episode.py ...                         # ❌ 在 ~/my 
 
 ## 跑任何脚本之前必须知道的五件事
 
-**1. 两个场景，各自绑不同的机器人配置** —— 这个搞错会让你怀疑人生（相机、传感器全变）：
+**1. 三个场景，各自绑对应的机器人配置** —— 这个搞错会让你怀疑人生（相机、传感器全变）：
 
 | 场景 | 机器人配置 | 飞控 | 传感器 |
 |---|---|---|---|
 | `scene_airbase.jsonc` | `robot_quadrotor_fastphysics_sensors.jsonc` | Simple Flight | FrontCamera(RGB+深度+**分割**)、lidar、GPS… |
+| `scene_airbase_three_drones.jsonc` | 同上 ×3 | Simple Flight 三机 | Drone1/2/3 各自拥有独立 FrontCamera 与传感器 topic |
 | `scene_airbase_px4.jsonc` | `robot_quadrotor_px4_airbase.jsonc` | **PX4 SITL** | FrontCamera(仅 RGB)、Chase、DownCamera |
 
 两个 FrontCamera 都是 **pitch −50°、FOV 90°、960×540（16:9）**。
@@ -95,12 +96,12 @@ sys.path[:0] = [str(_AIRBASE_SRC)] + [各流程目录]      # 跨分组 import
 | `px4/px4_yaw_probe.py` | 🟢 | 隔离测试 PX4 offboard 下航向保不住是谁的锅（A~G 七段） | **airbase_px4** |
 
 **已由它们钉死的事实**（细节在 `../../EXPERIMENTS.md`）：
-- 出生点 NED `(0,0,0)`，机头朝北
+- Simple Flight 配置出生点 NED `(0,0,-1.0)`，机头朝北；09-16 从 `z=0` 提高，避免机体与地面穿透
 - 目标飞机 `StaticMeshActor_22`，OOB 中心 `(-62.71,-16.68,-2.94)`，尺寸 23.73×24.73×6.48m，
   **顶部在 6.18m 高度**（不是 1.4m！）
 - 深度是 **米制整数**（量化 1m），`65504` 是天空哨兵
 - 分割默认 ID 全撞车（都是 83），**必须**用 `set_segmentation_id_by_name` 显式指定
-- 场景里还有 3 架飞机 + 1 辆车；滑行道上另有一架**被烘进地形网格**的假飞机（查不到、分割不出，但相机里看得见）
+- 场景里还有 3 架飞机；原汽车 `StaticMeshActor_24` 已删除。滑行道上另有一架**被烘进地形网格**的假飞机（查不到、分割不出，但相机里看得见）
 
 ---
 
@@ -146,6 +147,8 @@ sys.path[:0] = [str(_AIRBASE_SRC)] + [各流程目录]      # 跨分组 import
 | `wm/eval_wm.py` | 🟢 | **判死活的三条判据**（多步 rollout）：`model/identity`(学到运动)、`model/zero-act`(真听命令)、`model/swap`(动作特异)，`<1` 为过 |
 | `wm/eval_value_fn.py` | 🔴 | 价值函数评估（airbase 还没有 value 权重） |
 | `wm/interleave_dataset.py` | 🟢 | 按(目标×距离带)轮转重编号，使 held-out 跨目标跨带。默认 dry-run |
+| `wm/train_part_dist.py` | 🟢 | **09-15 新增**：训「单帧 → 到 7 个部位锚点的距离(米)」监督回归器 → `weights/part_dist_22.pt`。标签复用 `loop/eval_run` 的 `part_anchors`（import 不复制）。**只用 `_22`，换目标要重训** |
+| `wm/eval_part_dist.py` | 🟢 | 上述回归器的分距离带误差表 + 逐 episode 单调性 + 与 peak/mass/深度基线对比。**结论：20–45m 有效(ρ 0.68~0.93)、0–15m 是纯外推**（训练集在那儿只有 42 帧且无"可见且<15m"的帧） |
 
 ⚠️ **`extract_dino_features` 只按文件名判"已存在"**。不同数据集若编号重叠，会静默复用旧 latent →
 **图像与动作错配且不报错**。规避方式：**一个数据集一个 latent 目录**（`--output-dir`）。
@@ -160,11 +163,13 @@ sys.path[:0] = [str(_AIRBASE_SRC)] + [各流程目录]      # 跨分组 import
 |---|---|---|
 | `loop/check_target_signal.py` | 🟢 | **生死判据**：指纹 cost 到底有没有信号（不需要 predictor） |
 | `loop/check_correspondence_signal.py` | 🟢 | 远段 cost 读出方式对比：patch 相似度 vs 几何对应 |
+| `loop/check_action_snr.py` | 🟢 | **L2 体检：动作可分辨性 SNR**（§2026-08-06）。在 MPPI 真实采样的动作分布下比 `spread`（换动作能让预测移动多远）vs `err`（模型自己错多远）；**SNR<1 → MPPI 是在模型误差里排序，调 cost 救不回来**。latent 域与 cost 域都报，实测平台 0.4~0.55。产物 `outputs/evaluations/action_snr/action_snr.csv` |
 | `loop/check_target_cost.py` | 🟡 | 检查 target-conditioned 目标函数（**前置已具备**：predictor 权重已有，尚未在 airbase 实跑） |
 | `loop/check_target_action_ranking.py` | 🟡 | target cost 在世界模型 rollout 下是否偏好合理动作（同上） |
 | `loop/check_cost_monotonic.py` | 🟡 | 指纹 cost vs 旧整图 cost 的单调性对比（同上） |
 | `loop/check_lateral_reliability.py` | 🟡 | 世界模型对横向/垂直运动的预测是否可靠（同上） |
 | `loop/eval_run.py` | 🟢 | **闭环运行的特权评价器**（L0 健全性 + L1 任务判据，纯离线）。`run.h5` 的 `reached` 混淆高度停止与 mass 停止，不能当成功判据 |
+| `loop/eval_target_localization.py` | 🟢 | **部位定位离线评价**：用 OOB 部位投影真值比较全模板与 ROI 模板原型，不连仿真、不改控制器 |
 | `loop/eval_mppi_dir.py` | 🔴 | 批量评估 MPPI 运行目录（airbase 还没跑过 MPPI） |
 
 ⚠️ 前两个用的 Spearman 曾因**并列秩**和**标准化泄漏**虚报过相关性，已修（`_rank()` +
@@ -176,7 +181,8 @@ sys.path[:0] = [str(_AIRBASE_SRC)] + [各流程目录]      # 跨分组 import
 
 | 脚本 | 状态 | 干什么 | 场景 |
 |---|---|---|---|
-| `loop/servo_closed_loop.py` | 🟢 | **当前主力**：指纹视觉伺服闭环（消融的 A 条件），ProjectAirSim API 控制。08-01 改机体系下发 + 深度进控制(`--stop-dist`/`--slow-dist`/`--dist-min-peak`) + `stop_reason` + 录深度分割。`Fingerprint`/`save_run`/`compute_body_cmd` 是**单一实现**，PX4 版 import 它 | airbase |
+| `loop/servo_closed_loop.py` | 🟢 | **当前主力**：指纹视觉伺服闭环（消融的 A 条件），ProjectAirSim API 控制。08-01 改机体系下发 + 深度进控制；09-16 可选 `--template-roi`，按可信距离从全模板切到 ROI。`Fingerprint`/`save_run`/`compute_body_cmd` 是**单一实现**，PX4 版 import 它 | airbase |
+| `loop/multi_servo.py` | 🟢 | 三机多目标协同：同一起飞区、30 m 公共交叉区预约、`WAIT/CROSS/CLEAR`、分层目标航路、共享 DINO 与终端视觉伺服。交叉航路已实飞 3/3，见 `three_aircraft_0916_192211` | **airbase_three_drones** |
 | `px4/servo_closed_loop_px4.py` | 🟡 | 同上的 PX4 版。**暂时搁置** —— 先用 API 控制把 A/B/C 消融跑通，PX4 留作后续部署验证。`runs/servo/px4_*` 是它早先产的 | **airbase_px4** |
 | `loop/plan_mppi.py` | 🟡 | 离线潜空间 MPPI 验证（不连仿真）。**前置已具备**，尚未在 airbase 实跑 | — |
 | `loop/plan_closed_loop.py` | 🟡 | 仿真闭环 MPPI 规划（消融的 B 条件）。同上 | — |

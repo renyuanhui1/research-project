@@ -17,6 +17,7 @@
 """
 
 import argparse
+import math
 import time
 from pathlib import Path as FsPath
 
@@ -49,17 +50,23 @@ def jet(t):
 
 class PlanVizNode(Node):
     def __init__(self, args):
-        super().__init__('plan_viz')
+        super().__init__(args.node_name)
         self.args = args
         self.dump = FsPath(args.dump_dir)
+        self.prefix_dump = FsPath(args.prefix_dump) if args.prefix_dump else None
         self.seen = set()
+        self.start_pos = None
+        prefix = args.topic_prefix.rstrip('/')
 
-        self.marker_pub = self.create_publisher(MarkerArray, 'plan/markers', 10)
-        self.path_pub = self.create_publisher(Path, 'plan/traj', 10)
-        self.img_pub = self.create_publisher(Image, 'plan/view', 10)
-        self.cloud_pub = self.create_publisher(PointCloud2, 'plan/cloud', 1)
-        self.voxel_pub = self.create_publisher(Marker, 'plan/voxels', 1)
-        self.target_pub = self.create_publisher(Marker, 'plan/target_voxels', 1)
+        def topic(name):
+            return f'{prefix}/{name}' if prefix else name
+
+        self.marker_pub = self.create_publisher(MarkerArray, topic('plan/markers'), 10)
+        self.path_pub = self.create_publisher(Path, topic('plan/traj'), 10)
+        self.img_pub = self.create_publisher(Image, topic('plan/view'), 10)
+        self.cloud_pub = self.create_publisher(PointCloud2, topic('plan/cloud'), 1)
+        self.voxel_pub = self.create_publisher(Marker, topic('plan/voxels'), 1)
+        self.target_pub = self.create_publisher(Marker, topic('plan/target_voxels'), 1)
 
         self.traj = Path()
         self.traj.header.frame_id = FRAME
@@ -70,25 +77,43 @@ class PlanVizNode(Node):
         self.tx, self.ty, self.tz, self.tvox = [], [], [], set()  # 目标高亮体素(ENU)
 
         self.timer = self.create_timer(1.0 / args.rate, self.tick)
-        self.get_logger().info(f'监听 {self.dump}（{args.rate} 步/秒）')
+        prefix = '' if self.prefix_dump is None else f'{self.prefix_dump} → '
+        self.get_logger().info(f'监听 {prefix}{self.dump}（{args.rate} 步/秒）')
 
     def tick(self):
-        files = sorted(self.dump.glob('step_*.npz'))
+        files = ([] if self.prefix_dump is None
+                 else sorted(self.prefix_dump.glob('step_*.npz')))
+        files += sorted(self.dump.glob('step_*.npz'))
+        self.load_start(files)
         for f in files:
-            if f.name in self.seen:
+            key = str(f)
+            if key in self.seen:
                 continue
-            self.seen.add(f.name)
+            self.seen.add(key)
             try:
                 d = np.load(f)
             except Exception:  # 写入未完成，下个周期再试
-                self.seen.discard(f.name)
+                self.seen.discard(key)
                 return
             self.publish_step(d)
             return  # 每个周期只播一步，rate 即回放速度
 
+    def load_start(self, files):
+        """缓存 dump 首帧位姿，用于显示固定起点。"""
+        if not files or self.start_pos is not None:
+            return
+        try:
+            with np.load(files[0], allow_pickle=False) as data:
+                self.start_pos = np.asarray(data['pose'][:3], dtype=float).copy()
+        except Exception:
+            # 首个 dump 可能仍在写入，下个 tick 再读取。
+            return
+
     def publish_step(self, d):
         now = self.get_clock().now().to_msg()
-        pos = d['pose'][:3]
+        pose = np.asarray(d['pose'])
+        pos = pose[:3]
+        yaw = float(pose[3]) if pose.size >= 4 else float('nan')
         dt = float(d['dt']) if 'dt' in d.files else 0.1
 
         # 路径
@@ -101,8 +126,17 @@ class PlanVizNode(Node):
         self.path_pub.publish(self.traj)
 
         arr = MarkerArray()
-        arr.markers.append(self.drone_marker(now, pos))
-        if 'samp_acts' in d.files:          # 规划(闭环)dump：画目标环/采样束/最优线/dist
+        arr.markers.extend(self.start_markers(now))
+        arr.markers.extend(self.drone_markers(now, pos, yaw))
+        if 'crossing_center' in d.files and 'crossing_radius' in d.files:
+            altitude = float(d['crossing_altitude']) if 'crossing_altitude' in d.files else 0.0
+            arr.markers.append(self.crossing_marker(
+                now, d['crossing_center'], float(d['crossing_radius']), altitude))
+        if 'phase' in d.files:
+            phase = str(np.asarray(d['phase']).item())
+            arr.markers.append(self.text_marker(
+                now, pos, f"{phase}  step {int(d['step'])}  peak={float(d['peak']):.3f}"))
+        elif 'samp_acts' in d.files:        # 规划(闭环)dump：画目标环/采样束/最优线/dist
             arr.markers.append(self.goal_ring(now))
             arr.markers.append(self.samples_marker(now, pos, d['samp_acts'], d['samp_cost'], dt))
             arr.markers.append(self.best_marker(now, pos, d['act_best'], dt))
@@ -171,12 +205,51 @@ class PlanVizNode(Node):
             m.points.append(Point(x=x, y=y, z=z))
         return m
 
-    def drone_marker(self, stamp, pos):
-        m = self._base(stamp, 'drone', 0, Marker.SPHERE)
-        m.pose.position.x, m.pose.position.y, m.pose.position.z = ned_to_viz(pos)
-        m.scale.x = m.scale.y = m.scale.z = 0.6
-        m.color = ColorRGBA(r=0.2, g=0.5, b=1.0, a=1.0)
-        return m
+    def start_markers(self, stamp):
+        """固定绿色起点；不提前显示尚未飞到的终点。"""
+        if self.start_pos is None:
+            return []
+        marker = self._base(stamp, 'endpoints', 0, Marker.SPHERE)
+        marker.pose.position.x, marker.pose.position.y, marker.pose.position.z = ned_to_viz(
+            self.start_pos)
+        marker.scale.x = marker.scale.y = marker.scale.z = 1.8
+        marker.color = ColorRGBA(r=0.1, g=1.0, b=0.2, a=1.0)
+        return [marker]
+
+    def drone_markers(self, stamp, pos, yaw):
+        """按记录 yaw 绘制放大的四旋翼模型，尺寸仅用于清晰展示。"""
+        origin = np.asarray(ned_to_viz(pos), dtype=float)
+        color = ColorRGBA(r=float(self.args.drone_color[0]),
+                          g=float(self.args.drone_color[1]),
+                          b=float(self.args.drone_color[2]), a=1.0)
+        markers = []
+
+        def make(marker_id, marker_type, scale, points=None, center=None, alpha=1.0):
+            marker = self._base(stamp, 'drone', marker_id, marker_type)
+            marker.scale.x, marker.scale.y, marker.scale.z = scale
+            marker.color = ColorRGBA(r=color.r, g=color.g, b=color.b, a=alpha)
+            if points is not None:
+                marker.points = [Point(x=float(p[0]), y=float(p[1]), z=float(p[2]))
+                                 for p in points]
+            if center is not None:
+                marker.pose.position = Point(x=float(center[0]), y=float(center[1]),
+                                             z=float(center[2]))
+            markers.append(marker)
+
+        make(0, Marker.SPHERE, (1.7, 1.7, 0.7), center=origin)
+        if not math.isfinite(yaw):
+            return markers
+        forward = np.array([math.sin(yaw), math.cos(yaw), 0.0])
+        right = np.array([math.cos(yaw), -math.sin(yaw), 0.0])
+        rotors = [origin + 1.7 * (a * forward + b * right)
+                  for a, b in ((1, 1), (1, -1), (-1, -1), (-1, 1))]
+        make(1, Marker.LINE_LIST, (0.22, 0.0, 0.0),
+             points=[point for rotor in rotors for point in (origin, rotor)])
+        for marker_id, rotor in enumerate(rotors, 2):
+            make(marker_id, Marker.CYLINDER, (1.2, 1.2, 0.10), center=rotor, alpha=0.75)
+        make(6, Marker.ARROW, (0.20, 0.6, 0.8),
+             points=[origin, origin + 4.5 * forward])
+        return markers
 
     def goal_ring(self, stamp):
         """目标圆环：竖直平面(法线朝 -N)上的圆。"""
@@ -190,6 +263,19 @@ class PlanVizNode(Node):
             m.points.append(Point(x=float(ge + r * np.cos(th)), y=float(gn),
                                   z=float(alt + r * np.sin(th))))
         return m
+
+    def crossing_marker(self, stamp, center_ned, radius, altitude):
+        """协调交叉区：位于协调高度平面的橙色圆环。"""
+        north, east = np.asarray(center_ned, dtype=float)
+        marker = self._base(stamp, 'crossing_zone', 0, Marker.LINE_STRIP)
+        marker.scale.x = 0.35
+        marker.color = ColorRGBA(r=1.0, g=0.35, b=0.05, a=0.95)
+        for angle in np.linspace(0.0, 2.0 * np.pi, 65):
+            marker.points.append(Point(
+                x=float(east + radius * np.sin(angle)),
+                y=float(north + radius * np.cos(angle)),
+                z=float(altitude)))
+        return marker
 
     def text_marker(self, stamp, pos, text):
         m = self._base(stamp, 'info', 0, Marker.TEXT_VIEW_FACING)
@@ -318,6 +404,12 @@ class PlanVizNode(Node):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('--dump-dir', default=str(PROJECT_ROOT / 'outputs/runs/mppi/run01'))
+    ap.add_argument('--prefix-dump', default=None,
+                    help='可选前置回放目录；播完后继续 --dump-dir（多机协调阶段使用）')
+    ap.add_argument('--node-name', default='plan_viz')
+    ap.add_argument('--topic-prefix', default='')
+    ap.add_argument('--drone-color', type=float, nargs=3, default=[0.2, 0.5, 1.0],
+                    metavar=('R', 'G', 'B'))
     ap.add_argument('--rate', type=float, default=5.0, help='回放速度（步/秒）')
     ap.add_argument('--goal-ned', type=float, nargs=2, default=[42.3, 7.5])
     ap.add_argument('--goal-alt', type=float, default=14.0)
@@ -325,6 +417,8 @@ def main():
     ap.add_argument('--map-voxel', type=float, default=0.15,
                     help='建图点云体素去重尺寸(米)，越大越稀越省')
     args = ap.parse_args()
+    if any(value < 0.0 or value > 1.0 for value in args.drone_color):
+        ap.error('--drone-color 三个分量必须在 [0,1]')
 
     rclpy.init()
     node = PlanVizNode(args)
@@ -334,7 +428,8 @@ def main():
         pass
     finally:
         node.destroy_node()
-        rclpy.shutdown()
+        if rclpy.ok():
+            rclpy.shutdown()
 
 
 if __name__ == '__main__':

@@ -283,20 +283,22 @@ def read_target(world, name):
     return {"name": name, "center": center, "size": size, "quat": quat}
 
 
-def setup_segmentation(world):
+def setup_segmentation(world, names=None):
     """运行时覆盖分割 ID（**每次载入场景都要重做**，不写回配置）。
 
     默认 ID 全撞 83：哈希 seg_id = 5 + Σ(ASCII≥97 的字符)，数字和下划线被跳过，
     故 staticmeshactor_22 与 _14 参与哈希的字符完全相同。覆盖走字符串精确比较，绕开哈希。
+    names 为空时保持历史行为；多机等已知任务可只覆盖当前目标和地面。
     """
+    selected = SEG_IDS if names is None else {name: SEG_IDS[name] for name in names}
     ok = 0
-    for name, sid in SEG_IDS.items():
+    for name, sid in selected.items():
         try:
             if world.set_segmentation_id_by_name(name, sid, False, True):
                 ok += 1
         except Exception as err:
             print(f"  分割 ID 设置失败 {name}: {err}")
-    print(f"分割 ID 已覆盖 {ok}/{len(SEG_IDS)}")
+    print(f"分割 ID 已覆盖 {ok}/{len(selected)}")
 
 
 def safe_alt_of(target):

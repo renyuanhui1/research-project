@@ -1661,3 +1661,480 @@ mass 碗形（近距离不升反降，末段实测 0.00~0.03）
 4. B 条件若要继续，先补 **null baseline（开环直线飞）** ——
    08-04 那次起点朝向目标且 `v_forward` 下界恒正（+0.25），
    **光是一直往前飞距离也会从 28m 掉到 13m**，没有对照就证明不了世界模型的贡献。
+
+---
+
+## §2026-08-26　ProjectAirSim 体素地图与 RViz 历史轨迹回放
+
+### 一、目的与边界
+
+本次目标不是训练规划器，而是给 2 km × 2 km 的 airbase 场景建立一个可复现的**总体空间参照**：
+在 RViz 中同时观察地面、五个已放置目标以及历史伺服轨迹，便于比较不同运行的起点、路径和终点。
+
+- 地图来源是 ProjectAirSim `World.create_voxel_grid()` 返回的**碰撞占用体素**，不是 RGB、点云重建或
+  UE 渲染网格；因此它表达几何占用，不追求 UE 的照片级材质效果。
+- 当前“只显示目标”依赖五个已知对象的 OOB 真值区域过滤，属于**仿真真值辅助可视化**，
+  不代表系统已经从体素中完成目标检测或语义建图。
+- 本功能只做离线地图与轨迹展示，尚未接入路径规划、避障或闭环控制。
+
+### 二、地图生成与实测产物
+
+新增 `airbase/src/airsim/probe/probe_voxel_map.py`：连接已启动的 ProjectAirSim，忽略 `Drone1`，
+将一维占用结果按 `(east, altitude, north)` 解包，保存压缩体素、元数据、分层切片和俯视投影。
+
+| 地图 | 中心 NED (m) | 范围 / 分辨率 | 网格形状 | 原始占用 | 生成耗时 |
+|---|---:|---:|---:|---:|---:|
+| global | (0, 0, -50) | 2000×2000×100 m / 10 m | 200×10×200 | 34281 / 400000 | 2.78 s |
+| actor_22 | (-62.71, -16.68, -10) | 60×60×20 m / 1 m | 60×20×60 | 4328 / 72000 | 2.68 s |
+| actor_18 | (-167.65, -73.00, -10) | 同上 | 同上 | 4405 / 72000 | 2.61 s |
+| actor_16 | (-251.99, -195.52, -10) | 同上 | 同上 | 4357 / 72000 | 2.57 s |
+| actor_20 | (127.48, -316.15, -10) | 同上 | 同上 | 1061 / 72000 | 2.59 s |
+| actor_24 | (60.78, 23.31, -10) | 同上 | 同上 | 1158 / 72000 | 2.60 s |
+
+全局 10 m 图负责地图尺度和地面；目标外形改由五张 1 m 局部图提供。可视化节点按五个对象的 OOB
+再次过滤局部体素，运行时最终发布地面 32669 个、目标 4532 个体素，隐藏机场建筑，避免目标被杂乱结构淹没。
+
+### 三、可视化架构与坐标约定
+
+```
+ProjectAirSim 碰撞占用
+  → probe_voxel_map.py
+  → occupancy_packed.npz（global + 5×fine target）
+  → voxel_map_viz_node.py
+      ├─ /voxel_map/markers     静态：地面、目标、2 km 边界
+      └─ /voxel_map/trajectory  动态：历史轨迹、起点、移动线头
+
+servo run/signals.csv
+  → 读取 n/e/d/t
+  → 按记录时间回放
+  → NED (N,E,D) 转 RViz ENU (E,N,-D)
+```
+
+- `/voxel_map/markers` 与 `/voxel_map/trajectory` 分开发布，避免 10 Hz 动画刷新时清除静态地图。
+- 两个话题均使用 `RELIABLE + TRANSIENT_LOCAL + depth=1`；RViz 后启动也能收到最后一帧地图。
+- 全局地面中高度不高于 0.5 m 的占用被压成 10 m 水平、薄 Z 的半透明方片；目标使用 1 m 彩色体素。
+- `fixed frame=world`，边界和轨迹统一使用 ENU，避免 NED 直接显示造成上下或左右关系错误。
+
+### 四、默认轨迹与播放逻辑
+
+当前只保留两条历史轨迹；青色 `红星_0805_104124` 已按展示要求移除：
+
+| 颜色 / run | 点数 | 记录时长 | 起点 NED | 终点 NED |
+|---|---:|---:|---:|---:|
+| 黄：`机头_0805_103801` | 500 | 58.80 s | (0.00, 0.00, -40.22) | (-59.47, -14.63, -2.93) |
+| 洋红：`红星_0722_194121` | 100 | 35.06 s | (0.00, 0.00, -50.24) | (-70.19, -22.15, -6.41) |
+
+- 两条轨迹使用各自真实 `t` 同时起播，默认 2 倍速、10 Hz；较短轨迹先到终点并保持，直到最长轨迹结束。
+- 绿球使用各 run 的真实首帧位姿；红球始终位于当前已播放轨迹的末端，随线头移动，不预画最终位置。
+- 节点等待 RViz 订阅建立，再停留 2 s 后播放；默认只播一次，完成后保留最终 Marker 并自动退出。
+- RViz 与播放节点解耦，推荐两个终端：
+
+```bash
+# 终端 1：只启动一次，长期保持
+rviz2 -d /home/hui/my/src/mpc/voxel_map_viz.rviz
+
+# 终端 2：每执行一次，完整播放一次并自动返回
+cd /home/hui/my
+ros2 launch src/mpc/voxel_map_viz.launch.py
+```
+
+不需要 Conda 环境；launch 固定使用 `/usr/bin/python3` 和 ROS2 Humble 的 `rclpy`。新终端若找不到
+`ros2`，只需 `source /opt/ros/humble/setup.bash`。`start_rviz:=true` 仍可临时恢复节点与 RViz 同时启动。
+
+### 五、验证结果
+
+- 三个 Python 文件通过 `py_compile`，补丁通过 `git diff --check`。
+- `/voxel_map/markers` 与 `/voxel_map/trajectory` 均实测 1 个发布者、1 个 RViz 订阅者。
+- 动态话题实测平均 **9.998~9.999 Hz**，与设定 10 Hz 一致。
+- 单次播放完成后日志为“轨迹单次播放完成，保留最终画面并退出节点”；节点与 launch 均正常退出，
+  独立 RViz 继续运行，可再次执行同一命令重播。
+
+### 六、结论与后续边界
+
+1. **10 m 全局 + 1 m 局部**能同时兼顾 2 km 总体尺度和目标可辨认度；单用 10 m 全局体素无法表现目标外形。
+2. 当前图适合展示轨迹与目标的空间关系，但不能替代 UE 图像，也不能直接宣称为自主语义地图。
+3. 五个 OOB 和局部图与当前 `scene_airbase.jsonc` 中对象位置绑定；换场景或移动目标后必须重新标定并生成。
+4. 若后续接路径规划，应另行定义可通行空间、无人机安全膨胀半径和规划分辨率，不能直接把展示体素当规划栅格。
+
+### 七、产物
+
+- `airbase/src/airsim/probe/probe_voxel_map.py`
+- `src/mpc/voxel_map_viz_node.py`
+- `src/mpc/voxel_map_viz.launch.py`
+- `src/mpc/voxel_map_viz.rviz`
+- `airbase/outputs/maps/voxel_probe/global/`
+- `airbase/outputs/maps/voxel_probe/fine_targets/actor_{22,18,16,20,24}/`
+
+## §2026-09-09　RViz 历史观测预览：无人机图标、近似视锥与同步图像
+
+### 一、展示内容与数据边界
+
+在已有体素地图回放上增加可选 `preview:=true` 模式。两条既有运行分别使用黄色与洋红色，
+显示放大的四旋翼图标、记录的机头偏航方向、半透明几何视锥与两路历史相机缩略图。
+这里是**两次独立实验按各自相对时间对比回放**，不是同步多机飞行实验。
+
+- 位置和时间仍读取 `signals.csv` 的 `n/e/d/t`，图像按同一行 `step` 对应 `viz_dump/step_XXXX.npz`。
+- `yaw` 是真实记录的 NED 偏航，转换为 ENU 前向 `(sin(yaw), cos(yaw), 0)`；未记录的 roll/pitch
+  不重建，图标按水平机体示意。缺失 yaw 时仅显示位置，不以轨迹切线猜朝向。
+- 当前配置中的相机下倾 50°、水平视场 90°、16:9、前向偏移 0.5 m 作为**近似展示参数**；
+  旧日志没有完整历史标定，视锥不能作为精确投影或覆盖率计算依据。
+- 视锥长度 12 m 是图形显示长度，不代表测量距离、量程或建议观测距离；不计算遮挡。
+- 原图被采集脚本整帧缩成 224×224，预览恢复16:9显示比例，不能恢复原始图像细节。
+- 三维图不加物体名称文字；图像面板标明独立运行、姿态缺项和放大示意。
+- 场景继续使用既有精细体素；本次没有导出 UE Mesh，也没有改变控制器、采集或仿真场景。
+
+### 二、增量架构
+
+```text
+signals.csv (n/e/d/t/yaw/step)
+  ├─ 相对时间 → 当前行 → 真实轨迹 + 四旋翼示意 + 近似视锥
+  │                    → /voxel_map/trajectory (MarkerArray)
+  └─ 当前行 step → viz_dump/step_XXXX.npz[rgb]
+                       → 两路纵向拼图 → /voxel_map/onboard (sensor_msgs/Image, rgb8)
+global / fine occupancy_packed.npz
+  └─ 原有静态地图 → /voxel_map/markers (MarkerArray)
+```
+
+实现位于 `src/mpc/voxel_map_viz_node.py`，每条运行只缓存当前 RGB 帧，缺帧显示空白提示；
+三维动画与图像在同一回调使用同一回放时间。拼图是展示图像，没有对应单个光学坐标系。
+新增 `src/mpc/voxel_map_preview.rviz`，默认局部斜视范围约135 m，包含地图、运动和图像面板。
+`voxel_map_viz.launch.py` 使用 `preview` 开关选择视图；默认 `false` 保持旧版展示。
+
+### 三、运行方法
+
+```bash
+# 新终端找不到 ros2 时先执行，无需 Conda
+source /opt/ros/humble/setup.bash
+
+# 首次打开 RViz 并播放一次
+ros2 launch /home/hui/my/src/mpc/voxel_map_viz.launch.py preview:=true start_rviz:=true
+
+# RViz 保持打开；在另一个终端重复执行以下命令即可重播
+ros2 launch /home/hui/my/src/mpc/voxel_map_viz.launch.py preview:=true
+```
+
+也可以先单独启动 `rviz2 -d /home/hui/my/src/mpc/voxel_map_preview.rviz`，然后运行重播命令。
+仍采用2倍速、等待订阅后2秒起播、单次播放完退出节点并保留最终画面。
+预览轨迹线宽0.35 m、起点球直径1.8 m；抵达各自末帧才显示1.2 m红球。
+
+### 四、验证
+
+- 两条运行共600帧，所有对应NPZ存在；首/中/末帧位置与CSV在舍入误差0.006 m内一致，
+  偏航在0.0006 rad内一致；抽查RGB均为224×224×3。
+- 验证NED偏航0和π/2分别指向ENU北与东；Python语法、RViz YAML和launch参数解析通过。
+- 实际订阅收到480×581的rgb8拼图和两套无人机/视锥Marker；单次回放节点正常退出，RViz保持。
+- WSLg直接窗口截图为黑图，使用独立ROS域的Xvfb软件渲染检查真实RViz布局；桌面RViz独立保留。
+- 实际渲染预览截图：`airbase/outputs/maps/voxel_probe/preview/rviz_preview.png`。
+
+这轮是离线可视化功能验证，不据此推断采集成功率、碰撞判定或控制性能。
+
+### 五、同日增量：视锥远端动态画面贴片
+
+按需求将历史相机画面直接贴在视锥远端矩形上，随记录位置、yaw和相对时间移动、更新。
+初版沿用 `preview:=true`，侧栏图像仍保留；最终按用户偏好改为显式开启，见本节第七部分。
+
+- 本机ROS2 Humble的 `Marker` 与RViz二进制支持 `texture_resource`、内嵌 `texture` 和
+  `uv_coordinates`。使用 `TRIANGLE_LIST` 两个三角形组成16:9平面，附带当前帧PNG；
+  没有导出逐帧Mesh文件。实现依据为[RViz Humble纹理加载源码](https://github.com/ros2/rviz/blob/humble/rviz_default_plugins/src/rviz_default_plugins/displays/marker/markers/triangle_list_marker.cpp)。
+- `preview_frame()` 缓存同一帧RGB与无损PNG，供三维贴片和侧栏共用。颜色由RGB转BGR后编码，
+  保证OpenCV PNG通道正确；缺失图像时撤掉贴片，不沿用上一帧。
+- 贴片命名空间为 `trajectory_1_image` / `trajectory_2_image`，可在RViz显示项的Namespaces中切换。
+- 视锥长度现在是**最大显示长度12 m**，近地时按远端矩形底边离z=0地面0.25 m的条件缩短，
+  不改变无人机轨迹，也不代表测距、实际视野覆盖或物体表面投影。场景物体仍可正常遮挡贴片。
+- UV从相机侧观看与原图一致；从背面观看相当于看屏幕背面，呈镜像。RViz三维灯光可能影响
+  贴片亮度，精确图像判读仍用侧栏原图；目前没有完整历史roll/pitch，相机朝向仍为近似示意。
+- 该实现验证的是有限历史回放；持续实时视频需另行评估RViz纹理资源释放和长期帧率。
+
+验证：实测订阅两块带纹理Marker，6个顶点与6个UV匹配；PNG解码与CSV当前行对应NPZ RGB
+逐像素一致。检查多种yaw及40/6.41/2.93 m高度下的16:9比例和近地底边条件均通过。
+RViz实际渲染与单次回放通过，截图为 `airbase/outputs/maps/voxel_probe/preview/rviz_textured_frusta.png`。
+
+### 六、同日修复：贴片画面未刷新
+
+用户反馈视锥图像不变化。固定几何位置，先后发布真实第0帧与第350帧，PNG内容不同，
+但RViz贴片区域截图像素差为0，证实此前“消息正确即表示连续渲染正确”的验证不充分；
+上一节的渲染通过结论仅证明画面能加载，不能证明动态刷新。
+
+根因：本机Humble的 `DELETEALL` 在 `ns` 非空时仅删除指定命名空间。旧清除消息使用
+`trajectory`，实际Marker位于 `trajectory_1`、`trajectory_1_preview`、`trajectory_1_image` 等，
+所以材质没有重建。纹理更新不断追加材质纹理单元，旧纹理叠加，造成画面不刷新且偏暗。
+行为依据：[MarkerCommon的DELETEALL处理](https://github.com/ros2/rviz/blob/humble/rviz_default_plugins/src/rviz_default_plugins/displays/marker/marker_common.cpp)。
+
+最小修复：`publish_playback()` 与 `publish_map()` 的清除Marker统一使用空命名空间。
+每次清理当前display的全部标记，再加载当前帧；静态地图与动态轨迹的display相互独立。
+这也修复重复播放时旧终点标记可能残留的问题。
+
+验证：固定几何、切换第0/350帧的同一测试，修复后200×125截图区域有13829个像素变化；
+实际观察确认内容切换，偏暗明显改善。语法和差异格式检查通过。
+修复截图：`airbase/outputs/maps/voxel_probe/preview/rviz_textured_frusta_fixed.png`；
+实际回放短视频：`airbase/outputs/maps/voxel_probe/preview/rviz_dynamic_texture.mp4`。
+
+### 七、使用偏好：保留方法，日常默认关闭贴图
+
+用户明确要求“这个方法记住，平时不加这个功能”。保留动态贴片实现及上述修复，
+新增 `frustum_image` 开关，默认 `false`；关闭时不生成纹理Marker，也不做PNG编码。
+
+- 日常地图与轨迹：默认 `preview:=false`，保持原有用法。
+- 带无人机、线框视锥和侧栏图像的预览：`preview:=true`，默认仍不带视锥贴片。
+- 需要动态贴片演示时：显式指定 `preview:=true frustum_image:=true`。
+
+```bash
+# 日常地图与轨迹
+ros2 launch /home/hui/my/src/mpc/voxel_map_viz.launch.py start_rviz:=true
+
+# 可选：无人机/视锥预览，不贴图
+ros2 launch /home/hui/my/src/mpc/voxel_map_viz.launch.py preview:=true start_rviz:=true
+
+# 专门演示动态贴图时才开启
+ros2 launch /home/hui/my/src/mpc/voxel_map_viz.launch.py preview:=true frustum_image:=true start_rviz:=true
+```
+
+RViz已打开时去掉 `start_rviz:=true`。切回普通预览时，空命名空间DELETEALL会清掉上一轮贴片。
+
+---
+
+## §2026-09-15　距离读数被门控关在末段 —— **`--dist-min-peak` 0.35 → 0.12**
+
+### 一、动机：目标不是撞上去，是"到达阈值就停"
+
+§2026-08-06 §三 归因出的两种死法（撞机身卡死 / 降过头出视野），**不是两个独立问题**，
+而是同一个病的两个症状：**`--stop-dist` 从未触发过**。它依赖的 `dist_f` 在末段被
+`--dist-min-peak 0.35` 判成 `-1.0`。所以本次只做一件事：**把距离读数救回来。**
+
+### 二、门控就是根因（用 8 次实飞的 `control[:,3]` 逐帧统计）
+
+| | 门控 0.35 | 门控 0.12 |
+|---|---:|---:|
+| 深度可用帧占比（3416 帧） | **26%**（897） | **86%**（2937） |
+
+两个死亡点上 `peak_f` 的实际取值：
+
+- **`机头_0804_174253`**（撞机身，卡死区间 step 331→380）：
+  0.266 / 0.186 / 0.185 / 0.187 / 0.185 —— **全部过 0.12**，
+  而本文件 §2026-08-06 §三 记录这段 `dist_f` 全程 `-1.0`。
+  **整整 70 步拿不到任何距离读数，而深度其实一直在那儿。**
+- **`机头_0805_103801`**（降过头）：`peak_f` 到 step 350 仍有 0.126，
+  step 360 之后才掉到 0.111 / 0.099 —— 门控 0.12 覆盖住出问题的那段下降窗口。
+
+**0.12 不是随手调参**：按 `peak_f` 分档实测深度可用率，`0.00–0.12` 只有 **3/68 (4%)**，
+`0.12–0.20` 是 80%，`0.20–0.35` 是 89%。**0.12 以下确实退化**，
+所以原值"防误判接触"的保护没有丢，只是把门槛挪到了真正不可用的地方。
+0.12 同时与 `--control-min-peak` 对齐 —— 同一个 `peak_f`，不该一个说"可以转向"、
+另一个说"不能信距离"。
+
+### 三、深度的量是准的，问题只在被关掉
+
+`--stop-dist` 的代码语义是「指纹重心处深度 ≤ 此值」，测的是**指纹锁住的那块表面**多远。
+实测：深度 vs 机头锚点 **ρ=0.992、MAE 1.9m**。
+
+⚠️ **但它不是"到最近表面的距离"**：与 OBB `clearance` 比对有系统性正偏差且随距离增长
+（clearance 0–5m 时 +5.15m；5–10m +6.43；10–20m +8.47；20–40m +9.23）。
+**所以 `--stop-dist` 不是固定的物理间距**，阈值必须按"离锁定部位多远"实飞标定。
+
+### 四、被否决的三条路（附实测，避免以后重走）
+
+| 方案 | 否决依据 |
+|---|---|
+| **掩膜面积当距离代理** | **不成立**。整体秩相关只有 0.423（是被跨带趋势撑起的假象）；**带内接近 0**（10–15m 甚至 **+0.073**）；同一距离上面积散布 4–5 倍（0–10m 的 p10=4198 / p90=18093）。单条轨迹内部也弱：中位 ρ=**−0.434**，只有 24% 的 episode 达到 ρ≤−0.8。根因：机身 24m 长，视角/出画/遮挡都改面积 |
+| **卡死检测**（指令速度≠0 而位移≈0） | 用户明确不要撞击 —— 那是在为撞击设计，不是为"停在阈值"设计 |
+| **距离回归器当末段距离源** | 09-15 新训的 `weights/part_dist_22.pt`（`wm/train_part_dist.py`）在 **20–45m** 有效（ρ 0.68~0.93，val MAE 2.49m，优于 const 9.65 与 peak 9.40），逐 episode 单调性 **88% vs peak/mass 的 0%**；但 **0–15m 是纯外推** —— 训练集 0–10m 只有 4 帧、10–15m 只有 38 帧，且**没有一帧"看得见机头且<15m"**，真值 8.8m 处预测 17.9m。**救不了末段** |
+
+### 五、改动
+
+`src/airsim/loop/servo_closed_loop.py`：
+
+1. `--dist-min-peak` 默认 **0.35 → 0.12**（唯一必改项）
+2. `target_pixels` 记进 `run.h5` 的 `control`（**第 10 列**，旧 run 只有 9 列）
+   与 `signals.csv` —— 标定 `--stop-dist` 时要用
+
+`compute_body_cmd` / `depth_speed_scale` / `mass_stop` / `--stop-alt` **未动**。
+
+⚠️ 本文件 §2026-08-05 §四（`:1456` 附近）与 §2026-08-06 §四.2（`:1657`）里写的
+"`--dist-min-peak` 默认 0.35"是**当时的历史记录，不重写**；
+**代码里的默认值以本节为准（0.12）**。
+
+### 六、验证状态
+
+- ✅ 门控统计复现 26% / 86%（用真实 run 数据重算，非估计）
+- ✅ 08-15 四处模式一致：`append` / `control_layout` / `signals.csv` 表头 / 兜底 `[np.nan]*N` 均为 10
+- ✅ 下游无破坏：`dump_servo_viz.py` 按 `[:, 2:4]` 取且新增列在尾部；
+  `voxel_map_viz_node.py` 用 `csv.DictReader` 按列名取值
+- ⏳ **末段效果未验证，必须实飞**：`run.h5` 只存标量 `dist`（已被旧门控判成 −1），
+  **没存原始深度图**，末段无法离线回放。判据：`dist_f` 在末段不再全程 −1.0，
+  且 `--stop-dist` 在接触前触发 `stop_reason="contact"`
+
+### 七、边界
+
+1. **86% 是上界** —— 过了 peak 门控还要 `fresh(深度帧)` + 掩膜非空 + 窗口内 ≥3 个有效深度像素。
+2. **PX4 / 实机路径上没有这个修复**：`scene_airbase_px4.jsonc` 的 FrontCamera **只有 RGB**
+   （无深度、无分割）。回归器是 RGB-only 但末段无效。
+   **"实机上怎么在阈值处停住"仍是无解的问题**，本节不解决，只记录。
+3. **换目标**：方向靠模板泛化（换模板图即可），距离靠深度（与目标无关），
+   但 `--stop-dist` 阈值要重标。
+4. **本段与 §2026-08-06 §四.3 的关系**：那条"学习式部位距离估计"已做（见上表第三行），
+   但结论是**它服务不了末段**。真正的修复是门控，不是新模型。
+
+---
+
+## §2026-09-16　0.12 门控实飞：距离恢复，但暴露真正瓶颈是部位定位
+
+### 一、闭环结果
+
+运行：`outputs/runs/servo/机头_0916_110705`，参数保持机头模板、40 m 起飞、
+`--dist-min-peak 0.12 --stop-dist 5 --slow-dist 20 --stop-confirm-frames 3 --max-steps 500`。
+
+- 500 步完整跑完，`stop_reason=timeout`；185 帧取得有效距离，最小 `dist_f=9.28 m`。
+- 第 277 步后持续失锁并进入 `HOLD`；末 50 帧位姿跨度约 1.7 cm，确认是保护性悬停。
+- 特权评价：到机头锚点最近仍有 **17.12 m**（第 217 帧），之后离机头反而增大；
+  到飞机 OOB 表面的最小间隙却降到 **3.59 m**。无人机接近的是机身表面，不是机头。
+- 阈值回放：8/9/9.5/10 m 都没有连续 3 帧满足；11 m 会在第 272 步触发，但当时
+  离机头锚点 **21.95 m**。因此 11 m 只能作为安全停车阈值，不能作为部位任务成功判据。
+
+结论：`0.12` 已把距离读数带到旧门控达不到的末段，§2026-09-15 的门控修复方向成立；
+但新的主瓶颈是 DINO 指纹只稳定识别“飞机/机身纹理”，不能持续定位机头。此时继续调
+`--stop-dist` 或 `k_vert` 会让控制器更早停在错误部位，或更积极地追随错误的 `cy`。
+
+### 二、全模板 vs 机鼻 ROI 离线定位
+
+新增 `src/airsim/loop/eval_target_localization.py`，读取闭环保存的 RGB/位姿，用目标 OOB
+导出的机头锚点投影作为**仅供评价的真值**。在线控制器未改。比较：
+
+- `full`：当前做法，模板 256 个 patch 全部平均成一个原型；
+- `roi`：模板归一化区域 `[0.20, 0.68, 0.80, 1.00]` 内 50 个 patch，覆盖机鼻下部。
+
+| 方法 | 中心误差中位数 | 中心误差 P90 | 峰值误差中位数 | 可见帧锁定率 |
+|---|---:|---:|---:|---:|
+| full | 27.8 px | 56.9 px | 37.4 px | 69.4% |
+| roi | **21.1 px** | 70.2 px | **11.6 px** | **96.2%** |
+
+分距离看，ROI 的适用边界很明确：
+
+| 机头真值距离 | full 中心误差 / 锁定率 | ROI 中心误差 / 锁定率 |
+|---|---:|---:|
+| 20–30 m | 59.1 px / 89.3% | **27.0 px / 100%** |
+| 30–50 m | 27.4 px / 70.0% | **13.2 px / 100%** |
+| ≥50 m | **20.6 px / 61.3%** | 54.7 px / 90.7% |
+
+ROI 明显改善当前定义的 20–50 m 近场部位定位，但 50 m 外误差更大，不能包装成远距离导航。
+产物：`outputs/evaluations/target_localization/机头_0916_110705/`（CSV/JSON/PNG）。
+
+### 三、工具修复与下一门槛
+
+- 修复 `eval_run.py`：HDF5 标量属性转 Python 值，`seg_color_bgr` 等向量属性保持数组；
+  新格式 `run.h5` 不再因 `.item()` 报错。
+- 下一步如要改在线控制，采用显式、可关闭的模板 ROI 参数，默认行为保持不变；先用 20–50 m
+  起点复飞，并继续用机头锚点距离而非 `stop_reason=contact` 判成功。
+
+### 四、出生点碰撞修正
+
+09-16 ROI 首次复飞前，服务端在起飞后的转向阶段断开。结合此前现场观测与碰撞消息复核：
+`scene_airbase.jsonc` 的 `origin z=0` 重载后真实中心约为 `z=-0.16 m`，地面
+`StaticMeshActor_14` 报告约 **0.38 m 穿透**。这不是 ROI 算法造成的。
+
+最小修正：仅将 Simple Flight 场景出生点改为 NED `(0,0,-1.0)`，即比跑道面高 1 m；
+后续 `move_to_position(... down=-40)` 使用绝对 NED 高度，不受影响。PX4 场景保持 `(0,0,0)`，
+避免改变 EKF home。修改后须重载 UE 场景，再用 `probe_spawn.py` 核对真实出生位姿与碰撞消息。
+
+### 五、粗到细 ROI 复飞结果
+
+运行：`outputs/runs/servo/机头_0916_113751`。远场使用完整模板；有效锁定距离连续 3 帧
+不大于 50 m 后，切换到模板 ROI `[0.20, 0.68, 0.80, 1.00]`；其余关键参数为
+`--dist-min-peak 0.12 --stop-dist 12 --slow-dist 20 --stop-confirm-frames 3`。
+
+- 第 68 步满足切换条件，第 69 步开始使用 ROI。切换后 peak 由约 0.19 提升到
+  0.30～0.40，目标中心持续保持在画面内。
+- 第 100 步在约 19.9 m 开始减速；第 139～141 步连续 3 帧深度低于 12 m，
+  `stop_reason=contact`。共 142 帧、46.76 s，RViz dump 142 帧完整保存。
+- 特权评价：机头锚点最小距离 **12.28 m**，终点距离 **12.37 m**；到飞机 OOB 表面的
+  最小间隙 **6.22 m**，最近点速度 0.52 m/s。目标可见率全程和末 10 帧均为 **100%**。
+- 对比上一轮全模板终点机头距离 24.42 m、末 10 帧可见率 0%，粗到细 ROI 显著改善了
+  近场机头保持，但尚未达到 1/2/3/5 m 的部位任务成功阈值。
+
+出生点复核：场景加载调用本身耗时约 1.43 s，Python 取得 Drone 对象前足以让未解锁无人机
+从 1 m 高处落地，因此稳定后的 `z=-0.161 m` 不能反推出初始高度未生效；加载后连续采样的
+地面碰撞 `penetration_depth=0`，原先约 0.382 m 的穿透未再出现。
+
+当前下一门槛是校准“目标分割深度”与“机头锚点距离”的几何偏差。本次 12 m 深度停车时，
+机头锚点仍约 12.4 m、OOB 表面仍有 6.2 m 间隙；后续不能只靠继续减小 `--stop-dist`
+宣称部位到达，仍需用特权评价器独立报告机头距离。
+
+---
+
+## §2026-09-16　三机多目标协同系统（实现与实飞完成）
+
+新增 `scene_airbase_three_drones.jsonc`：Drone1/2/3 沿 East 方向间隔 8 m 出生，共用
+`robot_quadrotor_fastphysics_sensors.jsonc`。新增 `mission_config/three_aircraft.jsonc`，默认分配：
+
+| 无人机 | 目标 | 分层高度 | 视觉接近距离 |
+|---|---|---:|---:|
+| Drone1 | StaticMeshActor_22（一号飞机） | 36 m | 60 m |
+| Drone2 | StaticMeshActor_18（二号飞机） | 40 m | 60 m |
+| Drone3 | StaticMeshActor_16（三号飞机） | 44 m | 60 m |
+
+已删除的汽车 `StaticMeshActor_24` 不进入任务，也从当前 RViz 精细体素加载列表移除；历史
+`SEG_IDS` 保留以便旧数据复现，多机只覆盖三架目标飞机和地面。
+
+新增 `loop/multi_servo.py`：单客户端/单 World、三路独立 Mailbox、一份共享 DINO 批量前向、
+每机独立滤波/失锁/接触状态。三机先沿高度层开环到目标前 60 m，再进入各自视觉终端；
+当前位置小于 5 m 时全体悬停，1 s 预测间距小于 8 m 时低优先级机悬停。一机 FAILED 不阻塞
+其余两机。输出按任务根目录下 Drone1/2/3 分开保存，并生成 `mission_summary.json`。
+
+新增 `src/mpc/multi_viz.launch.py` / `multi_viz.rviz`：三套命名空间回放节点共用静态体素地图，
+以青/黄/洋红显示三机模型和 0.35 m 轨迹，不提前显示终点。
+
+离线验证：
+
+- 新场景通过 ProjectAirSim scene JSON Schema；任务 JSONC/参数/文件路径验证通过。
+- DINO 权重只加载一次，三帧批量推理成功，三路均输出 256 patch 相似度。
+- 安全仲裁单元探针通过：预测 5 m 时只暂停低优先级机；当前 4 m 时三机命令全部归零。
+- 单机 CLI 回归、Python 编译、RViz YAML、ROS launch 参数与 `git diff --check` 均通过。
+- 无解锁场景探针确认 World 中恰有 Drone1/2/3，三机 RGB/depth/seg topic 相互独立；5 步试飞完成
+  同时起飞、36/40/44 m 分层、中段接近和三路视觉锁定。
+
+完整闭环共跑两轮。首轮 `three_aircraft_0916_152213` 中 Drone1/2 分别以 299/229 帧到达；
+Drone3 在第 211～213 帧已连续测到 13.59/12.80/12.40 m，但共用的 12 m 阈值尚未满足，
+随后越过 Actor_16 机身并安全悬停至超时。关键帧确认目标从画面下缘离开，没有发生盲飞或碰撞。
+因此只在 Drone3 任务项覆盖 `stop_dist=14 m`，其余控制与安全参数不变。
+
+修正后正式运行：`outputs/runs/multi_servo/three_aircraft_0916_152953`。
+
+| 无人机 | 帧数 | 在线状态 | 中心最小距离 | OOB 表面最小间隙 | L0 |
+|---|---:|---|---:|---:|---|
+| Drone1 → Actor_22 | 232 | ARRIVED/contact | 11.13 m | 7.33 m | 无异常 |
+| Drone2 → Actor_18 | 200 | ARRIVED/contact | 9.77 m | 4.26 m | 无异常 |
+| Drone3 → Actor_16 | 191 | ARRIVED/contact | 15.29 m | 7.94 m | 无异常 |
+
+三机均无 NaN、无穿地，HDF5/CSV/viz_dump 与 `mission_summary.json` 完整保存。这里的
+`ARRIVED/contact` 表示目标分割深度连续三帧进入各机停止阈值；它不等同于中心距离或部位锚点
+小于 5 m。尤其 Drone3 的中心最近距离仍为 15.29 m，后续报告必须保留这一区分。
+
+### 交叉航路协同增量（实飞完成）
+
+为让协同行为在轨迹和状态上可直接观察，三机出生点从 East `-8/0/+8 m` 收拢为同一起飞区内
+`-2/0/+2 m`。完全相同坐标会让三个碰撞体重叠，因此保留最小物理间隔。三机先到 30 m 协调
+高度和三个等待点；三条入口→出口线段均精确穿过 `(-15,-10)`，等待点两两间距为
+16.0/8.94/8.94 m。中央预约器按 Drone1→Drone2→Drone3 放行，其他无人机记录 `WAIT`，
+通过者记录 `CROSS/CLEAR`。
+
+新增每机 `coordination.csv` 与 `coordination_dump/`，记录坐标阶段的 RGB、DINO 响应、位姿和
+状态；RViz 先播放协调阶段，再接原视觉 `viz_dump/`。根汇总新增通行顺序、各机等待时间、
+全程与交叉阶段最小机间距。Python 编译、任务几何校验、ROS launch 和补丁格式均通过。
+
+首次正式运行 `three_aircraft_0916_191554` 的交叉协调完整通过，Drone1/2 到达，Drone3 在近场
+只累计到两张独立的新深度确认帧，随后目标贴近画面下缘、分割失效并安全 `HOLD` 至超时。
+第 211～213 帧的滤波距离为 13.76/13.38/13.69 m，但前两步复用同一张深度帧，确认计数最高为 2。
+因此只给 Drone3 覆盖 `stop_confirm_frames=2`；14 m 阈值、DINO 锁定与分割有效条件保持不变，
+Drone1/2 继续使用三张独立新深度帧确认。
+
+修正后正式运行：`outputs/runs/multi_servo/three_aircraft_0916_192211`。
+
+| 无人机 | 帧数 | 在线状态 | 中心最小距离 | OOB 表面最小间隙 | L0 |
+|---|---:|---|---:|---:|---|
+| Drone1 → Actor_22 | 159 | ARRIVED/contact | 11.42 m | 7.59 m | 无异常 |
+| Drone2 → Actor_18 | 216 | ARRIVED/contact | 7.94 m | 1.23 m | 无异常 |
+| Drone3 → Actor_16 | 202 | ARRIVED/contact | 15.57 m | 8.10 m | 无异常 |
+
+实际放行顺序为 Drone1→Drone2→Drone3，等待时间为 0/5.737/11.436 s；交叉阶段最小机间距
+**8.144 m**（Drone1/Drone3），满足 8 m 保持距离。全程最小机间距 **1.602 m**（Drone1/Drone2）
+发生在初始 2 m 横向间隔的同区出生阶段；这是紧凑出生布局的明确限制，不能用交叉阶段的
+8.144 m 指标替代。三机轨迹均无 NaN、无穿地，协调/视觉回放和根汇总完整保存。

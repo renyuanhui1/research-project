@@ -1,0 +1,61 @@
+{
+  // 第一阶段默认任务：三架无人机分别飞向三架已标定飞机，不包含已从场景删除的汽车 Actor_24。
+  "scene": "scene_airbase_three_drones.jsonc",
+  "common": {
+    "camera": "FrontCamera",
+    "stats_episode": "outputs/recordings/approach/airbase_tgt1_50m.h5",
+    "template": "pictures/整机.jpg",
+    "dist_min_peak": 0.12,
+    "control_min_peak": 0.12,
+    "stop_dist": 12.0,
+    "slow_dist": 20.0,
+    "stop_confirm_frames": 3,
+    "max_steps": 700,
+    "approach_standoff": 60.0
+  },
+  "safety": {
+    "hold_distance": 8.0,
+    "emergency_distance": 5.0,
+    "prediction_seconds": 1.0
+  },
+  "crossing": {
+    // 三条入口→出口线段在该点相交；中央调度器一次只放行一架无人机。
+    "center_ned": [-15.0, -10.0],
+    "radius": 8.0,
+    "altitude": 30.0,
+    "velocity": 5.0
+  },
+  "agents": [
+    {
+      "name": "Drone1",
+      "target": "StaticMeshActor_22",
+      "target_ned": [-62.71, -16.68],
+      "crossing_entry_ned": [-7.0, -2.0],
+      "crossing_exit_ned": [-23.0, -18.0],
+      "start_altitude": 36.0,
+      "approach_standoff": 40.0,
+      "priority": 0
+    },
+    {
+      "name": "Drone2",
+      "target": "StaticMeshActor_18",
+      "target_ned": [-167.65, -73.00],
+      "crossing_entry_ned": [-23.0, -2.0],
+      "crossing_exit_ned": [-7.0, -18.0],
+      "start_altitude": 40.0,
+      "priority": 1
+    },
+    {
+      "name": "Drone3",
+      "target": "StaticMeshActor_16",
+      "target_ned": [-251.99, -195.52],
+      "crossing_entry_ned": [-15.0, 2.0],
+      "crossing_exit_ned": [-15.0, -22.0],
+      "start_altitude": 44.0,
+      // Actor_16 近距时会先从画面下缘离开；14 m 采用两张独立新深度帧确认。
+      "stop_dist": 14.0,
+      "stop_confirm_frames": 2,
+      "priority": 2
+    }
+  ]
+}

@@ -23,7 +23,8 @@ airbase/
 
 ## 已做的配置改动（相对老场景）
 
-- `sim_config/scene_airbase.jsonc`：`id` 改为 `SceneAirbase`；出生点 `xyz` **仍是老场景遗留值，待重设**(见文件 TODO)。
+- `sim_config/scene_airbase.jsonc`：`id` 为 `SceneAirbase`；Simple Flight 出生点为 NED
+  `(0,0,-1.0)`，比跑道面高 1 m，避免原 `z=0` 与地面碰撞体穿透。PX4 场景仍保持原点不变。
 - `sim_config/robot_quadrotor_fastphysics_sensors.jsonc`：FrontCamera **下倾 pitch=-50°**（斜下滑近，
   较陡以对齐从高空滑向地面目标的滑降角→目标全程居中；斜视动力学信息量更利于世界模型）。
   配合 **缩小飞机(~20m)**；垂直方向靠伺服 **cy 闭环(视线角控制)** 沿视线接触，不再开环匀速降
@@ -79,6 +80,10 @@ RGB(新帧驱动) → DINO 指纹 → EMA(cx/cy/mass/peak) → 机体系视线�
 depth + 目标 Actor 分割 ─┴→ 目标主体内深度 → 距离减速 / 连续多帧接触确认
 ```
 
+可选粗到细原型：显式传 `--template-roi` 后，远段仍用全模板；可信目标深度连续进入
+`--roi-switch-dist`（默认 50 m）后一次性切到 ROI，并重置方向/距离 EMA。默认不传 ROI 时
+完全保持原控制路径。`run.h5/control` 的 `roi_active` 记录每帧实际使用的原型。
+
 - **连续控制**：相机 10Hz 新帧驱动；速度任务只提交、不等待结束，保活时间覆盖下一帧与 DINO 推理，
   避免“移动一拍—推理时停住”的控制空档。
 - **失锁保护**：低置信度时不在噪声上偏航；短暂失锁只沿初始航向低速直行，持续失锁则悬停。
@@ -90,6 +95,57 @@ depth + 目标 Actor 分割 ─┴→ 目标主体内深度 → 距离减速 / �
   分割只能作为仿真控制消融、评价或教师标签，不能包装成真机可用输入。
 - **运行记录**：`run.h5/control` 与 `signals.csv` 同步保存原始/滤波信号、目标深度、锁定/分割状态、
   真实控制周期和接触连续计数；是否命中具体部位仍统一交给 `loop/eval_run.py` 事后评价。
+- **部位定位离线评价**：`loop/eval_target_localization.py` 读取保存的 RGB/位姿，用目标 OOB
+  投影出的部位锚点作为仅供评价的真值，比较当前“全模板平均原型”和指定模板 ROI 原型。
+  评价真值不进入在线控制器；ROI 使用模板归一化坐标，换模板时必须重新指定。
+
+### 三机多目标协同（2026-09-16）
+
+`loop/multi_servo.py` 在一个 ProjectAirSim 客户端和一个 World 内控制 Drone1/2/3；任务由
+`mission_config/three_aircraft.jsonc` 配置，默认分别分配 `StaticMeshActor_22/18/16` 三架飞机。
+已从场景删除的汽车 `StaticMeshActor_24` 不进入任务和 RViz 精细地图。
+
+```
+三路 RGB/depth/seg → 三个独立 Mailbox ─┐
+                                      ├→ 共享 DINO 批量前向
+每机模板/统计/EMA/停止状态 ────────────┘          │
+                                                   ↓
+同区起飞 → 30m 等高等待点 → 交叉区预约通行 → 分层目标航路
+                                              ↓
+                              各机视觉终端控制 → 间距安全仲裁
+```
+
+- **协调中段**：三机在同一起飞区内沿 East 仅错开 2 m，先到 30 m 协调高度和三个等待点；
+  三条入口→出口线段在 `(-15,-10)` 交叉。中央预约器按优先级一次放行一架，未放行无人机
+  显示 `WAIT` 并悬停，已离开者显示 `CLEAR`。
+- **目标中段**：离开交叉区后，三机并行进入 36/40/44 m 高度层和各自视觉接近点；
+  Drone1 距 Actor_22 40 m，Drone2/3 距各自目标 60 m。
+- **终端**：到达接近点后只用各自 RGB 指纹给方向、目标 Actor 分割深度给减速与停止；每机拥有
+  独立 EMA、失锁、接触计数和 `TRACK/ARRIVED/FAILED` 状态，一机失败不阻塞另外两机。
+  通用停止距离为 12 m；Actor_16 因近距时先从画面下缘离开，在 Drone3 任务项覆盖为 14 m，
+  并要求两张独立新深度帧确认；Drone1/2 仍要求三张。
+- **协同安全**：当前位置小于 5 m 时三机悬停；1 s 预测间距小于 8 m 时低优先级无人机悬停。
+  到达或失败的无人机持续零速保位，直到整个任务结束。
+- **共享计算**：DINO 权重只加载一次；每轮把当前有新帧的无人机组成批次，各自使用任务配置的
+  标准化统计与模板原型。默认三机暂用同一 `整机.jpg` 做链路验证，正式目标区分需补采独立模板。
+- **输出**：`outputs/runs/multi_servo/three_aircraft_<时间>/Drone{1,2,3}/` 各自保存
+  `coordination.csv + coordination_dump/` 和视觉阶段的 `run.h5 + signals.csv + viz_dump/`；
+  根目录 `mission_summary.json` 记录通行顺序、等待时间及全程/交叉阶段最小机间距。
+- **回放**：`src/mpc/multi_viz.launch.py` 启动三套带命名空间的回放节点和一套静态地图；青/黄/洋红
+  分别表示 Drone1/2/3，先播放协调阶段，再连续播放视觉阶段；交叉区显示橙色圆环和
+  `WAIT/CROSS/CLEAR` 状态，不提前显示终点。三路 `/drone{1,2,3}/plan/view` 同步显示各机
+  RGB 与 DINO 响应热力图叠加画面。
+- **观察视角**：`Chase` 恢复 airbase 初始近距离姿态（机后 3 m、机上 1 m、俯视 11.46°）。
+  `FrontCamera` 仅 RGB 开启 streaming，depth/seg 保持 capture、关闭 streaming；Unreal viewport
+  按 `Tab` 在每架机的 Chase 和第一人称 RGB 间切换，不会进入深度/分割。三机模型、轨迹和
+  三路 Camera+DINO 画面的同步观察使用上述 RViz 回放，因为 Unreal 同时只能显示一路流。
+  实飞时给 `loop/multi_servo.py` 加 `--show-cameras`，可额外打开 Drone1/2/3 三路第三人称
+  Chase RGB 的实时横向三联窗口；标题栏同步显示各机当前的协调阶段或任务状态。Chase raw
+  capture 以 10 FPS 运行，FrontCamera 仍独立用于视觉控制和 Tab 第一人称切换。
+- **交叉航路实飞验证**：`outputs/runs/multi_servo/three_aircraft_0916_192211` 三机均以
+  `ARRIVED/contact` 结束，分别保存 159/216/202 帧；中心最近距离为 11.42/7.94/15.57 m。
+  放行顺序为 Drone1→Drone2→Drone3，等待 0/5.74/11.44 s，交叉阶段最小机间距 8.14 m。
+  全程最小值 1.60 m 出现在初始 2 m 间隔的同区出生阶段，不代表交叉区间距。
 
 ## 脚本清单（`src/airsim/`）
 
@@ -116,6 +172,7 @@ depth + 目标 Actor 分割 ─┴→ 目标主体内深度 → 距离减速 / �
 
 **目标函数 / 生死判据（离线诊断，不连仿真）**
 - `check_target_signal.py` 🆕 — 解耦生死判据：指纹 cost 有没有信号（不依赖 predictor，本场景当前主力）
+- `eval_target_localization.py` 🆕 — 用闭环保存帧比较全模板/ROI 原型的部位投影定位误差（纯离线）
 - `check_cost_monotonic.py` — 指纹 cost vs 旧整图 cost 谁随接近单调下降
 - `check_target_cost.py` — 逐帧给 target 目标函数打分
 - `check_target_action_ranking.py` — target cost+WM 会不会把合理动作排前
@@ -126,6 +183,7 @@ depth + 目标 Actor 分割 ─┴→ 目标主体内深度 → 距离减速 / �
 - `plan_closed_loop.py` — 脚本7-B：仿真闭环 MPPI 规划（世界模型 rollout + 指纹目标）；`--visual-servo`/`--handoff`/`--log-csv`
 - `servo_closed_loop.py` 🆕 — 方案A：纯指纹视觉伺服闭环（不用世界模型）；v2 用 10Hz 连续指令、
   EMA/失锁保护、目标分割约束深度、距离减速和连续接触确认；`--nadir` 为俯视备选模式，运行自动落盘。
+- `multi_servo.py` 🆕 — 三机多目标调度：分层中段、共享 DINO 批推理、独立终端伺服、间距仲裁与分机日志。
 
 **可视化 / 建图**
 - `dump_servo_viz.py` 🆕 — 把伺服 run.h5 离线转成 rviz 可播 npz（轨迹+指纹热力图+
@@ -133,8 +191,8 @@ depth + 目标 Actor 分割 ─┴→ 目标主体内深度 → 距离减速 / �
 - `depth_map.py` — 深度→世界系点云，给实时建图用
 - `probe_voxel_map.py` → `../src/mpc/voxel_map_viz_node.py` — ProjectAirSim 碰撞体素离线落盘后，
   将地面薄片和场景障碍分层、按 NED→ENU 发布静态 `/voxel_map/markers`；默认显示 2 km 全局图，
-  `voxel_map_viz.launch.py` 默认用五个已标定对象的 OOB 真值区域隐藏机场建筑（仅辅助显示，非语义识别），
-  将 10 m 全局地面与五张 `60×60×20 m / 1 m` 目标局部图叠加。推荐先单独运行
+  `voxel_map_viz.launch.py` 默认用四架已标定飞机的 OOB 真值区域隐藏机场建筑（仅辅助显示，非语义识别），
+  将 10 m 全局地面与四张 `60×60×20 m / 1 m` 目标局部图叠加。推荐先单独运行
   `rviz2 -d /home/hui/my/src/mpc/voxel_map_viz.rviz`，再重复运行
   `ros2 launch src/mpc/voxel_map_viz.launch.py` 播放轨迹；播放节点完成后自动退出，RViz 保持打开。
   RViz 连接 `/voxel_map/trajectory` 后，默认按真实记录时间以 2 倍速单次播放
@@ -148,4 +206,6 @@ depth + 目标 Actor 分割 ─┴→ 目标主体内深度 → 距离减速 / �
 - **不复制、软链共享**：冻结 DINO 仓 `dinov2/` 和权重 `dinov2_vits14_pretrain.pth`。
 - **完全不动**：`../sim_config/`、`../weights/`、`../outputs/`、`../src/`。
 - **rviz 可视化**：闭环回放使用共享的 `../src/mpc/plan_viz*`；离线体素地图使用
-  `../src/mpc/voxel_map_viz*`。两者均为本地 ROS2，无需 colcon 构建。
+  `../src/mpc/voxel_map_viz*`。`plan_viz.launch.py` 会同时启动静态体素地图发布器，将 10 m
+  全局地面和四张 1 m 飞机精细图叠加到闭环轨迹，并显示放大的四旋翼、绿色起点和 0.35 m
+  宽轨迹；不提前显示尚未飞到的终点。两者均为本地 ROS2，无需 colcon 构建。

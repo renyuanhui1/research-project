@@ -41,6 +41,12 @@ CAM_PITCH_DEG, CAM_HFOV_DEG, CAM_XYZ = -50.0, 90.0, (0.5, 0.0, 0.0)
 CAM_ASPECT = 540.0 / 960.0          # 垂直/水平；tan(v_half)=tan(h_half)*aspect
 
 
+def attr_value(value):
+    """HDF5 属性转成便于打印/JSON 处理的值；向量属性保持 ndarray。"""
+    array = np.asarray(value)
+    return array.item() if array.size == 1 else array
+
+
 def Rz(a):
     return np.array([[math.cos(a), -math.sin(a), 0], [math.sin(a), math.cos(a), 0], [0, 0, 1]])
 
@@ -121,7 +127,7 @@ def load_run(path):
         pose = f["pose"][:].astype(float)
         t = f["t"][:].astype(float) if "t" in f else np.arange(len(pose), dtype=float)
         act = f["action"][:].astype(float) if "action" in f else None
-        attrs = {k: (v.item() if hasattr(v, "item") else v) for k, v in f.attrs.items()}
+        attrs = {k: attr_value(v) for k, v in f.attrs.items()}
     if pose.shape[1] == 4:                              # 闭环格式 n,e,d,yaw
         pos, yaw = pose[:, :3], pose[:, 3]
     elif pose.shape[1] == 7:                            # 采集格式 px,py,pz,qw,qx,qy,qz
