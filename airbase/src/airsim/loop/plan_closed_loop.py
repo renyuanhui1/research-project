@@ -1,8 +1,8 @@
-"""脚本 7（阶段 B）：plan_closed_loop.py —— 仿真闭环 MPPI 规划（按目标图像飞/穿门）
+"""机场场景仿真闭环 MPPI 规划。
 
 每个控制步：FrontCamera 抓图 → DINO → z_t → MPPI 选动作 → 执行第一个 → 滚动重规划(MPC)。
-- 目标 z_goal：旧模式取本地某条 episode 的末帧图像经 DINO 编码（与离线验证一致）。
-- 新 target 模式：取目标模板图，经 DINO patch token 做目标指纹；MPPI 优化"目标居中 + 变大"。
+- 目标 z_goal：图像目标模式取本地某条 episode 的末帧图像经 DINO 编码（与离线验证一致）。
+- 模板目标模式：取目标模板图，经 DINO patch token 做目标指纹；MPPI 优化"目标居中 + 变大"。
 - 为适配 4060 Ti(8G，仿真已占 ~7G)：DINO/世界模型用 fp16 autocast；MPPI 单次迭代 +
   跨步 warm-start（上一步规划平移作下一步起点），采样数少而靠闭环纠偏。
 - --handoff 两段式：target 指纹 MPPI 远程领路，dist≤goal-thresh 后自动交接视觉伺服收尾（同一指纹）。
@@ -26,7 +26,6 @@ import torch.nn.functional as F
 import sys
 from pathlib import Path      # 引导块自足：不依赖上面的 import 顺序
 # 向上找 sim_config/ 来定位 airbase/ —— 与脚本放在第几层无关。
-# 原来写死 parents[2]，脚本一挪进子目录就指错，README 为此专门警告过「不要把脚本挪进子目录」。
 _AIRBASE_ROOT = next(p for p in Path(__file__).resolve().parents if (p / "sim_config").is_dir())
 _AIRBASE_SRC = _AIRBASE_ROOT / "src/airsim"
 # 跨分组 import（如 loop/servo_closed_loop → wm/decode_check）：各流程目录都挂上 sys.path
@@ -49,10 +48,10 @@ def parse_args():
     p.add_argument("--dino-weights", default=f"{base}/weights/dinov2_vits14_pretrain.pth")
     p.add_argument("--ckpt", default=f"{base}/weights/predictor_h5.pt")
     # 目标
-    p.add_argument("--goal-episode", default=f"{base}/outputs/datasets/episodes_dataset/episode_0050.h5",
-                   help="旧 poolcos/patchmse 模式：取该 episode 的末帧图像作为目标")
+    p.add_argument("--goal-episode", default=None,
+                   help="poolcos/patchmse/value 模式：目标 episode 或 PNG 图片路径")
     p.add_argument("--goal-frame", type=int, default=-1, help="目标取第几帧（默认末帧 -1）")
-    p.add_argument("--target-template", default=f"{base}/outputs/references/templates/tmpl_goal0050_green.png",
+    p.add_argument("--target-template", default=None,
                    help="target 模式：目标紧裁剪模板图，用 DINO patch 均值作为目标指纹")
     # MPPI
     p.add_argument("--samples", type=int, default=32)
@@ -73,7 +72,7 @@ def parse_args():
     p.add_argument("--init-vx", type=float, default=0.7,
                    help="mu 前进初始化速度(训练数据 vx 均值~1.2)，避免从零速起步搜索")
     # 动作上下界必须罩住**训练动作分布**, 否则要么发不出有用动作、要么搜到模型没见过的动作。
-    # 下面的默认值按 wm300 实测重标(08-04); 原值是老场景标的, 在 airbase 上覆盖率极低:
+    # 默认动作边界按机场 wm300 数据设置：
     #   v_forward 1%/50%/99% = +0.29/+1.39/+2.55  旧界±1.2 → 只覆盖 45%
     #   v_right               -2.04/ 0.00/+2.05   旧界±1.2 → 70%
     #   v_down                -0.37/+0.41/+1.27   旧界±0.15 → **3%**(等于不让下降)
@@ -134,7 +133,7 @@ def parse_args():
     p.add_argument("--servo-fwd", type=float, default=0.8, help="伺服恒定前进速度 v_north")
     p.add_argument("--servo-kp-lat", type=float, default=1.2, help="横向比例增益：vy = kp·center_x")
     p.add_argument("--servo-kp-vert", type=float, default=0.8, help="垂直比例增益：vz = kp·center_y")
-    p.add_argument("--servo-vz-max", type=float, default=0.5, help="伺服垂直速度上限(比 MPPI 的 vz-max 放宽，好跟踪环高)")
+    p.add_argument("--servo-vz-max", type=float, default=0.5, help="伺服垂直速度上限(比 MPPI 的 vz-max 放宽，便于目标跟踪)")
     p.add_argument("--servo-stop-mass", type=float, default=0.0,
                    help=">0 时：目标响应面积 mass 超过它即判定接触在即并停(默认0=只跑满 max-steps)")
     p.add_argument("--target-conf-weight", type=float, default=1.0,
@@ -186,6 +185,10 @@ def parse_args():
     p.add_argument("--face-ned", type=float, nargs=2, default=None, metavar=("N", "E"),
                    help="爬升后一次性朝向该 NED 点(让目标进画面), 之后交给 MPPI")
     args = p.parse_args()
+    if args.cost_metric == "target" and not args.target_template:
+        p.error("target 模式需要显式指定 --target-template")
+    if args.cost_metric != "target" and not (args.record_goal or args.sanity or args.goal_episode):
+        p.error("当前模式需要显式指定 --goal-episode")
     if (args.visual_servo or args.handoff) and args.cost_metric != "target":
         raise SystemExit("--visual-servo/--handoff 需配合 --cost-metric target（要用模板指纹 center）")
     return args
@@ -778,8 +781,6 @@ async def closed_loop(planner, args):
                 a_prev = planner.push_action(acts_exec[j])   # 登记历史，拿到含历史的模型输入
                 a = acts_exec[j].tolist()
                 # **机体系**：与 collect_episode 存的 action_frame="body" 一致。
-                # 原来发世界系 NED —— 那是老场景的约定，airbase 的世界模型是机体系训的，
-                # 同一个 4 维向量在两个坐标系里含义完全不同，模型会照常输出预测、只是全错。
                 pending.append(await drone.move_by_velocity_body_frame_async(
                     v_forward=a[0], v_right=a[1], v_down=a[2],
                     duration=args.dt * args.dur_factor, yaw=a[3], yaw_is_rate=True))

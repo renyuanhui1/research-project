@@ -65,7 +65,7 @@ cd ~/PX4-Autopilot && make px4_sitl none_iris
 
 ```bash
 conda activate airsim
-cd /home/hui/my
+cd /home/hui/research-project
 python airbase/src/airsim/servo_closed_loop_px4.py \
     --template airbase/pictures/机头.jpg \
     --face-ned -64.2 -18.5 \

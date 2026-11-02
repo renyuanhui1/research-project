@@ -10,7 +10,7 @@ held-out episode：起点 z_t，目标 z_{t+K}（hindsight 可达）。
   注：value_fn 有训练 KMAX(约25)，K 超过它会饱和，故先在 K≤25 内比。
 
 本脚本只依赖服务器上有的纯模块：train_predictor / extract_dino_features（不碰仿真 SDK）。
-  python src/airsim/tools/eval_mppi_dir.py --K 8
+  python src/airsim/loop/eval_mppi_dir.py --K 8
 """
 import argparse
 import os
@@ -25,7 +25,6 @@ import h5py
 import sys
 from pathlib import Path      # 引导块自足：不依赖上面的 import 顺序
 # 向上找 sim_config/ 来定位 airbase/ —— 与脚本放在第几层无关。
-# 原来写死 parents[2]，脚本一挪进子目录就指错，README 为此专门警告过「不要把脚本挪进子目录」。
 _AIRBASE_ROOT = next(p for p in Path(__file__).resolve().parents if (p / "sim_config").is_dir())
 _AIRBASE_SRC = _AIRBASE_ROOT / "src/airsim"
 # 跨分组 import（如 loop/servo_closed_loop → wm/decode_check）：各流程目录都挂上 sys.path

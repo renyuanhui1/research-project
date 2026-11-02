@@ -1,7 +1,5 @@
 {
-  // 【airbase 变体】复制自 ../../sim_config/robot_quadrotor_px4_sitl_wsl2.jsonc。
-  // 唯一区别: FrontCamera 俯仰 0 → -50 度(斜下伺服, 对齐从高空滑向地面目标的滑降角)。
-  // 注意: PX4 网络/端口/机型混控等设置与源文件相同, 改那些时两份要同步。
+  // 机场 PX4 机体配置，FrontCamera 俯仰为 -50 度。
   // 使用 Project AirSim 的快速物理模型，适合仿真和 PX4 SITL 联调。
   "physics-type": "fast-physics",
 

@@ -22,7 +22,6 @@ from projectairsim import Drone, World
 import sys
 from pathlib import Path      # 引导块自足：不依赖上面的 import 顺序
 # 向上找 sim_config/ 来定位 airbase/ —— 与脚本放在第几层无关。
-# 原来写死 parents[2]，脚本一挪进子目录就指错，README 为此专门警告过「不要把脚本挪进子目录」。
 _AIRBASE_ROOT = next(p for p in Path(__file__).resolve().parents if (p / "sim_config").is_dir())
 _AIRBASE_SRC = _AIRBASE_ROOT / "src/airsim"
 # 跨分组 import（如 loop/servo_closed_loop → wm/decode_check）：各流程目录都挂上 sys.path
@@ -31,7 +30,7 @@ sys.path[:0] = [str(_AIRBASE_SRC)] + [str(d) for d in _AIRBASE_SRC.iterdir()
 PROJECT_ROOT = _AIRBASE_ROOT
 DEFAULT_ADDRESS = "172.21.192.1"
 DEFAULT_CONFIG_DIR = PROJECT_ROOT / "sim_config"
-DEFAULT_SCENE = "scene_airbase.jsonc"   # 从老场景镜像过来时漏改, 原值 scene_drone_sensors.jsonc
+DEFAULT_SCENE = "scene_airbase.jsonc"
                                         # 在 airbase/sim_config 下不存在, 一跑就失败
 DEFAULT_OUTPUT_DIR = PROJECT_ROOT / "outputs/captures/decode_check"
 DEFAULT_CAMERA = "FrontCamera"

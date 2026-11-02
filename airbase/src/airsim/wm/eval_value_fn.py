@@ -7,9 +7,9 @@
      理想=1（走一步少一步）；随 K 增大衰减，拐点=子目标间距该取的上限。
      （背景：eval_mppi_dir 实测 K=8 规划 vx≈0.89 健康、K=25 只剩 0.29——幅度信号先于方向死。）
 
-建议用 held-out 直线接近条 episode_0050（23.7m→0）；train_value 留出的是末 5 条(0048~0052)。
+通过 --ep 指定机场场景的 held-out episode。
 产物：outputs/evaluations/value_fn/ 下 csv + png。
-  python src/airsim/tools/eval_value_fn.py            # 本地默认路径
+  python src/airsim/wm/eval_value_fn.py --ep <episode文件名>
   服务器需显式传 --dino-weights/--repo-dir/--episodes-dir（同 eval_mppi_dir）。
 """
 import argparse
@@ -25,7 +25,6 @@ import h5py
 import sys
 from pathlib import Path      # 引导块自足：不依赖上面的 import 顺序
 # 向上找 sim_config/ 来定位 airbase/ —— 与脚本放在第几层无关。
-# 原来写死 parents[2]，脚本一挪进子目录就指错，README 为此专门警告过「不要把脚本挪进子目录」。
 _AIRBASE_ROOT = next(p for p in Path(__file__).resolve().parents if (p / "sim_config").is_dir())
 _AIRBASE_SRC = _AIRBASE_ROOT / "src/airsim"
 # 跨分组 import（如 loop/servo_closed_loop → wm/decode_check）：各流程目录都挂上 sys.path
@@ -70,7 +69,7 @@ def main():
     ap.add_argument("--ckpt", default=None, help="predictor ckpt(取 z_mean/z_std)")
     ap.add_argument("--value-fn-path", default=None)
     ap.add_argument("--episodes-dir", default=None)
-    ap.add_argument("--ep", default="episode_0050.h5", help="建议 held-out 直线接近条")
+    ap.add_argument("--ep", required=True, help="机场场景的 held-out episode 文件名")
     ap.add_argument("--ks", type=int, nargs="+", default=[2, 5, 8, 12, 16, 20, 25, 30, 40, 50])
     ap.add_argument("--out-dir", default=None, help="默认 outputs/evaluations/value_fn")
     cli = ap.parse_args()

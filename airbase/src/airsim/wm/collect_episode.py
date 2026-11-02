@@ -1,6 +1,6 @@
 """脚本 2：collect_episode.py —— airbase 近场采集（绕目标随机站位，near/far 两个距离带）
 
-面向 B/C 条件（世界模型 + 规划）的训练数据。与老场景版本的区别：
+面向 B/C 条件（世界模型 + 规划）的训练数据。采集约定：
   - 起点不再是"当前位置 ±3m"，而是**以目标为中心的球面随机站位**（见 sample_station、BANDS）
   - 动作走**机体系** move_by_velocity_body_frame_async（与 PX4 伺服下发一致，
     且世界模型不必再从动作里反解 yaw 这个隐变量）
@@ -46,7 +46,6 @@ from projectairsim.types import BoxAlignment
 import sys
 from pathlib import Path      # 引导块自足：不依赖上面的 import 顺序
 # 向上找 sim_config/ 来定位 airbase/ —— 与脚本放在第几层无关。
-# 原来写死 parents[2]，脚本一挪进子目录就指错，README 为此专门警告过「不要把脚本挪进子目录」。
 _AIRBASE_ROOT = next(p for p in Path(__file__).resolve().parents if (p / "sim_config").is_dir())
 _AIRBASE_SRC = _AIRBASE_ROOT / "src/airsim"
 # 跨分组 import（如 loop/servo_closed_loop → wm/decode_check）：各流程目录都挂上 sys.path
@@ -251,7 +250,6 @@ def build_random_traj(rng, steps, seg_steps=SEG_STEPS):
     1~2 次，且与视觉上下文绑死（approach 模板必然配"正对目标"的画面）。模型学会"看图猜
     模板"就能预测运动，动作那一路输入退化成死输入 —— eval_wm 实测 model/zero-act≈1.00、
     model/swap≈1.03，即给真动作、给零动作、给别条的动作，预测误差完全一样。
-    老场景（三条判据全过）恰恰相反：每条 episode 内部把 6 类动作走一遍，动作与上下文解耦。
     """
     n_seg = max(1, math.ceil(steps / seg_steps))
     traj, prev = [], -1
@@ -534,7 +532,7 @@ def save_hdf5(out, args, bufs, target=None, extra_attrs=None):
         f.attrs["camera"] = args.camera
         f.attrs["scene"] = args.scene
         f.attrs["action_layout"] = "v_forward,v_right,v_down,yaw_rate"
-        f.attrs["action_frame"] = "body"          # 与老场景的 world-NED 数据不可混用
+        f.attrs["action_frame"] = "body"          # 机体系动作
         f.attrs["pose_layout"] = "px,py,pz,qw,qx,qy,qz"
         f.attrs["depth_unit"] = "meter"
         f.attrs["depth_invalid"] = DEPTH_INVALID

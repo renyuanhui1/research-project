@@ -1,7 +1,7 @@
 """闭环规划可视化 launch：plan_viz_node + 体素栅格地图 + rviz2。
 
 用法：
-  ros2 launch src/mpc/plan_viz.launch.py                       # 默认 outputs/runs/mppi/run01
+  ros2 launch src/mpc/plan_viz.launch.py                       # 默认 airbase/outputs/runs/mppi/run01
   ros2 launch src/mpc/plan_viz.launch.py dump_dir:=/path/to/dir
 """
 
@@ -29,7 +29,7 @@ def generate_launch_description():
         ])
 
     return LaunchDescription([
-        DeclareLaunchArgument('dump_dir', default_value=str(PROJECT_ROOT / 'outputs/runs/mppi/run01')),
+        DeclareLaunchArgument('dump_dir', default_value=str(PROJECT_ROOT / 'airbase/outputs/runs/mppi/run01')),
         DeclareLaunchArgument('map_file', default_value=str(default_map)),
         ExecuteProcess(
             # 钉死系统 python：rclpy 的 C 扩展是 3.10 编的，conda 的 python 会 import 失败

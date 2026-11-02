@@ -1,7 +1,7 @@
 """启动 ProjectAirSim 体素地图单次播放节点，可选同时启动 RViz2。
 
 用法：
-  rviz2 -d /home/hui/my/src/mpc/voxel_map_viz.rviz
+  rviz2 -d /home/hui/research-project/src/mpc/voxel_map_viz.rviz
   ros2 launch src/mpc/voxel_map_viz.launch.py
   ros2 launch src/mpc/voxel_map_viz.launch.py start_rviz:=true
   ros2 launch src/mpc/voxel_map_viz.launch.py preview:=true start_rviz:=true

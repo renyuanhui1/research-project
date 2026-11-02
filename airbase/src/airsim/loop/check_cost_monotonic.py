@@ -10,9 +10,9 @@
   - 终端打印每种 cost 与真实距离的 Spearman 相关（+1 = 完美单调，越大越好）
 
 用法（服务器/本机有 GPU 时）：
-  python src/airsim/check_cost_monotonic.py \
-      --episode outputs/datasets/episodes_dataset/episode_0050.h5 \
-      --target-template outputs/references/templates/tmpl_goal0050_green.png
+  python src/airsim/loop/check_cost_monotonic.py \
+      --episode /path/to/airport_episode.h5 \
+      --target-template /path/to/airport_template.jpg
 旧 cost 的目标图默认取 episode 末帧（与 plan_closed_loop 的 record-goal 约定一致）。
 """
 
@@ -32,7 +32,6 @@ import torch
 import sys
 from pathlib import Path      # 引导块自足：不依赖上面的 import 顺序
 # 向上找 sim_config/ 来定位 airbase/ —— 与脚本放在第几层无关。
-# 原来写死 parents[2]，脚本一挪进子目录就指错，README 为此专门警告过「不要把脚本挪进子目录」。
 _AIRBASE_ROOT = next(p for p in Path(__file__).resolve().parents if (p / "sim_config").is_dir())
 _AIRBASE_SRC = _AIRBASE_ROOT / "src/airsim"
 # 跨分组 import（如 loop/servo_closed_loop → wm/decode_check）：各流程目录都挂上 sys.path
@@ -46,9 +45,8 @@ PROJECT_ROOT = _AIRBASE_ROOT
 def parse_args():
     base = str(PROJECT_ROOT)
     p = argparse.ArgumentParser(description="三种目标函数在真实接近轨迹上的单调性对比")
-    p.add_argument("--episode", type=Path,
-                   default=Path(f"{base}/outputs/datasets/episodes_dataset/episode_0050.h5"))
-    p.add_argument("--target-template", default=f"{base}/outputs/references/templates/tmpl_goal0050_green.png")
+    p.add_argument("--episode", type=Path, required=True)
+    p.add_argument("--target-template", required=True)
     p.add_argument("--goal-image", default=None,
                    help="旧 cost 的目标图路径；缺省用 episode 末帧")
     p.add_argument("--repo-dir", default=f"{base}/dinov2")

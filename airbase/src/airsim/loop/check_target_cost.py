@@ -19,7 +19,6 @@ import torch
 import sys
 from pathlib import Path      # 引导块自足：不依赖上面的 import 顺序
 # 向上找 sim_config/ 来定位 airbase/ —— 与脚本放在第几层无关。
-# 原来写死 parents[2]，脚本一挪进子目录就指错，README 为此专门警告过「不要把脚本挪进子目录」。
 _AIRBASE_ROOT = next(p for p in Path(__file__).resolve().parents if (p / "sim_config").is_dir())
 _AIRBASE_SRC = _AIRBASE_ROOT / "src/airsim"
 # 跨分组 import（如 loop/servo_closed_loop → wm/decode_check）：各流程目录都挂上 sys.path
@@ -33,9 +32,8 @@ PROJECT_ROOT = _AIRBASE_ROOT
 def parse_args():
     base = str(PROJECT_ROOT)
     p = argparse.ArgumentParser(description="检查 target 模板目标函数在 episode 上的逐帧响应")
-    p.add_argument("--episode", type=Path,
-                   default=Path(f"{base}/outputs/datasets/episodes_dataset/episode_0050.h5"))
-    p.add_argument("--target-template", default=f"{base}/outputs/references/templates/tmpl_goal0050_green.png")
+    p.add_argument("--episode", type=Path, required=True)
+    p.add_argument("--target-template", required=True)
     p.add_argument("--repo-dir", default=f"{base}/dinov2")
     p.add_argument("--dino-weights", default=f"{base}/weights/dinov2_vits14_pretrain.pth")
     p.add_argument("--ckpt", default=f"{base}/weights/predictor_h5.pt")

@@ -1,8 +1,8 @@
 """三机任务回放：三套 plan_viz_node + 一套静态体素地图 + RViz2。
 
 用法：
-  ros2 launch /home/hui/my/src/mpc/multi_viz.launch.py \
-    run_dir:=/home/hui/my/airbase/outputs/runs/multi_servo/three_aircraft_MMDD_HHMMSS
+  ros2 launch /home/hui/research-project/src/mpc/multi_viz.launch.py \
+    run_dir:=/home/hui/research-project/airbase/outputs/runs/multi_servo/three_aircraft_MMDD_HHMMSS
 """
 
 import os

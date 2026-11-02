@@ -5,15 +5,15 @@
 （不可救，只能补数据重训）。
 
 方法（不飞、不改控制逻辑）：
-  1. 扫描已录的真实机载帧（viz_run*/*.npz 里的 rgb），用指纹算 center_x 定位环在左/右；
-  2. 选出环明显偏一侧的帧（|center_x|>--offset）；
-  3. 每帧让世界模型 rollout "往环侧移(纠偏)" vs "往反侧移"，比较终端 target cost；
+  1. 扫描已录的真实机载帧（viz_run*/*.npz 里的 rgb），用指纹算 center_x 定位目标在左/右；
+  2. 选出目标明显偏一侧的帧（|center_x|>--offset）；
+  3. 每帧让世界模型 rollout "往目标侧移(纠偏)" vs "往反侧移"，比较终端 target cost；
   4. 若"纠偏动作"稳定更优（命中率高）→ 横向可靠，是调参问题；
      若命中率≈50% → 横向=噪声，需补横移数据重训。
   同法测垂直（center_y 上/下）。
 
 用法：
-  python src/airsim/check_lateral_reliability.py --frames-glob 'outputs/runs/mppi/run*/step_*.npz'
+  python src/airsim/loop/check_lateral_reliability.py --frames-glob 'outputs/runs/mppi/run*/step_*.npz'
 """
 
 import argparse
@@ -27,7 +27,6 @@ import torch
 import sys
 from pathlib import Path      # 引导块自足：不依赖上面的 import 顺序
 # 向上找 sim_config/ 来定位 airbase/ —— 与脚本放在第几层无关。
-# 原来写死 parents[2]，脚本一挪进子目录就指错，README 为此专门警告过「不要把脚本挪进子目录」。
 _AIRBASE_ROOT = next(p for p in Path(__file__).resolve().parents if (p / "sim_config").is_dir())
 _AIRBASE_SRC = _AIRBASE_ROOT / "src/airsim"
 # 跨分组 import（如 loop/servo_closed_loop → wm/decode_check）：各流程目录都挂上 sys.path
@@ -43,7 +42,7 @@ def parse_args():
     p = argparse.ArgumentParser(description="世界模型横向/垂直预测可靠性体检")
     p.add_argument("--frames-glob", default=f"{base}/outputs/runs/mppi/run*/step_*.npz",
                    help="真实机载帧来源（npz 里含 rgb）")
-    p.add_argument("--target-template", default=f"{base}/outputs/references/templates/tmpl_ring_full_onboard.png")
+    p.add_argument("--target-template", required=True)
     p.add_argument("--repo-dir", default=f"{base}/dinov2")
     p.add_argument("--dino-weights", default=f"{base}/weights/dinov2_vits14_pretrain.pth")
     p.add_argument("--ckpt", default=f"{base}/weights/predictor_h5.pt")
@@ -84,8 +83,8 @@ def main():
     if not files:
         sys.exit(f"没找到帧: {a.frames_glob}")
 
-    lat_hits, lat_tot = 0, 0     # 横向：环偏侧帧
-    ver_hits, ver_tot = 0, 0     # 垂直：环偏上下帧
+    lat_hits, lat_tot = 0, 0     # 横向：目标偏侧帧
+    ver_hits, ver_tot = 0, 0     # 垂直：目标偏上下帧
     lat_margins, ver_margins = [], []
 
     for f in files[:: max(1, len(files) // a.max_frames)]:
@@ -94,7 +93,7 @@ def main():
         c = pl.target_components(z0)
         cx, cy = c["center"][0].item(), c["center"][1].item()
 
-        # 横向：环偏一侧时，纠偏动作 = vy 与 center_x 同号（前面实测：环左→west(-vy)纠偏）
+        # 横向：目标偏一侧时，纠偏动作 = vy 与 center_x 同号（前面实测：目标在左→west(-vy)纠偏）
         if abs(cx) > a.offset:
             toward = rollout_cost(pl, z0, [a.fwd,  np.sign(cx) * a.lat_speed, 0, 0], a.horizon)
             away = rollout_cost(pl, z0, [a.fwd, -np.sign(cx) * a.lat_speed, 0, 0], a.horizon)
@@ -122,7 +121,7 @@ def main():
 
     print(f"帧源={a.frames_glob}  评估帧数≈{len(files[:: max(1, len(files)//a.max_frames)])}  "
           f"horizon={a.horizon}")
-    print("（纠偏命中 = 世界模型认为'往环那侧移动'比'往反侧'代价更低）")
+    print("（纠偏命中 = 世界模型认为'往目标侧移动'比'往反侧'代价更低）")
     report("横向 vy", lat_hits, lat_tot, lat_margins)
     report("垂直 vz", ver_hits, ver_tot, ver_margins)
 

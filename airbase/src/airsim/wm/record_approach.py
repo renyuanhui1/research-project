@@ -6,13 +6,13 @@
 动作即真实下发的 NED 速度指令（带小噪声，与训练数据分布一致）。
 
 用途：
-  1) 覆盖全距离段（此前 episode 0050 只到目标前 ~19m，最后接近段无验证数据）；
+  1) 录制目标接近过程的完整距离段；
   2) 飞完后从末段帧裁近景模板；
   3) 用 check_cost_monotonic 在这条 episode 上重跑单调性 + 重标定 goal-thresh。
 
 用法（UE 前台！）：
-  python src/airsim/record_approach.py                    # 默认飞向绿环 (42.3, 7.5)
-  python src/airsim/record_approach.py --altitude 12      # 圆环中心偏高时调
+  python src/airsim/wm/record_approach.py --help
+  通过 --goal-ned N E 和 --goal-alt ALT 显式指定本次录制的目标点。
 注意：goal-ned 用 NED 米（UE cm / 100，相对出生点）。
 """
 
@@ -27,7 +27,6 @@ from projectairsim import Drone, World
 import sys
 from pathlib import Path      # 引导块自足：不依赖上面的 import 顺序
 # 向上找 sim_config/ 来定位 airbase/ —— 与脚本放在第几层无关。
-# 原来写死 parents[2]，脚本一挪进子目录就指错，README 为此专门警告过「不要把脚本挪进子目录」。
 _AIRBASE_ROOT = next(p for p in Path(__file__).resolve().parents if (p / "sim_config").is_dir())
 _AIRBASE_SRC = _AIRBASE_ROOT / "src/airsim"
 # 跨分组 import（如 loop/servo_closed_loop → wm/decode_check）：各流程目录都挂上 sys.path
@@ -49,9 +48,9 @@ def parse_args():
     p.add_argument("--camera", default=DEFAULT_CAMERA)
     p.add_argument("--output", type=Path,
                    default=PROJECT_ROOT / "outputs/recordings/approach/approach_full.h5")
-    p.add_argument("--goal-ned", type=float, nargs=2, default=[42.3, 7.5],
+    p.add_argument("--goal-ned", type=float, nargs=2, required=True,
                    metavar=("N", "E"), help="目标水平 NED 坐标（米，UE cm/100）")
-    p.add_argument("--goal-alt", type=float, default=1.4,
+    p.add_argument("--goal-alt", type=float, required=True,
                    help="目标点离地高度（米，UE z cm/100），斜下降终点对准此高度")
     p.add_argument("--speed", type=float, default=1.2, help="接近速度 (m/s)")
     p.add_argument("--stop-dist", type=float, default=2.0, help="停在目标前多少米(3D)")

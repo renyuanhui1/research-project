@@ -3,7 +3,7 @@
 
 读取 plan_closed_loop.py --viz-dump 落盘的 step_*.npz，发布到 rviz：
   - /plan/markers  MarkerArray：候选动作轨迹束（按 cost 红→绿染色）、最优序列（粗绿线）、
-                   无人机（蓝球）、目标圆环（绿圈，位置用 --goal-ned/--goal-alt 指定）
+                   无人机（蓝球）
   - /plan/traj     Path：无人机已飞路径
   - /plan/view     Image：机载画面 + 指纹响应热力图叠加（红=响应强）——"它看到了什么"
 
@@ -11,7 +11,7 @@
 候选轨迹由动作序列（NED 速度指令）从当前位置积分得到（近似，不含动力学）。
 
 用法：
-  实时：闭环加 --viz-dump outputs/runs/mppi/run01，另开终端跑本节点（会跟播新文件）
+  实时：闭环加 --viz-dump airbase/outputs/runs/mppi/run01，另开终端跑本节点（会跟播新文件）
   回放：闭环跑完后再跑本节点即可，--rate 控制回放速度
   ros2 launch 一步到位：ros2 launch src/mpc/plan_viz.launch.py  (dump_dir:=...)
 """
@@ -136,8 +136,7 @@ class PlanVizNode(Node):
             phase = str(np.asarray(d['phase']).item())
             arr.markers.append(self.text_marker(
                 now, pos, f"{phase}  step {int(d['step'])}  peak={float(d['peak']):.3f}"))
-        elif 'samp_acts' in d.files:        # 规划(闭环)dump：画目标环/采样束/最优线/dist
-            arr.markers.append(self.goal_ring(now))
+        elif 'samp_acts' in d.files:        # 规划 dump：画采样束/最优线/dist
             arr.markers.append(self.samples_marker(now, pos, d['samp_acts'], d['samp_cost'], dt))
             arr.markers.append(self.best_marker(now, pos, d['act_best'], dt))
             arr.markers.append(self.text_marker(now, pos,
@@ -250,19 +249,6 @@ class PlanVizNode(Node):
         make(6, Marker.ARROW, (0.20, 0.6, 0.8),
              points=[origin, origin + 4.5 * forward])
         return markers
-
-    def goal_ring(self, stamp):
-        """目标圆环：竖直平面(法线朝 -N)上的圆。"""
-        gn, ge = self.args.goal_ned
-        alt, r = self.args.goal_alt, self.args.goal_radius
-        m = self._base(stamp, 'goal', 0, Marker.LINE_STRIP)
-        m.scale.x = 0.15
-        m.color = ColorRGBA(r=0.2, g=0.9, b=0.3, a=0.9)
-        # ENU：环平面法线朝北(+y)，圆在 x(东)-z(上) 平面展开
-        for th in np.linspace(0, 2 * np.pi, 40):
-            m.points.append(Point(x=float(ge + r * np.cos(th)), y=float(gn),
-                                  z=float(alt + r * np.sin(th))))
-        return m
 
     def crossing_marker(self, stamp, center_ned, radius, altitude):
         """协调交叉区：位于协调高度平面的橙色圆环。"""
@@ -403,7 +389,7 @@ class PlanVizNode(Node):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument('--dump-dir', default=str(PROJECT_ROOT / 'outputs/runs/mppi/run01'))
+    ap.add_argument('--dump-dir', default=str(PROJECT_ROOT / 'airbase/outputs/runs/mppi/run01'))
     ap.add_argument('--prefix-dump', default=None,
                     help='可选前置回放目录；播完后继续 --dump-dir（多机协调阶段使用）')
     ap.add_argument('--node-name', default='plan_viz')
@@ -411,9 +397,6 @@ def main():
     ap.add_argument('--drone-color', type=float, nargs=3, default=[0.2, 0.5, 1.0],
                     metavar=('R', 'G', 'B'))
     ap.add_argument('--rate', type=float, default=5.0, help='回放速度（步/秒）')
-    ap.add_argument('--goal-ned', type=float, nargs=2, default=[42.3, 7.5])
-    ap.add_argument('--goal-alt', type=float, default=14.0)
-    ap.add_argument('--goal-radius', type=float, default=4.0)
     ap.add_argument('--map-voxel', type=float, default=0.15,
                     help='建图点云体素去重尺寸(米)，越大越稀越省')
     args = ap.parse_args()

@@ -25,13 +25,23 @@ import torch.nn.functional as F
 import sys
 from pathlib import Path      # 引导块自足：不依赖上面的 import 顺序
 # 向上找 sim_config/ 来定位 airbase/ —— 与脚本放在第几层无关。
-# 原来写死 parents[2]，脚本一挪进子目录就指错，README 为此专门警告过「不要把脚本挪进子目录」。
 _AIRBASE_ROOT = next(p for p in Path(__file__).resolve().parents if (p / "sim_config").is_dir())
 _AIRBASE_SRC = _AIRBASE_ROOT / "src/airsim"
 # 跨分组 import（如 loop/servo_closed_loop → wm/decode_check）：各流程目录都挂上 sys.path
 sys.path[:0] = [str(_AIRBASE_SRC)] + [str(d) for d in _AIRBASE_SRC.iterdir()
                                       if d.is_dir() and not d.name.startswith(("_", "."))]
 PROJECT_ROOT = _AIRBASE_ROOT
+
+
+def record_path(value):
+    """按当前场景根目录查找运行记录中的文件路径。"""
+    path = Path(value)
+    if path.is_absolute() and not path.exists() and PROJECT_ROOT.name in path.parts:
+        index = path.parts.index(PROJECT_ROOT.name)
+        candidate = PROJECT_ROOT.joinpath(*path.parts[index + 1:])
+        if candidate.exists():
+            return candidate
+    return path
 
 
 def encode_all(model, rgb, size, mean, std, dev, bs=32):
@@ -77,6 +87,8 @@ def main():
             mass_peak = None
         tmpl = a.template or f.attrs.get("template")
         stats = a.stats_episode or f.attrs.get("stats_episode")
+    tmpl = record_path(tmpl)
+    stats = record_path(stats)
     print(f"run.h5: {len(rgb)} 帧  模板={tmpl}  stats={stats}")
 
     mean = torch.tensor(IMAGENET_MEAN, device=dev).view(1, 3, 1, 1)
