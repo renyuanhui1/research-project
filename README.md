@@ -13,7 +13,7 @@
 | `reports/` | 实验索引、分析与验证报告 |
 | `logs/` | 未归属具体试验的客户端日志 |
 | `third_party/` | ProjectAirSim客户端及DINOv2源码 |
-| `docs/` | 架构、运行、场景切换和可视化说明 |
+| `docs/` | 架构说明与使用手册 |
 | `tests/` | 离线回归检查 |
 
 ## 环境
@@ -32,15 +32,14 @@ ROS2/RViz使用系统Python及ROS环境；仿真、视觉计算使用`airsim`环
 
 ## 运行
 
-[运行说明](docs/RUNNING.md)给出模板准备、实时抵近和日志保存命令；[可视化说明](docs/VISUALIZATION.md)给出地图与回放命令。
+[使用手册](docs/USAGE.md)提供模板准备、实时抵近、场景切换和RViz显示命令，PX4使用方法放在附录。
 
 当前场景档案为[configs/scenes/airport.json](configs/scenes/airport.json)，任务参数为[configs/missions/airport_approach.json](configs/missions/airport_approach.json)。默认任务为100米水平起点、相机下俯30°、水平速度上限3米/秒、4米深度停车。模板准备使用已知几何布置采集和起点；正式闭环速度根据图像与深度计算，地图用于显示。
 
 ## 文档
 
 - [架构与数据流](docs/ARCHITECTURE.md)
-- [场景配置与切换](docs/SCENES.md)
+- [使用手册](docs/USAGE.md)
 - [代码入口索引](src/README.md)
 - [实验结果与记录索引](reports/EXPERIMENTS.md)
-- [PX4接口](docs/PX4.md)
-- [相关研究](docs/RELATED_WORK.md)
+- [相关研究](reports/RELATED_WORK.md)

@@ -415,7 +415,7 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('--dump-dir', required=True)
     ap.add_argument('--prefix-dump', default=None,
-                    help='可选前置回放目录；播完后继续 --dump-dir（多机协调阶段使用）')
+                    help='可选前置回放目录；播完后继续 --dump-dir')
     ap.add_argument('--node-name', default='plan_viz')
     ap.add_argument('--topic-prefix', default='')
     ap.add_argument('--drone-color', type=float, nargs=3, default=[0.2, 0.5, 1.0],

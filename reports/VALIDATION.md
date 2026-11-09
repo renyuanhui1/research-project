@@ -15,7 +15,7 @@
 | 机翼预检 | 保存记录仍为近、近景部位校验失败；不记作抵近成功 |
 | ROS地图 | 3张OccupancyGrid及MarkerArray可发布；背景38,224、近目标9,055、远目标8,970个体素 |
 | ROS回放 | 从机场记录读取3帧，图像、标记和3个位姿轨迹正常发布 |
-| Launch | 单机、多机启动文件可加载参数 |
+| Launch | 回放启动文件可加载参数 |
 | 文档链接 | 主文档、实验索引及保留运行README的本地链接有效 |
 
 ## 复查
@@ -28,4 +28,4 @@ python src/capture/prepare_scene.py --profile airport --validate-only
 python src/control/run_approach.py --out-dir runs/approach/close4-1793954736186 --validate-only
 ```
 
-ROS入口和实时试验命令见[可视化说明](../docs/VISUALIZATION.md)及[运行说明](../docs/RUNNING.md)。UE编辑器内的几何导出脚本完成语法检查，须在对应关卡Play后执行。
+ROS入口和实时试验命令见[可视化说明](../docs/USAGE.md#rviz地图与匹配显示)及[运行说明](../docs/USAGE.md#实时抵近)。UE编辑器内的几何导出脚本完成语法检查，须在对应关卡Play后执行。

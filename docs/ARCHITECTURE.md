@@ -7,7 +7,7 @@
 | `src/common/` | 项目路径、场景档案、日志归档、图像解码与分割ID映射 |
 | `src/capture/` | 模板与起点准备、传感器采集、HDF5整理 |
 | `src/perception/` | 冻结DINO、模板原型、图像全局匹配与深度点云 |
-| `src/control/` | 单机抵近控制与可选多机控制 |
+| `src/control/` | 单机抵近控制 |
 | `src/debug/` | 传感器、目标对象、匹配与地图诊断 |
 | `src/debug/maps/` | UE几何导出、碰撞采样、网格转换及占用栅格生成 |
 | `src/evaluation/` | 位姿、包围盒及部位投影的离线评价 |
@@ -59,4 +59,8 @@ src/visualization/matching.launch.py
 - 机场运行HDF5含`pose_ned`、`action_body`和`t`；完整姿态保存在同目录`poses.json`。评价器同时识别带`pose`字段的采集格式。
 - `data/metadata/targets/*.h5`只含由机场网格推导的有向包围盒属性，用于离线评价。包围盒锚点是几何近似，不能代替真实部位表面距离。
 
-[场景切换](SCENES.md)说明哪些配置需要随UE关卡、目标和地图一起准备。
+[场景切换](USAGE.md#场景配置与切换)说明哪些配置需要随UE关卡、目标和地图一起准备。
+
+## 文档入口
+
+`docs/ARCHITECTURE.md`说明模块、数据流和坐标约定，`docs/USAGE.md`提供操作命令。`reports/`保存实验记录、验证结果和相关研究调研。
