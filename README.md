@@ -1,47 +1,46 @@
-# research-project — 机场无人机场景
+# 无人机视觉抵近研究
 
-`airbase/` 保存机场场景的代码、配置、模型和实验产物；`src/mpc/` 提供机场运行记录的 ROS2/RViz 回放。
+使用ProjectAirSim/UE机场场景，以冻结DINO模板匹配与深度测距驱动无人机抵近，并在ROS2/RViz中同步显示占用栅格、位置、轨迹和匹配画面。
 
-## 目录
-
-| 路径 | 用途 |
+| 目录 | 内容 |
 |---|---|
-| `airbase/src/airsim/` | 相机检查、采集、训练、评价和闭环入口 |
-| `airbase/sim_config/` | 机场单机、三机和 PX4 配置 |
-| `airbase/mission_config/` | 三机任务配置 |
-| `airbase/pictures/` | 机场目标模板图 |
-| `airbase/weights/` | 机场模型权重及训练曲线 |
-| `airbase/outputs/` | 机场数据集、特征、评价、地图和运行记录 |
-| `src/mpc/` | 单机、三机和体素地图可视化 |
-| `weights/dinov2_vits14_pretrain.pth` | 机场通过符号链接使用的冻结编码器权重 |
-| `dinov2/` | 本地 DINOv2 源码依赖 |
-| `ProjectAirSim/` | 仿真客户端与配置 schema 等上游依赖 |
-| `docs/ARCHITECTURE.md` | 模块边界、路径关系和数据流 |
+| `src/` | 采集、视觉感知、抵近控制、调试、评价、可视化与PX4代码 |
+| `configs/` | 场景档案、机器人传感器、任务参数和RViz配置 |
+| `data/` | 机场采集、目标模板、地图与目标几何元数据 |
+| `debug/` | 相机帧率、图像解码和匹配诊断结果 |
+| `weights/` | 预训练视觉编码器权重 |
+| `runs/` | 每次运行的配置、图像、录像、位姿和日志 |
+| `reports/` | 实验索引、分析与验证报告 |
+| `logs/` | 未归属具体试验的客户端日志 |
+| `third_party/` | ProjectAirSim客户端及DINOv2源码 |
+| `docs/` | 架构、运行、场景切换和可视化说明 |
+| `tests/` | 离线回归检查 |
 
-## 使用
+## 环境
+
+先将ProjectAirSim与DINOv2源码分别准备在`third_party/ProjectAirSim/`、`third_party/dinov2/`，将编码器权重放入`weights/`。本地数据、权重和引用项目独立保存，不随代码仓库自动分发。
 
 ```bash
+cd /home/hui/research-project
 conda env create -f environment.yml
 conda activate airsim
-cd airbase
-python src/airsim/wm/decode_check.py --help
+python -m pip install -e third_party/ProjectAirSim/client/python/projectairsim
+python src/capture/prepare_scene.py --profile airport --validate-only
 ```
 
-在线脚本需要 ProjectAirSim/UE 场景，UE 应保持前台 Play。运行时通过脚本参数设置服务地址。
-训练与离线模型评价需要具备 PyTorch、DINOv2 和相应权重的环境。
+ROS2/RViz使用系统Python及ROS环境；仿真、视觉计算使用`airsim`环境。
+
+## 运行
+
+[运行说明](docs/RUNNING.md)给出模板准备、实时抵近和日志保存命令；[可视化说明](docs/VISUALIZATION.md)给出地图与回放命令。
+
+当前场景档案为[configs/scenes/airport.json](configs/scenes/airport.json)，任务参数为[configs/missions/airport_approach.json](configs/missions/airport_approach.json)。默认任务为100米水平起点、相机下俯30°、水平速度上限3米/秒、4米深度停车。模板准备使用已知几何布置采集和起点；正式闭环速度根据图像与深度计算，地图用于显示。
 
 ## 文档
 
-- [机场配置与入口](airbase/README.md)
-- [脚本索引](airbase/src/airsim/README.md)
-- [架构说明](docs/ARCHITECTURE.md)
-- [可视化用法](src/README.md)
-- [PX4 联调](airbase/RUN_PX4.md)
-- [机场实验记录](airbase/EXPERIMENTS.md)
-- [相关研究](airbase/RELATED_WORK.md)
-
-## 本地资产
-
-数据和运行结果统一位于 `airbase/outputs/`，模型位于 `airbase/weights/`。
-冻结 DINOv2 权重通过 `airbase/weights/dinov2_vits14_pretrain.pth` 链接到根目录 `weights/`；
-`airbase/dinov2` 链接到根目录 `dinov2/`。迁移仓库时需同时准备这些本地依赖。
+- [架构与数据流](docs/ARCHITECTURE.md)
+- [场景配置与切换](docs/SCENES.md)
+- [代码入口索引](src/README.md)
+- [实验结果与记录索引](reports/EXPERIMENTS.md)
+- [PX4接口](docs/PX4.md)
+- [相关研究](docs/RELATED_WORK.md)

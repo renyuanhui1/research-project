@@ -1,0 +1,90 @@
+{
+  "name": "airport",
+  "simulator": {
+    "address": "172.21.192.1",
+    "scene": "configs/simulation/scene_airport.jsonc",
+    "robot": "configs/simulation/robot_quadrotor_fastphysics_sensors.jsonc",
+    "drone": "Drone1",
+    "camera": "FrontCamera"
+  },
+  "assets": {
+    "template": "data/templates/airport_7890/oblique/aircraft-template.png",
+    "stats_episode": "data/templates/airport_7890/oblique/stats-episode.h5",
+    "preparation_assets": "data/templates/airport_7890/nadir",
+    "dino_weights": "weights/dinov2_vits14_pretrain.pth",
+    "dino_repo": "third_party/dinov2",
+    "target_metadata": "data/metadata/targets"
+  },
+  "map": {
+    "root": "data/maps/airport_scene",
+    "actors": [
+      "StaticMeshActor_7890",
+      "StaticMeshActor_7888"
+    ],
+    "labels": {
+      "StaticMeshActor_7890": "f-35-无毁伤",
+      "StaticMeshActor_7888": "f14-无毁伤"
+    }
+  },
+  "target": {
+    "actor": "StaticMeshActor_7890",
+    "forward_axis_angle_deg": 90,
+    "segmentation_ids": {
+      "StaticMeshActor_7890": 200,
+      "StaticMeshActor_7888": 210
+    },
+    "segmentation_colors_bgr": {}
+  },
+  "parts": {
+    "nose": {
+      "radius_m": 3.5
+    },
+    "wing": {
+      "lateral_min_m": 4.5,
+      "longitudinal_min_m": -4.5,
+      "longitudinal_max_m": 1.5,
+      "min_altitude_m": 2.5,
+      "seed_longitudinal_m": -1.5,
+      "seed_lateral_m": 5.5,
+      "seed_altitude_m": 2.85,
+      "radius_m": 1.8
+    }
+  },
+  "preparation": {
+    "cruise_ned_m": [
+      0,
+      0,
+      -70
+    ],
+    "nadir_cruise_ned_m": [
+      0,
+      0,
+      -50
+    ],
+    "nadir_start_ned_m": [
+      120.0864,
+      -237.3084,
+      -30
+    ],
+    "calibration_distances_m": [
+      35,
+      8,
+      60
+    ]
+  },
+  "controller": {
+    "roi_switch_dist_m": 45,
+    "close_range_m": 12,
+    "close_speed_mps": 0.35,
+    "depth_guard_m": 2,
+    "close_altitude_guard_m": 5,
+    "altitude_guard_m": 8,
+    "nadir_altitude_guard_m": 14,
+    "max_altitude_m": 90
+  },
+  "mission": "configs/missions/airport_approach.json",
+  "editor": {
+    "export_name": "airport_scene_export",
+    "wsl_export_dir": "/mnt/c/Users/PC/AppData/Local/Temp/airport_scene_export"
+  }
+}

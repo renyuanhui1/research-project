@@ -1,0 +1,138 @@
+Panels:
+- Class: rviz_common/Displays
+  Help Height: 78
+  Name: Displays
+  Property Tree Widget:
+    Expanded:
+    - /Global Options1
+    Splitter Ratio: 0.5
+  Tree Height: 450
+- Class: rviz_common/Views
+  Name: Views
+Visualization Manager:
+  Class: ''
+  Displays:
+  - Class: rviz_default_plugins/MarkerArray
+    Enabled: false
+    Name: Plan Markers
+    Namespaces: {}
+    Topic:
+      Depth: 5
+      Durability Policy: Volatile
+      History Policy: Keep Last
+      Reliability Policy: Reliable
+      Value: /near_nose/plan/markers
+    Value: false
+  - Class: rviz_default_plugins/MarkerArray
+    Enabled: true
+    Name: Occupied Voxels (Aircraft 0.25m)
+    Namespaces: {}
+    Topic:
+      Depth: 1
+      Durability Policy: Transient Local
+      History Policy: Keep Last
+      Reliability Policy: Reliable
+      Value: /near_nose/map
+    Value: true
+  - Class: rviz_default_plugins/Map
+    Name: Global Occupancy Grid (5m)
+    Enabled: false
+    Value: false
+    Alpha: 0.8
+    Color Scheme: map
+    Draw Behind: true
+    Topic:
+      Depth: 1
+      Durability Policy: Transient Local
+      History Policy: Keep Last
+      Reliability Policy: Reliable
+      Value: /near_nose/grid/global
+  - Class: rviz_default_plugins/Map
+    Name: Near Aircraft Occupancy Grid (0.25m)
+    Enabled: false
+    Value: false
+    Alpha: 1
+    Color Scheme: map
+    Draw Behind: true
+    Topic:
+      Depth: 1
+      Durability Policy: Transient Local
+      History Policy: Keep Last
+      Reliability Policy: Reliable
+      Value: /near_nose/grid/StaticMeshActor_7890
+  - Alpha: 1
+    Buffer Length: 1
+    Class: rviz_default_plugins/Path
+    Color: 0; 170; 255
+    Enabled: false
+    Head Diameter: 0.3
+    Head Length: 0.2
+    Length: 0.3
+    Line Style: Lines
+    Line Width: 0.35
+    Name: Drone Traj
+    Offset:
+      X: 0
+      Y: 0
+      Z: 0
+    Pose Style: None
+    Radius: 0.03
+    Shaft Diameter: 0.1
+    Shaft Length: 0.1
+    Topic:
+      Depth: 5
+      Durability Policy: Volatile
+      History Policy: Keep Last
+      Reliability Policy: Reliable
+      Value: /near_nose/plan/traj
+    Value: false
+  Enabled: true
+  Global Options:
+    Background Color: 48; 48; 48
+    Fixed Frame: world
+    Frame Rate: 30
+  Name: root
+  Tools:
+  - Class: rviz_default_plugins/MoveCamera
+  - Class: rviz_default_plugins/Select
+  Value: true
+  Views:
+    Current:
+      Class: rviz_default_plugins/Orbit
+      Distance: 55
+      Focal Point:
+        X: -239.0
+        Y: 119.5
+        Z: 3.0
+      Name: Current View
+      Pitch: 0.85
+      Target Frame: <Fixed Frame>
+      Yaw: 4.4
+    Saved:
+    - Class: rviz_default_plugins/Orbit
+      Name: Airport Overview
+      Distance: 6500
+      Focal Point: {X: -169.4573, Y: 7.3948, Z: 0.0}
+      Pitch: 1.25
+      Yaw: 4.712389
+      Target Frame: <Fixed Frame>
+    - Class: rviz_default_plugins/Orbit
+      Name: Near Target Approach
+      Distance: 55
+      Focal Point: {X: -239.0, Y: 119.5, Z: 3.0}
+      Pitch: 0.85
+      Yaw: 4.4
+      Target Frame: <Fixed Frame>
+    - Class: rviz_default_plugins/Orbit
+      Name: Far Target Approach
+      Distance: 55
+      Focal Point: {X: 138.8, Y: 556.8, Z: 3.0}
+      Pitch: 0.85
+      Yaw: 4.4
+      Target Frame: <Fixed Frame>
+Window Geometry:
+  Displays:
+    collapsed: false
+  Height: 900
+  Width: 1400
+  Hidden: false

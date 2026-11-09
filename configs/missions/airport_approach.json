@@ -1,0 +1,9 @@
+{
+  "profile": "airport",
+  "mode": "oblique",
+  "target_part": "nose",
+  "start_distance": 100,
+  "speed": 3,
+  "camera_pitch": 30,
+  "stop_distance": 4
+}
