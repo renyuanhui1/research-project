@@ -16,6 +16,12 @@
 
 Python入口定位项目根目录，并只将`src/`加入搜索路径；跨模块使用`common`、`perception`、`control`等包导入。资产路径相对项目根目录解析，不依赖启动工作目录。`common/profiles.py`加载`--profile`或`UAV_SCENE_PROFILE`指定的JSON；默认使用`airport`。
 
+## 跨机器仿真连接
+
+WSL与服务器237均连接Windows主机178上的UE。两端`configs/scenes/airport.json`的`simulator.address`统一填写`192.168.31.178`；入口直接读取该字段，`--profile`和`UAV_SCENE_PROFILE`用于选择档案。运行时选择一端使用完整客户端，结束并断开后再切换另一端。
+
+ProjectAirSim通过TCP 8989传输相机等话题，通过TCP 8990处理服务请求。UE需在机场关卡进入Play；Windows入站规则允许来源`192.168.31.237`访问这两个端口。图像接收质量以实际独立帧率及日志为准。PX4还使用TCP 4560和UDP 14540/14588，飞控部署地址与链路需单独核验。
+
 ## 配置与数据流
 
 ```text
@@ -42,6 +48,8 @@ src/visualization/matching.launch.py
 ```
 
 参考点坐标用于采集准备与离线评价，正式抵近的速度不由目标坐标生成。无人机位姿还用于高度保护、轨迹显示与评价。地图提供空间对照，不参与当前速度控制或障碍规避。准备过程需核对UE目标变换与保存地图一致。
+
+地图显示由二维地面色块、背景碰撞体素和按高度着色的飞机表面体素组成。地图发布时先发送空命名空间的`DELETEALL`清除已有标记，再发送当前地图几何。
 
 ## 感知、控制与记录
 

@@ -66,3 +66,17 @@
 失败和中断记录保留其实际状态，不计入抵近成功；预检失败目录不应被当作已完成控制的录像试验。
 
 [项目入口与数据验证](VALIDATION.md)记录配置、资产及回放检查方法。
+
+## 2026-11-10：WSL与237连接178的UE仿真
+
+目的：验证178本机WSL与服务器237均可连接Windows主机178上的UE，运行时任选一端使用完整客户端。
+
+环境与参数：WSL地址`172.21.207.101`，服务器地址`192.168.31.237`，UE主机地址`192.168.31.178`，机场关卡Play；Windows WLAN使用公用网络配置。TCP测试使用`nc -zv -w 3`。Windows新增入站允许规则，限定本地地址178、远端地址237，TCP端口8989/8990/4560、UDP端口14540/14588；卡巴斯基设置未修改。
+
+方法：检查Windows监听与既有防火墙规则；新增来源限定的规则；短时临时监听器验证网络路径，关闭后检查真实UE监听；从WSL和237分别连接真实端口；将两端场景档案地址统一设为`192.168.31.178`，再检查JSON、资产路径及Git差异格式。
+
+结果：初始237对8989/8990的测试均超时，Windows也没有对应监听；既有AirSim RPC规则只覆盖TCP 41451。临时监听器测试两个端口均可连接。该测试与首次Play启动重叠，导致UE报告`Address in use`，该次仿真启动失败；关闭临时监听器并重新进入Play后，真实`UnrealEditor`进程35224监听8989/8990，地址显示`::`，WSL和237对两个端口的IPv4连接均成功。WSL经内部地址`172.21.192.1`访问这两个端口也成功。两端配置使用统一的LAN地址。
+
+结论：WSL与237到真实UE的网络均已连通，运行时可切换客户端所在机器，无需修改服务端绑定地址。未执行模板准备或飞行，未测量远程图像帧率；PX4仅添加Windows端口规则，未验证飞控链路，机器人PX4配置仍需按部署核对。237默认Python缺少cv2、h5py、numpy、commentjson和projectairsim，未安装依赖，也未执行prepare_scene.py的完整校验。
+
+日志与数据：[本机TCP连接日志](../debug/network/20261110-237-to-178/nc.log)、[Windows监听](../debug/network/20261110-237-to-178/windows-listeners.json)、[Windows规则](../debug/network/20261110-237-to-178/windows-firewall.json)、[放行脚本](../debug/network/20261110-237-to-178/allow-windows-inbound.ps1)、[UE端口占用日志](../debug/network/20261110-237-to-178/ue-bind-error.log)、[JSON与资产路径检查](../debug/network/20261110-237-to-178/validation.json)。

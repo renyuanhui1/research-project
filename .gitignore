@@ -24,3 +24,5 @@ __pycache__/
 /env/
 update.bundle
 session-report-*.html
+# Local workspace notes
+/research-project双向同步命令.md

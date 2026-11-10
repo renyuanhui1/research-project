@@ -36,7 +36,7 @@ class AirportMapNode(Node):
         self.grids = []
         self.frame_publisher = StaticTransformBroadcaster(self)
         stamp = self.get_clock().now().to_msg()
-        clear = self.base(stamp, 'clear', Marker.CUBE)
+        clear = self.base(stamp, '', Marker.CUBE)
         clear.action = Marker.DELETEALL
         markers = [clear]
         for info in report['maps']:
@@ -77,7 +77,7 @@ class AirportMapNode(Node):
         buildings.color = ColorRGBA(r=0.43, g=0.56, b=0.68, a=1.0)
         markers.append(buildings)
         self.point_counts = {'context': len(context)}
-        for index, target in enumerate(report['targets']):
+        for target in report['targets']:
             name = target['name']
             with np.load(root / (name + '_voxels.npz')) as data:
                 points = data['centers_enu_m']
@@ -89,15 +89,6 @@ class AirportMapNode(Node):
                 marker.colors.append(color)
             markers.append(marker)
             self.point_counts[name] = len(points)
-            label = self.base(stamp, 'target_labels', Marker.TEXT_VIEW_FACING)
-            label.id = index
-            center = (points.min(axis=0) + points.max(axis=0)) / 2
-            label.pose.position = Point(x=float(center[0]), y=float(center[1]),
-                                        z=float(points[:, 2].max() + 2.0))
-            label.scale.z = 1.5
-            label.color = ColorRGBA(r=1.0, g=0.85, b=0.25, a=1.0)
-            label.text = PROFILE['map']['labels'].get(name, name) + f' / {resolution:g} m'
-            markers.append(label)
         self.marker_array = MarkerArray(markers=markers)
         self.publisher.publish(self.marker_array)
         self.get_logger().info(
