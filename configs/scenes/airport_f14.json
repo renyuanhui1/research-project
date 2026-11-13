@@ -1,0 +1,102 @@
+{
+  "name": "airport_f14",
+  "simulator": {
+    "address": "192.168.31.178",
+    "scene": "configs/simulation/scene_airport.jsonc",
+    "robot": "configs/simulation/robot_quadrotor_fastphysics_sensors.jsonc",
+    "drone": "Drone1",
+    "camera": "FrontCamera"
+  },
+  "assets": {
+    "template": "data/templates/airport_7888/nadir/aircraft-template.png",
+    "stats_episode": "data/templates/airport_7888/nadir/stats-episode.h5",
+    "preparation_assets": "data/templates/airport_7888/nadir",
+    "dino_weights": "weights/dinov2_vits14_pretrain.pth",
+    "dino_repo": "third_party/dinov2",
+    "target_metadata": "data/metadata/targets"
+  },
+  "map": {
+    "root": "data/maps/airport_scene",
+    "actors": [
+      "StaticMeshActor_7890",
+      "StaticMeshActor_7888"
+    ],
+    "labels": {
+      "StaticMeshActor_7890": "f-35-无毁伤",
+      "StaticMeshActor_7888": "f14-无毁伤"
+    }
+  },
+  "target": {
+    "actor": "StaticMeshActor_7888",
+    "forward_axis_angle_deg": 90,
+    "segmentation_ids": {
+      "StaticMeshActor_7890": 200,
+      "StaticMeshActor_7888": 210
+    },
+    "segmentation_colors_bgr": {}
+  },
+  "parts": {
+    "nose": {
+      "radius_m": 2.2
+    },
+    "wing": {
+      "lateral_min_m": 4.5,
+      "longitudinal_min_m": -4.5,
+      "longitudinal_max_m": 1.5,
+      "min_altitude_m": 1.4,
+      "seed_longitudinal_m": -2.2,
+      "seed_lateral_m": 6.0,
+      "seed_altitude_m": 2.2,
+      "radius_m": 2.2
+    },
+    "tail": {
+      "description": "one vertical stabilizer on the positive lateral side",
+      "lateral_min_m": 1.0,
+      "lateral_max_m": 3.2,
+      "longitudinal_min_m": -9.0,
+      "longitudinal_max_m": -4.5,
+      "min_altitude_m": 3.8,
+      "max_altitude_m": 6.5,
+      "seed_longitudinal_m": -7.3,
+      "seed_lateral_m": 1.9,
+      "seed_altitude_m": 5.0,
+      "radius_m": 2.5
+    }
+  },
+  "preparation": {
+    "cruise_ned_m": [
+      0,
+      0,
+      -70
+    ],
+    "nadir_cruise_ned_m": [
+      0,
+      0,
+      -50
+    ],
+    "nadir_start_ned_m": [
+      120.0864,
+      -237.3084,
+      -30
+    ],
+    "calibration_distances_m": [
+      35,
+      8
+    ]
+  },
+  "controller": {
+    "roi_switch_dist_m": 45.0,
+    "close_range_m": 12,
+    "close_speed_mps": 0.35,
+    "depth_guard_m": 2,
+    "close_altitude_guard_m": 4.0,
+    "altitude_guard_m": 4.0,
+    "nadir_altitude_guard_m": 14,
+    "max_altitude_m": 90.0
+  },
+  "mission": "configs/missions/airport_f14_approach.json",
+  "editor": {
+    "export_name": "airport_scene_export",
+    "wsl_export_dir": "/mnt/c/Users/PC/AppData/Local/Temp/airport_scene_export"
+  }
+}

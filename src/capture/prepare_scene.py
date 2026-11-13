@@ -1,4 +1,4 @@
-import argparse,asyncio,copy,json,math,threading,time,sys,traceback
+import argparse,asyncio,copy,hashlib,json,math,threading,time,sys,traceback
 from pathlib import Path
 import cv2,commentjson,h5py,numpy as np
 from projectairsim import ProjectAirSimClient,World,Drone
@@ -9,12 +9,14 @@ from common.paths import PROJECT_ROOT, SIMULATION_DIR, project_path
 from common.profiles import load_profile, selected_profile, load_mission, scene_bundle
 from common.runtime import configure_client_log
 from common.sensors import decode_image
+from common.start_state import start_state_check
 def initialize(argv=None):
- global options, P, BASE, cfg, client, drone, latest, counts, arrivals, PROFILE
+ global options, P, BASE, cfg, client, drone, latest, counts, arrivals, PROFILE, mission
  PROFILE=selected_profile(argv);mission=load_mission(PROFILE)
  parser=argparse.ArgumentParser(description="Prepare templates and the controlled experiment start using known geometry")
  parser.add_argument('--profile',default=None)
  parser.add_argument('--mission',type=Path,default=None)
+ parser.add_argument('--address',default=None,help='Transport address override, saved in the run profile')
  preliminary,_=parser.parse_known_args(argv)
  if preliminary.mission:mission=load_mission(PROFILE,preliminary.mission)
  parser.add_argument('--out-dir',type=Path,default=PROJECT_ROOT/'runs/approach'/str(time.time_ns()))
@@ -25,13 +27,22 @@ def initialize(argv=None):
  for flag,key in [('start-distance','start_distance'),('speed','speed'),('camera-pitch','camera_pitch'),('stop-distance','stop_distance')]:
   parser.add_argument('--'+flag,type=float,default=mission[key])
  parser.add_argument('--target-part',choices=tuple(PROFILE['parts']),default=mission['target_part'])
+ parser.add_argument('--common-start',action='store_true',help='Use the shared mission pose and RGB reference for every part')
+ parser.add_argument('--reference-dir',type=Path,help='Shared reference directory; created once, then reused without modification')
  parser.add_argument('--validate-only',action='store_true',help="Validate configuration without connecting or writing a run")
  options=parser.parse_args(argv);P=options.out_dir.expanduser().resolve()
- if options.target_part=='wing' and not options.oblique:parser.error('Wing preparation requires --oblique')
+ if options.common_start:
+  if not options.oblique or 'common_start' not in mission or options.reference_dir is None:parser.error('common-start requires oblique mode, mission common_start and reference-dir')
+  options.reference_dir=options.reference_dir.expanduser().resolve()
+ if options.address:PROFILE['simulator']['address']=options.address
+ if options.target_part in ('wing','tail') and not options.oblique:parser.error('Wing/tail preparation requires --oblique')
  if options.oblique and not (30<=options.start_distance<=300 and 0<options.speed<=5 and 15<=options.camera_pitch<=50):parser.error('Invalid oblique distance/speed/pitch')
  if not 3<=options.stop_distance<=12:parser.error('Stop distance must be between 3 and 12 m')
  BASE=project_path(PROFILE['assets']['preparation_assets'])
  cfg=scene_bundle(PROFILE)
+ if options.common_start:
+  actor=next(a for a in cfg['actors'] if a['name']==PROFILE['simulator']['drone'])
+  start=mission['common_start'];actor['origin']={'xyz':'%s %s -1.0'%tuple(start['position_ned_m'][:2]),'rpy-deg':'0 0 '+str(start['yaw_deg'])}
  robot=next(a for a in cfg['actors'] if a['name']==PROFILE['simulator']['drone'])['robot-config']
  front=next(sensor for sensor in robot['sensors'] if sensor['id']==PROFILE['simulator']['camera'])
  front['origin']['rpy-deg']=f"0 {-options.camera_pitch if options.oblique else -90} 0"
@@ -41,7 +52,7 @@ def initialize(argv=None):
  for required in [BASE/'template.json',project_path(PROFILE['map']['root'])/'source/targets.json',project_path(PROFILE['map']['root'])/'meshes'/(PROFILE['target']['actor']+'.npz')]:
   if not required.is_file():raise FileNotFoundError(required)
  if options.validate_only:
-  print(json.dumps({'profile':PROFILE['name'],'output_dir':str(P),'target':PROFILE['target']['actor'],'mode':'oblique' if options.oblique else 'nadir','front_pitch_deg':front['origin']['rpy-deg'],'start_distance_m':options.start_distance,'speed_mps':options.speed,'stop_distance_m':options.stop_distance,'coordinate_preparation':True},indent=2));return False
+  print(json.dumps({'profile':PROFILE['name'],'output_dir':str(P),'target':PROFILE['target']['actor'],'mode':'oblique' if options.oblique else 'nadir','front_pitch_deg':front['origin']['rpy-deg'],'start_distance_m':options.start_distance,'speed_mps':options.speed,'stop_distance_m':options.stop_distance,'coordinate_preparation':True,'common_start':mission.get('common_start') if options.common_start else None},indent=2));return False
  if (P/'runtime-scene.json').exists() or (P/'run.h5').exists():raise RuntimeError('Use an empty output directory: '+str(P))
  P.mkdir(parents=True,exist_ok=True)
  (P/'runtime-scene.json').write_text(json.dumps(cfg,indent=2))
@@ -56,7 +67,14 @@ def cb(tag):
 async def call(label,fn):
  result=[];await asyncio.wait_for(await fn(lambda v:result.append(v)),65)
  pos=drone.get_ground_truth_kinematics()['pose']['position'];print(label,result,pos,flush=True)
-async def move(x,y,z,v):await call('move',lambda callback:drone.move_to_position_async(x,y,z,v,timeout_sec=55,callback=callback))
+async def move(x,y,z,v):
+ start=np.array([drone.get_ground_truth_kinematics()['pose']['position'][k] for k in ('x','y','z')]);goal=np.array([x,y,z],float)
+ count=max(1,int(np.ceil(np.linalg.norm(goal-start)/(v*25))))
+ for i in range(1,count+1):
+  point=start+(goal-start)*i/count
+  await call('move',lambda callback:drone.move_to_position_async(*map(float,point),v,timeout_sec=55,callback=callback))
+  actual=np.array([drone.get_ground_truth_kinematics()['pose']['position'][k] for k in ('x','y','z')])
+  if np.linalg.norm(actual-point)>2:raise RuntimeError('Preparation waypoint not reached')
 async def hover():await call('hover',lambda callback:drone.hover_async(callback=callback))
 def project(points,msg):
  w,x,y,z=[float(msg['rot_'+k]) for k in ('w','x','y','z')]
@@ -76,16 +94,19 @@ async def prepare_oblique(world):
  if not np.allclose(world.get_object_scale(PROFILE['target']['actor']),expected['scale'],atol=.01):raise RuntimeError('Target scale changed')
  with np.load(map_root/'meshes'/(PROFILE['target']['actor']+'.npz')) as data:vertices=data['vertices_enu'][:,[1,0,2]].copy();vertices[:,2]*=-1
  reference=np.array(json.loads((BASE/'template.json').read_text())['reference_ned_m'])
- if options.target_part=='wing':
+ if options.target_part in ('wing','tail'):
   origin=np.array([pose['translation'][k] for k in ('x','y','z')]);lateral=np.array([-direction[1],direction[0]])
   longitudinal=(vertices[:,:2]-origin[:2])@direction;side=(vertices[:,:2]-origin[:2])@lateral
-  part=PROFILE['parts']['wing']
+  part=PROFILE['parts'][options.target_part]
   wing=(side>=part['lateral_min_m'])&(longitudinal>part['longitudinal_min_m'])&(longitudinal<part['longitudinal_max_m'])&(-vertices[:,2]>part['min_altitude_m'])
-  if wing.sum()<10:raise RuntimeError('Verified main-wing region missing from mesh')
+  if 'lateral_max_m' in part:wing &= side<=part['lateral_max_m']
+  if 'max_altitude_m' in part:wing &= -vertices[:,2]<part['max_altitude_m']
+  if wing.sum()<10:raise RuntimeError('Configured wing/tail region missing from mesh')
   seed=np.r_[origin[:2]+part['seed_longitudinal_m']*direction+part['seed_lateral_m']*lateral,-part['seed_altitude_m']]
   candidates=vertices[wing];reference=candidates[np.linalg.norm(candidates-seed,axis=1).argmin()]
   near=wing&(np.linalg.norm(vertices-reference,axis=1)<=part['radius_m'])
-  direction=lateral;heading=math.atan2(-direction[1],-direction[0])
+  direction=-direction if part.get('approach_axis')=='rear' else lateral
+  heading=math.atan2(-direction[1],-direction[0])
  else:near=np.linalg.norm(vertices-reference,axis=1)<=PROFILE['parts']['nose']['radius_m']
  if near.sum()<10:raise RuntimeError('Target-part reference missing from mesh')
  with np.load(map_root/'grids/context_voxels.npz') as data:obstacles=data['centers_enu_m']
@@ -133,6 +154,95 @@ async def prepare_oblique(world):
  if options.stop_distance<8:setup.update(close_range_m=PROFILE['controller']['close_range_m'],close_speed_mps=PROFILE['controller']['close_speed_mps'],depth_guard_m=PROFILE['controller']['depth_guard_m'])
  setup['start_ned_m']=waypoint(options.start_distance).tolist();setup['reference_ned_m']=reference.tolist()
  (P/'controller-setup.json').write_text(json.dumps(setup,indent=2));print('OBLIQUE_READY',setup,flush=True)
+def common_part_regions(vertices, pose):
+ origin=np.array([pose['translation'][k] for k in ('x','y','z')]);q=pose['rotation']
+ yaw=math.atan2(2*(q['w']*q['z']+q['x']*q['y']),1-2*(q['y']**2+q['z']**2))+math.radians(PROFILE['target']['forward_axis_angle_deg'])
+ forward=np.array([math.cos(yaw),math.sin(yaw)]);lateral=np.array([-forward[1],forward[0]])
+ longitudinal=(vertices[:,:2]-origin[:2])@forward;side=(vertices[:,:2]-origin[:2])@lateral
+ result={}
+ for name,part in PROFILE['parts'].items():
+  if name=='nose':
+   reference=np.array(json.loads((BASE/'template.json').read_text())['reference_ned_m']);mask=np.ones(len(vertices),bool)
+  else:
+   mask=(side>=part['lateral_min_m'])&(longitudinal>part['longitudinal_min_m'])&(longitudinal<part['longitudinal_max_m'])&(-vertices[:,2]>part['min_altitude_m'])
+   if 'lateral_max_m' in part:mask &= side<=part['lateral_max_m']
+   if 'max_altitude_m' in part:mask &= -vertices[:,2]<part['max_altitude_m']
+   seed=np.r_[origin[:2]+part['seed_longitudinal_m']*forward+part['seed_lateral_m']*lateral,-part['seed_altitude_m']]
+   candidates=vertices[mask]
+   if not len(candidates):raise RuntimeError('Part region missing: '+name)
+   reference=candidates[np.linalg.norm(candidates-seed,axis=1).argmin()]
+  mask &= np.linalg.norm(vertices-reference,axis=1)<=part['radius_m']
+  if mask.sum()<10:raise RuntimeError('Part region too small: '+name)
+  result[name]=(reference,mask)
+ return result
+
+async def settle_common_start():
+ expected=mission['common_start'];goal=np.array(expected['position_ned_m']);yaw=math.radians(expected['yaw_deg'])
+ await move(*goal,2);await hover()
+ await call('common_yaw',lambda callback:drone.rotate_to_yaw_async(yaw,timeout_sec=20,margin=math.radians(.2),callback=callback))
+ deadline=time.monotonic()+30;stable=0
+ while time.monotonic()<deadline:
+  kin=drone.get_ground_truth_kinematics();check=start_state_check(kin,expected)
+  stable=stable+1 if check['passed'] and check['position_error_m']<.15 else 0
+  if stable>=5:break
+  pos=np.array([kin['pose']['position'][k] for k in ('x','y','z')]);velocity=np.clip((goal-pos)*.7,-.5,.5)
+  await asyncio.wait_for(await drone.move_by_velocity_async(*map(float,velocity),duration=.2,yaw_is_rate=False,yaw=yaw),3)
+ else:raise RuntimeError('Common start did not settle: '+json.dumps(check))
+ await hover();await asyncio.sleep(2)
+ check=start_state_check(drone.get_ground_truth_kinematics(),expected)
+ (P/'start-state.json').write_text(json.dumps(check,indent=2))
+ if not check['passed']:raise RuntimeError('Common start outside tolerance: '+json.dumps(check))
+ print('COMMON_START',json.dumps(check),flush=True)
+
+async def prepare_common(world):
+ shared=options.reference_dir;manifest=shared/'template.json'
+ pose=world.get_object_pose(PROFILE['target']['actor']);map_root=project_path(PROFILE['map']['root'])
+ expected=next(t for t in json.loads((map_root/'source/targets.json').read_text()) if t['name']==PROFILE['target']['actor'])
+ if np.linalg.norm(np.array([pose['translation'][k] for k in ('x','y','z')])-np.array(expected['location_cm'])*[.01,.01,-.01])>.25:raise RuntimeError('Target moved relative to saved map')
+ if not np.allclose(world.get_object_scale(PROFILE['target']['actor']),expected['scale'],atol=.01):raise RuntimeError('Target scale changed')
+ await settle_common_start()
+ for tag,cam,key in (('front','FrontCamera','scene_camera'),('depth','FrontCamera','depth_camera'),('chase','Chase','scene_camera')):client.subscribe(drone.sensors[cam][key],cb(tag))
+ await asyncio.sleep(3)
+ frames=[];last=-1;deadline=time.monotonic()+10
+ while len(frames)<6 and time.monotonic()<deadline:
+  msg=latest.get('front')
+  if msg is not None and int(msg['time_stamp'])!=last:
+   last=int(msg['time_stamp']);frames.append(decode_image(msg)[0])
+  await asyncio.sleep(.15)
+ if len(frames)<6:raise RuntimeError('Missing common-start RGB frames')
+ with np.load(map_root/'meshes'/(PROFILE['target']['actor']+'.npz')) as data:vertices=data['vertices_enu'][:,[1,0,2]].copy();vertices[:,2]*=-1
+ regions=common_part_regions(vertices,pose);pixels=project(vertices,msg);lo=pixels.min(0);hi=pixels.max(0)
+ checks={'start_rgb':frames[-1]}
+ for name,(_,mask) in regions.items():
+  uv=project(vertices[mask],msg);box=np.r_[uv.min(0),uv.max(0)]
+  if np.any(box[:2]<0) or np.any(box[2:]>[msg['width'],msg['height']]):raise RuntimeError('Part outside common initial image: '+name)
+  checks[name+'_bbox']=box/[msg['width'],msg['height'],msg['width'],msg['height']]*2-1
+ if manifest.exists():
+  meta=json.loads(manifest.read_text())
+  if meta['target_actor']!=PROFILE['target']['actor'] or meta['common_start']!=mission['common_start'] or meta['camera_pitch_deg']!=options.camera_pitch:raise RuntimeError('Shared reference configuration mismatch')
+  if meta['runtime_scene_sha256']!=hashlib.sha256((P/'runtime-scene.json').read_bytes()).hexdigest():raise RuntimeError('Shared reference runtime scene mismatch')
+ else:
+  if shared.exists() and any(shared.iterdir()):raise RuntimeError('Incomplete shared reference; preserve it and choose a new directory')
+  shared.mkdir(parents=True,exist_ok=True)
+  pad=np.maximum((hi-lo)*.05,4);low=np.floor(np.maximum(lo-pad,0)).astype(int);high=np.ceil(np.minimum(hi+pad,[msg['width'],msg['height']])).astype(int)
+  crop=frames[-1][low[1]:high[1],low[0]:high[0]];cv2.imwrite(str(shared/'aircraft-template.png'),crop[:,:,::-1]);cv2.imwrite(str(shared/'reference-front.png'),frames[-1][:,:,::-1])
+  with h5py.File(shared/'stats-episode.h5','w') as f:f.create_dataset('rgb',data=np.stack([cv2.resize(im,(448,252)) for im in frames]),compression='gzip')
+  meta={'target_actor':PROFILE['target']['actor'],'common_start':mission['common_start'],'camera_pitch_deg':options.camera_pitch,'reference_role':'fixed development reference; geometry for preparation and evaluation only','crop_xyxy':np.r_[low,high].tolist(),'runtime_scene_sha256':hashlib.sha256((P/'runtime-scene.json').read_bytes()).hexdigest(),'parts':{},'reference_camera_metadata':{k:v for k,v in msg.items() if k!='data'}}
+  annotated=frames[-1][:,:,::-1].copy()
+  for name,(reference,mask) in regions.items():
+   uv=project(vertices[mask],msg);a,b=uv.min(0),uv.max(0);roi=np.r_[np.clip((a-low)/(high-low),0,1),np.clip((b-low)/(high-low),0,1)]
+   meta['parts'][name]={'reference_ned_m':reference.tolist(),'template_roi':roi.tolist(),'part_mesh_vertex_count':int(mask.sum())}
+   cv2.rectangle(annotated,tuple(a.astype(int)),tuple(b.astype(int)),(0,255,255),2);cv2.putText(annotated,name,tuple(a.astype(int)-[0,5]),cv2.FONT_HERSHEY_SIMPLEX,.6,(0,255,255),2)
+  cv2.imwrite(str(shared/'template-location.png'),annotated)
+  np.savez_compressed(shared/'validation-frames.npz',**checks)
+  manifest.write_text(json.dumps(meta,indent=2))
+ hashes={name:hashlib.sha256((shared/name).read_bytes()).hexdigest() for name in ('aircraft-template.png','stats-episode.h5','template.json')}
+ selected=meta['parts'][options.target_part]
+ (P/'template.json').write_text(json.dumps(dict(selected,target_part=options.target_part,shared_reference=str(shared)),indent=2))
+ np.savez_compressed(P/'validation-frames.npz',**checks);cv2.imwrite(str(P/'start-front.png'),frames[-1][:,:,::-1])
+ setup={'profile':PROFILE['name'],'target_actor':PROFILE['target']['actor'],'mode':'oblique','target_part':options.target_part,'common_start':mission['common_start'],'shared_reference':str(shared),'shared_asset_sha256':hashes,'reference_ned_m':selected['reference_ned_m'],'start_ned_m':mission['common_start']['position_ned_m'],'camera_pitch_deg':options.camera_pitch,'v_forward':options.speed,'v_down':options.speed*math.tan(math.radians(options.camera_pitch)),'slow_dist':35.,'stop_dist':options.stop_distance,'altitude_guard_m':PROFILE['controller']['close_altitude_guard_m'],'max_altitude_m':PROFILE['controller']['max_altitude_m'],'template_roi':selected['template_roi'],'roi_switch_dist':0,'close_range_m':PROFILE['controller']['close_range_m'],'close_speed_mps':PROFILE['controller']['close_speed_mps'],'depth_guard_m':PROFILE['controller']['depth_guard_m']}
+ (P/'controller-setup.json').write_text(json.dumps(setup,indent=2));print('COMMON_READY',json.dumps(setup),flush=True)
+
 async def run_preparation():
  global drone
  client.connect();client.socket_services.recv_timeout=65000;client.socket_topics.recv_buffer_size=32
@@ -143,6 +253,9 @@ async def run_preparation():
  if not drone.is_api_control_enabled():assert drone.enable_api_control()
  assert drone.arm()
  await call('takeoff',lambda callback:drone.takeoff_async(callback=callback))
+ if options.common_start:
+  await prepare_common(w)
+  return
  if options.oblique:
   await prepare_oblique(w)
   return

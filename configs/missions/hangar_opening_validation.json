@@ -1,0 +1,19 @@
+{
+  "name": "hangar_2019_central_opening",
+  "reference_image": "data/captures/hangar_2019/20261111-150412-overhead/overhead.png",
+  "reference_depth": "data/captures/hangar_2019/20261111-150412-overhead/depth.npy",
+  "template_crop_xyxy": [805, 350, 1230, 750],
+  "opening_polygon_xy": [[984, 404], [1015, 449], [1093, 419], [1116, 449], [1167, 454], [1150, 504], [1183, 547], [1135, 584], [1149, 622], [1117, 648], [1137, 694], [1090, 670], [1055, 684], [1015, 667], [964, 679], [910, 662], [898, 628], [856, 608], [895, 565], [871, 497], [946, 464], [950, 424]],
+  "annotation_role": "Manual approximate outline for reference-image diagnostics only; not a free-space mask or passage point",
+  "image_size": 448,
+  "softmax_temperature": 0.005,
+  "min_spatial_dino_score": 0.4,
+  "refine_crop_fraction": 0.6,
+  "frames": [
+    {"name": "reference_101m", "image": "data/captures/hangar_2019/20261111-150412-overhead/overhead.png", "depth": "data/captures/hangar_2019/20261111-150412-overhead/depth.npy", "role": "reference_self_check"},
+    {"name": "above_entry_35m", "image": "runs/indoor/20261111-160335-hangar2019/above-entry-down.png", "depth": "runs/indoor/20261111-160335-hangar2019/above-entry-depth.npy", "role": "independent_capture_partial_opening"},
+    {"name": "entry_25m", "image": "runs/indoor/20261111-160335-hangar2019/entry-25m-down.png", "depth": "runs/indoor/20261111-160335-hangar2019/entry-25m-depth.npy", "role": "transition_diagnostic"},
+    {"name": "entry_22m", "image": "runs/indoor/20261111-160335-hangar2019/entry-22m-down.png", "depth": "runs/indoor/20261111-160335-hangar2019/entry-22m-depth.npy", "role": "transition_diagnostic"},
+    {"name": "interior_14m", "image": "runs/indoor/20261111-160335-hangar2019/interior-14m-down.png", "depth": "runs/indoor/20261111-160335-hangar2019/interior-14m-depth.npy", "role": "post_entry_diagnostic_not_full_opening_tracking"}
+  ]
+}

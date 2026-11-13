@@ -1,5 +1,5 @@
 """按本次部位配置执行俯视或斜俯视抵近，实时导出RViz帧并录制双路1080p。"""
-import argparse,asyncio,collections,csv,json,math,sys,threading,time,traceback
+import argparse,asyncio,collections,csv,hashlib,json,math,sys,threading,time,traceback
 from pathlib import Path
 import cv2,h5py,numpy as np,torch
 from projectairsim import ProjectAirSimClient,World,Drone
@@ -10,13 +10,19 @@ from common.paths import PROJECT_ROOT, SIMULATION_DIR, project_path
 from common.profiles import load_profile, selected_profile, load_mission, scene_bundle
 from common.runtime import configure_client_log
 from control import servo_closed_loop as sc
+from common.start_state import start_state_check
+from perception.part_matching import CroppedPartMatcher
 def initialize(argv=None):
- global OUT, VDIR, BASE, setup, target_part, oblique, assets, cfg, meta, ref, args, PROFILE, options
+ global OUT, VDIR, BASE, setup, target_part, oblique, assets, cfg, meta, ref, args, PROFILE, options, common_start
  parser=argparse.ArgumentParser(description=__doc__)
  parser.add_argument('--profile',default=None)
  parser.add_argument('--out-dir',type=Path,required=True,help="Prepared run directory")
  parser.add_argument('--validate-only',action='store_true',help="Run recorded matching preflight without simulator connection")
+ parser.add_argument('--preflight-selected-part-only',action='store_true',help='Common-start experiment: require reference and start matching for the selected part; retain all part diagnostics')
+ parser.add_argument('--thin-roi-refinement',action='store_true',help='Use overlap-weighted context and bounded image registration for empty center-selected reference ROIs')
+ parser.add_argument('--max-duration',type=float,default=600.,help='Control time limit in seconds; stop and hover on expiry')
  options=parser.parse_args(argv);OUT=options.out_dir.expanduser().resolve();VDIR=OUT/'viz_dump'
+ if not math.isfinite(options.max_duration) or not 1<=options.max_duration<=1800:parser.error('max-duration must be finite and within [1,1800]')
  snapshot=OUT/'scene-profile.json'
  PROFILE=load_profile(options.profile) if options.profile or not snapshot.exists() else json.loads(snapshot.read_text())
  if any((OUT/name).exists() for name in ('run.h5','report.json','front.mp4','chase.mp4')) and not options.validate_only:
@@ -25,40 +31,83 @@ def initialize(argv=None):
  BASE=project_path(PROFILE['assets']['preparation_assets'])
  setup=json.loads((OUT/'controller-setup.json').read_text())
  if setup.get('target_actor',PROFILE['target']['actor'])!=PROFILE['target']['actor']:raise RuntimeError('Run target disagrees with scene profile')
- target_part=setup.get('target_part','nose');oblique=setup.get('mode')=='oblique';assets=OUT if oblique else BASE
+ target_part=setup.get('target_part','nose');oblique=setup.get('mode')=='oblique';common_start='common_start' in setup;assets=Path(setup['shared_reference']) if common_start else (OUT if oblique else BASE)
+ if options.preflight_selected_part_only and not common_start:parser.error('selected-part preflight requires a common-start experiment')
+ if options.thin_roi_refinement and not common_start:parser.error('thin ROI refinement requires a common-start experiment')
  cfg=json.loads((OUT/'runtime-scene.json').read_text());meta=json.loads((assets/'template.json').read_text());ref=np.array(meta['reference_ned_m']) if meta.get('reference_ned_m') is not None else None
+ if common_start:
+  for name,expected in setup['shared_asset_sha256'].items():
+   if hashlib.sha256((assets/name).read_bytes()).hexdigest()!=expected:raise RuntimeError('Shared reference changed: '+name)
+  ref=np.array(meta['parts'][target_part]['reference_ned_m'])
  camera=next(s for a in cfg['actors'] if a['name']==PROFILE['simulator']['drone'] for s in a['robot-config']['sensors'] if s['id']==PROFILE['simulator']['camera'])
  if abs(float(camera['origin']['rpy-deg'].split()[1])-(-setup['camera_pitch_deg'] if oblique else -90.))>.1:
   raise RuntimeError('Camera pitch and controller mode disagree; use the same --out-dir for preparation and control')
  controller_argv=['--address',PROFILE['simulator']['address'],'--template',str(assets/('aircraft-template.png' if oblique else 'nose-template.png')),'--stats-episode',str(assets/'stats-episode.h5'),'--repo-dir',str(project_path(PROFILE['assets']['dino_repo'])),'--dino-weights',str(project_path(PROFILE['assets']['dino_weights'])),'--no-seg-depth','--image-size','448','--target-softmax-temp','0.005','--stop-dist',str(setup.get('stop_dist',12)),'--slow-dist',str(setup.get('slow_dist',25)),'--v-forward',str(setup.get('v_forward',.5)),'--v-down',str(setup.get('v_down',.5)),'--k-xy','1','--center-gate','0.25','--lost-forward','0','--control-min-peak','0.2','--dist-min-peak','0.2','--target',PROFILE['target']['actor'],'--max-steps','0']
- if oblique:controller_argv+=['--template-roi',*map(str,setup['template_roi']),'--roi-switch-dist',str(setup['roi_switch_dist'])]
- else:controller_argv+=['--nadir']
+ if oblique and not common_start:controller_argv+=['--template-roi',*map(str,setup['template_roi']),'--roi-switch-dist',str(setup['roi_switch_dist'])]
+ if not oblique:controller_argv+=['--nadir']
  args=sc.parse_args(controller_argv)
+ if options.thin_roi_refinement:
+  args.thin_roi_refinement=True;args.local_refinement_min_score=.85;args.local_refinement_min_margin=.15
  if not options.validate_only:VDIR.mkdir(parents=True,exist_ok=True);configure_client_log(OUT)
 class SmallBatchFingerprint(sc.Fingerprint):
  def _encode(self,rgb,bs=2):return super()._encode(rgb,bs=2)
+def common_preflight_passed(validation,selected_part=None,min_peak=.2):
+ checks=[v for v in validation if selected_part is None or v['part']==selected_part]
+ return bool(checks) and {v['frame'] for v in checks}=={'reference','start'} and all(np.isfinite(v['peak']) and v['peak']>=min_peak and v['inside'] for v in checks)
+def refined_depth_half_width(part_wh,rgb_wh,depth_wh):
+ footprint=np.asarray(part_wh,float)*np.asarray(depth_wh)/np.asarray(rgb_wh)
+ return max(0,min(4,int(np.floor(float(footprint.min())/4))))
 def matching_preflight():
  global fp
  torch.set_num_threads(2);cv2.setNumThreads(1)
- fp=SmallBatchFingerprint(args,'cuda')
+ fp=CroppedPartMatcher(args,'cuda',{k:v['template_roi'] for k,v in meta['parts'].items()},target_part) if common_start else SmallBatchFingerprint(args,'cuda')
  torch.cuda.empty_cache()
+ if common_start:
+  validation=[]
+  for source,path in [('reference',assets/'validation-frames.npz'),('start',OUT/'validation-frames.npz')]:
+   with np.load(path) as checks:
+    rgb=checks['start_rgb'];results=fp.query_all(rgb);annotated=rgb[:,:,::-1].copy()
+    for name,(cx,cy,mass,peak,sim) in results.items():
+     box=checks[name+'_bbox'];tolerance=0. if fp.reference_sampling[name]=='overlap_context_local_registration' else .02
+     inside=bool(box[0]-tolerance<=cx<=box[2]+tolerance and box[1]-tolerance<=cy<=box[3]+tolerance)
+     diagnostic=fp.last_diagnostics.get(name,{})
+     validation.append({'frame':source,'part':name,'cx':cx,'cy':cy,'peak':peak,'expected_bbox':box.tolist(),'bbox_tolerance':tolerance,'inside':inside,'crop_xyxy':fp.last_diagnostics['crop_xyxy'],'reference_patch_count':fp.reference_patch_counts[name],'reference_center_patch_count':fp.reference_center_patch_counts[name],'reference_sampling':fp.reference_sampling[name],'refinement':diagnostic.get('refinement'),'failure_reason':'no_reference_patches' if fp.reference_patch_counts[name]==0 else diagnostic.get('failure_reason')})
+     if peak>=args.control_min_peak:
+      point=(round((cx+1)*rgb.shape[1]/2),round((cy+1)*rgb.shape[0]/2));color=(0,255,0) if inside else (0,0,255);cv2.drawMarker(annotated,point,color,cv2.MARKER_CROSS,20,2);cv2.putText(annotated,name,(point[0]+8,point[1]-8),cv2.FONT_HERSHEY_SIMPLEX,.6,color,2)
+     else:cv2.putText(annotated,name+': unavailable',(20,35+25*list(results).index(name)),cv2.FONT_HERSHEY_SIMPLEX,.6,(0,0,255),2)
+    if not options.validate_only:cv2.imwrite(str(OUT/('matching-'+source+'.png')),annotated)
+  if not options.validate_only:(OUT/'matching-preflight.json').write_text(json.dumps(validation,indent=2))
+  print('MATCHING_PREFLIGHT',json.dumps(validation),flush=True)
+  selected=target_part if options.preflight_selected_part_only else None
+  print('PREFLIGHT_SCOPE',selected or 'all_parts',flush=True)
+  if not common_preflight_passed(validation,selected,args.control_min_peak):raise RuntimeError('Common-start part matching failed; no flight commands sent')
+  return
  if oblique:
   validation=[]
   with np.load(OUT/'validation-frames.npz') as checks:
    for name,roi in [('far',False),('near',True)]+([('close',True)] if 'close_rgb' in checks.files else []):
-    cx,cy,mass,peak,sim=fp.query(checks[name+'_rgb'],use_roi=roi);box=checks[name+'_bbox'];tolerance=.02 if roi and target_part=='wing' else .1;inside=bool(box[0]-tolerance<=cx<=box[2]+tolerance and box[1]-tolerance<=cy<=box[3]+tolerance)
+    cx,cy,mass,peak,sim=fp.query(checks[name+'_rgb'],use_roi=roi);box=checks[name+'_bbox'];tolerance=.02 if roi and target_part in ('wing','tail') else .1;inside=bool(box[0]-tolerance<=cx<=box[2]+tolerance and box[1]-tolerance<=cy<=box[3]+tolerance)
     validation.append({'frame':name,'use_roi':roi,'cx':cx,'cy':cy,'peak':peak,'expected_bbox':box.tolist(),'bbox_tolerance':tolerance,'inside':inside})
   if not options.validate_only:(OUT/'matching-preflight.json').write_text(json.dumps(validation,indent=2))
   print('MATCHING_PREFLIGHT',json.dumps(validation),flush=True)
   if not all(v['peak']>=args.control_min_peak and v['inside'] for v in validation):raise RuntimeError('Oblique matching validation failed; drone remains hovering')
-def write_viz_step(directory,row,pose,rgb,sim):
+def write_viz_step(directory,row,pose,rgb,sim,diagnostics=None):
  q=pose['orientation'];yaw=math.atan2(2*(q['w']*q['z']+q['x']*q['y']),1-2*(q['y']**2+q['z']**2))
  image=cv2.resize(rgb,(512,288)).copy()
  u=round((row['cx']+1)*.5*511);v=round((row['cy']+1)*.5*287)
  cv2.drawMarker(image,(u,v),(0,255,0),cv2.MARKER_CROSS,11,1)
+ extra={}
+ if diagnostics and diagnostics.get('crop_xyxy') is not None:
+  box=diagnostics['crop_xyxy'];x0,y0,x1,y1=box
+  extra={'crop_xyxy':box,'crop_rgb':rgb[y0:y1,x0:x1],'crop_similarity':diagnostics[target_part]['local_similarity'],'target_part':target_part,'whole_peak':diagnostics['whole_peak']}
+  if 'refinement' in diagnostics.get(target_part,{}):
+   refined=diagnostics[target_part]['refinement']
+   extra.update(point_source='local_image_registration',coarse_dino_center=diagnostics[target_part]['coarse_center'],refinement_score=refined['score'],refinement_margin=refined['margin'],refinement_accepted=refined['accepted'],raw_match_center=[row['raw_cx'],row['raw_cy']])
+  scale=np.array([512/rgb.shape[1],288/rgb.shape[0]]);a=np.rint(np.array(box[:2])*scale).astype(int);b=np.rint(np.array(box[2:])*scale).astype(int)
+  cv2.rectangle(image,tuple(a),tuple(b),(255,255,0),1);cv2.putText(image,target_part,(12,20),cv2.FONT_HERSHEY_SIMPLEX,.5,(0,255,255),1)
  destination=directory/('step_%04d.npz'%row['step']);temporary=destination.with_suffix('.tmp')
  with temporary.open('wb') as f:
-  np.savez_compressed(f,step=row['step'],pose=np.array([row['north'],row['east'],row['down'],yaw]),rgb=image,sim=np.asarray(sim,np.float32),grid=int(round(math.sqrt(np.asarray(sim).size))),dt=.2,phase=row['state'],peak=row['peak'],cx=row['cx'],cy=row['cy'],depth_m=row['depth_m'],t=row['time_s'])
+  np.savez_compressed(f,step=row['step'],pose=np.array([row['north'],row['east'],row['down'],yaw]),rgb=image,sim=np.asarray(sim,np.float32),grid=int(round(math.sqrt(np.asarray(sim).size))),dt=.2,phase=row['state'],peak=row['peak'],cx=row['cx'],cy=row['cy'],depth_m=row['depth_m'],t=row['time_s'],**extra)
  temporary.replace(destination)
 def bgr(m):
  a=np.frombuffer(m['data'],np.uint8).reshape(m['height'],m['width'],-1)[:,:,:3]
@@ -139,14 +188,19 @@ async def run_control():
  while not all(k in latest for k in ('front','depth','chase')) and time.monotonic()<deadline:await asyncio.sleep(.05)
  if not all(k in latest for k in ('front','depth','chase')):raise RuntimeError('missing sensor images')
  await asyncio.sleep(2)
+ if common_start:
+  report['start_state']=start_state_check(drone.get_ground_truth_kinematics(),setup['common_start'])
+  report.update(common_start=setup['common_start'],shared_asset_sha256=setup['shared_asset_sha256'],matching='whole_aircraft_then_RGB_crop_part',selected_part_active_from_first_command=True)
+  if not report['start_state']['passed']:raise RuntimeError('Actual control start outside shared tolerance')
  collision_baseline=int(latest.get('collision',{}).get('time_stamp',0))
  start=time.monotonic()+.2
  for rec in recorders.values():rec.launch(start)
  report['recording_start_monotonic']=start
  report.update(mode='oblique' if oblique else 'nadir',setup=setup,altitude_guard_m=setup.get('altitude_guard_m',14))
- filtered={k:None for k in ('cx','cy','dist')};last=-1;lastdepth=-1;contact=0;aligned=0;lost=0;step=0;pending=[];roi_active=False;roi_hits=0;previous_cmd=np.zeros(3);previous_tick=time.monotonic()
+ filtered={k:None for k in ('cx','cy','dist')};last=-1;lastdepth=-1;contact=0;aligned=0;lost=0;step=0;pending=[];roi_active=common_start;roi_hits=0;previous_cmd=np.zeros(3);previous_tick=time.monotonic()
  while True:
   tick=time.monotonic();deadline=tick+3;matched=None
+  if tick-start>=options.max_duration:reason='duration_limit';break
   while time.monotonic()<deadline:
    with lock:
     rgb_cache=buffers.get('front',{});depth_cache=buffers.get('depth',{})
@@ -158,10 +212,18 @@ async def run_control():
    if matched is not None:break
    await asyncio.sleep(.005)
   if matched is None:reason='synchronized_image_timeout';break
+  perception_start=time.monotonic()
   last=matched;rgb=sc.decode_image(m)[0];cx,cy,mass,peak,sim=fp.query(rgb,use_roi=roi_active)
+  perception_duration=time.monotonic()-perception_start
+  if options.thin_roi_refinement and perception_duration>.75:
+   report['perception_overrun_s']=perception_duration;reason='perception_overrun';break
   for k,val in (('cx',cx),('cy',cy)):filtered[k]=sc.ema_update(filtered[k],val,.3)
   xf,yf=filtered['cx'],filtered['cy'];locked=peak>=.2;lost=0 if locked else lost+1
-  dist=sc.sample_depth(dm,xf,yf,half=4) if locked else None
+  depth_cx,depth_cy,depth_half=xf,yf,4
+  diagnostic=fp.last_diagnostics.get(target_part,{}) if common_start else {}
+  if diagnostic.get('refinement',{}).get('accepted'):
+   depth_cx,depth_cy=cx,cy;depth_half=refined_depth_half_width(diagnostic['refined_part_wh_px'],[m['width'],m['height']],[dm['width'],dm['height']])
+  dist=sc.sample_depth(dm,depth_cx,depth_cy,half=depth_half) if locked else None
   if dist is not None:filtered['dist']=sc.ema_update(filtered['dist'],dist,.5)
   df=filtered['dist'] if dist is not None else None
   kin=drone.get_ground_truth_kinematics();pos=kin['pose']['position'];alt=-pos['z'];distance=None if ref is None else float(np.linalg.norm(ref-np.array([pos[k] for k in ('x','y','z')])))
@@ -199,8 +261,12 @@ async def run_control():
   elif alt>setup.get('max_altitude_m',40):stop='unexpected_altitude'
   row={'step':step,'time_s':time.monotonic()-start,'north':pos['x'],'east':pos['y'],'down':pos['z'],'cx':xf,'cy':yf,'peak':peak,'depth_m':-1 if df is None else df,'forward':f,'right':r,'down_speed':d,'reference_distance_m':distance,'rgb_timestamp':last,'depth_timestamp':depthts,'sensor_skew_ms':abs(last-depthts)/1e6,'contact_count':contact,'state':state}
   row.update(yaw_rate=yaw_rate,roi_active=roi_active,guard_depth_m=guard_depth)
+  if common_start:
+   row.update(crop_xyxy=fp.last_diagnostics['crop_xyxy'],whole_peak=fp.last_diagnostics['whole_peak'])
+  if options.thin_roi_refinement:
+   row.update(raw_cx=cx,raw_cy=cy,point_source=diagnostic.get('point_source','dino_center'),refinement=diagnostic.get('refinement'),coarse_dino_center=diagnostic.get('coarse_center'),depth_target_cx=depth_cx,depth_target_cy=depth_cy,depth_sample_half=depth_half,perception_duration_s=perception_duration)
   rows.append(row);rgbs.append(cv2.resize(rgb,(448,252)));poses.append(kin['pose']);sims.append(sim)
-  write_viz_step(VDIR,row,kin['pose'],rgb,sim)
+  write_viz_step(VDIR,row,kin['pose'],rgb,sim,fp.last_diagnostics if common_start else None)
   if step%20==0 or stop:print('STEP',step,state,'alt',round(alt,2),'depth',None if df is None else round(df,2),'center',[round(xf,3),round(yf,3)],'reference',None if distance is None else round(distance,2),'confirm',contact,flush=True)
   if any(rec.error for rec in recorders.values()):raise RuntimeError('recording thread failed')
   if stop:reason=stop;break
@@ -226,6 +292,11 @@ def main(argv=None):
  recorders={k:Recorder(k) for k in ('front','chase')}
  c=ProjectAirSimClient(address=args.address);drone=None;latest={};buffers={};lock=threading.Lock();rows=[];rgbs=[];poses=[];sims=[]
  report={'status':'started','output_dir':str(OUT),'live_viz_dump':str(VDIR),'map_used_for_control':False,'max_steps':None,'max_duration_s':None,'camera_capture_interval_s':.0167,'distance_stop_m':args.stop_dist,'stop_confirm_frames':3,'altitude_guard_m':14,'reference_used_for_control':False,'online_segmentation':False,'depth_resolution':[640,360],'source_configuration_modified':False,'transport_address':args.address,'max_sensor_skew_s':.25,'topic_receive_buffer_messages':32}
+ report['max_duration_s']=options.max_duration
+ report['matching_preflight_scope']=target_part if options.preflight_selected_part_only else 'all_parts'
+ report['thin_roi_refinement']=options.thin_roi_refinement
+ if options.thin_roi_refinement:
+  report.update(refinement_min_score=.85,refinement_min_margin=.15,max_perception_duration_s=.75,refined_point_depth_sampling='raw registered anchor; neighborhood limited by registered part size')
  try:asyncio.run(run_control())
  except BaseException as e:report['status']='failed';report['error']=repr(e);traceback.print_exc()
  finally:
@@ -251,6 +322,6 @@ def main(argv=None):
   report['controller_args']={k:str(v) if isinstance(v,Path) else v for k,v in vars(args).items()}
   (OUT/'report.json').write_text(json.dumps(report,indent=2))
   print('REPORT',json.dumps({k:v for k,v in report.items() if k not in ('controller_args','final_state')}),flush=True)
- return 0 if report['status']=='completed' else 1
+ return 0 if report['status']=='completed' and report.get('arrival_confirmed') else 1
 
 if __name__=='__main__':raise SystemExit(main())

@@ -1,0 +1,17 @@
+{
+  "profile": "airport_f14",
+  "mode": "oblique",
+  "target_part": "nose",
+  "start_distance": 60,
+  "speed": 1.5,
+  "camera_pitch": 35,
+  "stop_distance": 6,
+  "common_start": {
+    "position_ned_m": [516.8, 144.9, -32.0],
+    "yaw_deg": -8.557166931696203,
+    "position_tolerance_m": 0.35,
+    "yaw_tolerance_deg": 0.75,
+    "speed_tolerance_mps": 0.08,
+    "tilt_tolerance_deg": 1.0
+  }
+}

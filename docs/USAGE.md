@@ -69,6 +69,35 @@ python src/control/run_approach.py --out-dir runs/approach/close4-1793954736186 
 
 地图用于空间对照；参考点用于准备与评价，闭环不从目标坐标生成速度。4米指相机深度阈值，并不自动等于到指定部位表面的4米。
 
+### 同一F-14起点抵近不同部位
+
+在任务配置`configs/missions/airport_f14_approach.json`的`common_start`中指定共同位置、航向和实际状态容差。三次试验分别重载场景并回到此起点，共用35度下俯相机、整机模板和统计数据。先确认UE机场场景、目标变换及当前无人机状态；准备命令会重载无人机并起飞。使用独立的空会话目录保留本轮全部数据。
+
+```bash
+session_dir="$PWD/runs/approach/my-common-start"
+part=nose  # 分别使用 nose、wing、tail；tail为配置的一侧垂尾
+python src/capture/prepare_scene.py --profile airport_f14 --address 172.21.192.1 \
+  --common-start --reference-dir "$session_dir/reference" \
+  --target-part "$part" --out-dir "$session_dir/$part"
+python src/control/run_approach.py --out-dir "$session_dir/$part" --validate-only
+python src/control/run_approach.py --out-dir "$session_dir/$part" --max-duration 180
+python src/evaluation/eval_part_approach.py --run-dir "$session_dir/$part"
+```
+
+首次准备创建`reference/`，后两项复用该目录。准备时所有部位须同时在初始画面内；匹配预检要求同一画面上的三个响应中心各自落在对应区域。预检失败不启动抵近；实际起点位置、朝向、速度或倾斜超限也拒绝运行。`--validate-only`不连接UE。一次控制和终点采图结束后再准备下一部位，不同时连接多个完整传感器客户端。
+
+`start-state.json`和控制报告中的`start_state`分别记录准备及正式起点；`shared_asset_sha256`用于核对共用输入。`matching-reference.png`和`matching-start.png`显示三个部位的预检落点；`viz_dump/step_*.npz`包含`crop_rgb`、`crop_xyxy`、`crop_similarity`和`target_part`，可展示从整机响应到部位响应的计算过程。终点核验见`evaluation/part-surface-validation.json`与`part-validation.png`；使用同一评价命令追加`--offline`可复核保存数据。
+
+从不同视角分别试验部位时，可在离线检查及正式控制命令中显式追加`--preflight-selected-part-only`。它仍输出三个部位的结果，只要求本次所选部位在参考图和本次起始图上通过；失败部位不启动抵近。使用`--mission <本轮任务JSON>`向准备入口指定独立的共同起点，保留原始任务配置和参考来源。控制报告会记录预检范围，不能将所选部位通过写成三个部位全部通过。
+
+为每个起始观察方向准备对应视角的固定模板，三种部位共用该组参考图；参考采集与控制起始帧分别记录。检查预检中的`reference_patch_count`：若为0，该部位在当前模板特征网格上无法建立原型，`failure_reason`为`no_reference_patches`，不会执行抵近。该情况与已经建立原型但起始图匹配错误分别记录。
+
+窄ROI没有覆盖格子中心时，在离线预检和控制两条命令中均追加`--thin-roi-refinement`。该选项自动补一格上下文，按交叠面积生成DINO候选，再以固定原图局部配准精修落点；原始部位框不扩大，预检精修点须落在框内。相关分数低于0.85、竞争峰差低于0.15时停止运动，感知耗时超过0.75秒退出并悬停。默认全部部位预检仍适用，需要单独评价时再追加`--preflight-selected-part-only`。
+
+查看`reference_center_patch_count`与`reference_patch_count`可分别核对中心选格数和实际参与数。`control-signals.json`保存`point_source`、`refinement`、`coarse_dino_center`、未滤波匹配点和深度取样位置；`viz_dump`也保存点来源与配准分数。此模式的尾翼落点来自局部配准，DINO热力图只显示候选响应。深度取样邻域随注册部位尺寸限制，避免窄目标被周围背景深度淹没。终点评价照常运行，结果包含实际匹配点来源。
+
+终点评价默认重新初始化匹配器。核验窄ROI的连续跟踪时，先保留这项结果，再使用`eval_part_approach.py --run-dir <目录> --offline --continue-tracking`，以最后接受的控制帧配准状态初始化，对已独立采集的终点图像重新匹配。输出的`matching_initialization`和`tracking_seed`区分重新截获与延续跟踪；延续通过不能代表近景重新截获通过。
+
 ## 场景配置与切换
 
 `configs/scenes/airport.json`描述当前机场的连接地址、目标Actor、地图、模板、权重和准备几何。`configs/simulation/`定义ProjectAirSim的无人机、相机、传感器与时钟；`configs/missions/airport_approach.json`定义本次任务的距离、速度、俯角、部位和停车深度。
@@ -146,7 +175,48 @@ ros2 launch src/visualization/matching.launch.py profile:=airport replay:=true d
 
 地图节点同时发布标准OccupancyGrid和批量等值行段色块。色块直接表达每格状态，避免索引贴图着色器问题。地图话题使用TRANSIENT_LOCAL，后启动的订阅者也能读取。
 
+### 洞口匹配与入室记录回放
+
+在项目根目录使用ROS2系统Python运行。该入口读取本地记录，不需要UE；`--export-only`只生成回放包。启动洞口离线匹配展示：
+
+```bash
+source /opt/ros/humble/setup.bash
+/usr/bin/python3 src/visualization/opening_replay.py --mode matching --rviz
+```
+
+先以Ctrl+C停止当前回放，再将`--mode`改为`entry`可显示坐标引导入室的真实轨迹和阶段照片。两种模式使用同组`/opening/`话题，不能同时在同一ROS域发布。`--rate`表示每秒播放的保存样本数量，不是相机帧率；匹配模式默认0.5，入室模式默认8。
+
+点云为9组开发RGB-D的投影结果；灰点为采集位姿，蓝球为当前回放位姿，青点及连线为离线投影空隙参考，不代表飞过的轨迹或三维净空。入室模式只回放已有4组照片，持帧期间显示照片时间差。窗口不添加目标名称或分辨率浮动标注。每种模式的`rviz/`目录保存manifest、点云及验证记录。
+
+回放实时水平对准时，使用`alignment`模式并指定控制目录；以下以2倍速度循环播放全部保存观测，窗口同时显示实际轨迹、RGB-D点云和对应匹配画面：
+
+```bash
+source /opt/ros/humble/setup.bash
+/usr/bin/python3 src/visualization/opening_replay.py --mode alignment \
+  --flight-dir runs/opening-alignment/20261112-hangar2019/control \
+  --speed 2 --rviz
+```
+
+该模式按控制记录中的时间间隔播放，`--speed 1`为原记录速度，循环末暂停2秒；传`--rate`可改为按索引播放。点云从本次飞行每10组RGB-D及末帧生成，位姿和图像保留全部记录；它是保存深度与仿真相机位姿的投影，不是实时SLAM。回放包位于控制目录的`rviz/`，包含manifest、点云、窗口配置及验证结果。停止其他`/opening/`发布进程后再运行。
+
 ### 匹配热力图的显示与解读
+
+机库飞行的飞机风格展示可先在`airsim`环境离线生成，再使用ROS系统Python播放：
+
+```bash
+python src/visualization/render_opening_features.py \
+  --run-dir runs/opening-entry/20261112-hangar2019/control \
+  --out-dir runs/opening-entry/20261112-hangar2019/control/rviz/feature-view
+source /opt/ros/humble/setup.bash
+/usr/bin/python3 src/visualization/opening_replay.py --mode alignment \
+  --flight-dir runs/opening-entry/20261112-hangar2019/control \
+  --feature-view-dir runs/opening-entry/20261112-hangar2019/control/rviz/feature-view \
+  --speed 2 --image-window --rviz
+```
+
+生成入口要求空输出目录；已有完整展示目录时直接运行播放命令。机库展示中，红色是DINO空间patch相似度的相对响应，绿色大十字是控制准星，密集绿色小点是RGB-D跟踪角点。小点包含关键帧刷新后新提取的特征，不等于全部已通过匹配的内点。红色强度经峰值归一化增强可见性，不是识别置信度或分割结果；绿色准星也不是红色峰值。界面标注`RECOMPUTED RESPONSE`，表示特征由保存图像离线重建，原轨迹及控制指令保持不变。
+
+以下`heatmap_mode`参数和`CONTROL WEIGHTS`说明适用于飞机抵近回放：
 
 启动参数`heatmap_mode`默认`control`，可改为`similarity`。对保存的原始余弦相似度`s_i`：
 
@@ -158,6 +228,144 @@ ros2 launch src/visualization/matching.launch.py profile:=airport replay:=true d
 平方根只影响显示强度，不参与控制。绿色十字是实际控制使用的中心，经系数0.3指数滤波，绘制在叠色之后。红区缩小不说明部位定位更准确；两种热力图均不是部位分割掩膜，softmax权重也不是校准后的识别置信度。
 
 原始响应位于`run.h5`的`similarity`和`viz_dump/step_*.npz`的`sim`。回放直接读取记录，不重跑DINO。核对其他试验时需使用对应控制温度。
+
+## 洞口匹配开发验证
+
+固定参考图、模板裁剪框和开发图像清单位于`configs/missions/hangar_opening_validation.json`。离线入口生成模板、参考图统计HDF5、逐图匹配及总览，不连接UE：
+
+```bash
+python src/evaluation/eval_opening_matching.py \
+  --out-dir runs/opening-validation/<id>
+```
+
+补采独立开发序列时，在机场场景进入Play。该入口要求当前没有Drone1，随后加载机器人，从出生点按已知目标坐标采集100、80、65、55、45米及65米横向偏移视图；结束在屋顶上方悬停。它不执行视觉抵近或入室：
+
+```bash
+python src/capture/collect_opening_views.py --profile airport \
+  --out-dir data/captures/hangar_2019/<id>
+```
+
+本机WSL可按网络情况显式传`--address 172.21.192.1`。离线验证追加该批数据时，传`--capture-dir data/captures/hangar_2019/<id>`并使用新的空输出目录。开发图不能作为独立测试集统计成功率。绿色准星为DINO响应中心，红色为softmax相对权重，均不表示可通行区域；当前输出不作为实飞放行依据。
+
+增加`--depth-geometry`可比较深度候选加空间DINO排序，输出`*-geometry.png`及`geometry-overview.png`。灰框为其他候选，黄框为最高分候选，绿色为其当前可见深层射线区域，青色准星为投影空隙建议点。`min_spatial_dino_score`是开发阈值，不是校准置信度；弱匹配不显示建议点。该图不证明完整三维通道可以穿越，查询帧仍需独立标注和后续飞行验证。
+
+## 洞口实时水平对准
+
+在机场UE场景进入Play，先核对已有无人机状态。当前没有Drone1时，可准备坐标引导的65米高起点；入口发现已有Drone1会拒绝重载：
+
+```bash
+python src/capture/collect_opening_views.py --profile airport \
+  --address 172.21.192.1 --alignment-start-only \
+  --out-dir runs/opening-alignment/<id>/preparation
+```
+
+用该准备目录的`runtime-scene.json`描述当前无人机。先运行观察模式，记录实时RGB-D、DINO候选及拟发速度，不发送飞行指令：
+
+```bash
+python src/control/run_opening_alignment.py --profile airport \
+  --address 172.21.192.1 \
+  --runtime-scene runs/opening-alignment/<id>/preparation/runtime-scene.json \
+  --out-dir runs/opening-alignment/<id>/observation
+```
+
+在另一空目录运行带`--execute`的同一入口可执行水平对准：
+
+```bash
+python src/control/run_opening_alignment.py --profile airport \
+  --address 172.21.192.1 \
+  --runtime-scene runs/opening-alignment/<id>/preparation/runtime-scene.json \
+  --out-dir runs/opening-alignment/<id>/control --execute
+```
+
+入口要求无人机已经在空中并启用API控制，保持初始高度。每次水平速度脉冲后悬停并重新取图；弱匹配、失锁、过期图像、目标跳变及高度异常停止。`--max-duration`限制为1—240秒。默认观察8组独立RGB-D，可用`--observe-frames`调整。
+
+`frames/`保存原始图、深度和匹配诊断，`signals.jsonl`记录候选、图像误差、拟发速度及指令结果，`report.json`记录停止原因、初末状态和保护参数。对准确认只适用于该实验设定，不代表三维净空或穿越成功。原生相机话题只允许一个完整客户端，准备、观察和控制按顺序运行。
+
+## 洞口视觉抵近与入室
+
+使用已准备好的空中无人机及相机配置快照，传`--enter --execute`执行完整流程。入口在水平对准后核验RGB-D采样通道，初始化视觉锚点，再分段下降、穿越洞口并在内部悬停采图：
+
+```bash
+python src/control/run_opening_alignment.py --profile airport \
+  --address 172.21.192.1 \
+  --runtime-scene runs/opening-entry/<id>/preparation/runtime-scene.json \
+  --out-dir runs/opening-entry/<id>/control --enter --execute
+```
+
+起点准备使用前述`collect_opening_views.py --alignment-start-only`，将输出目录设为`runs/opening-entry/<id>/preparation`。`--enter`模式时限默认900秒，可用`--max-duration`缩短。省略`--execute`可只观察；省略`--enter`只做定高对准。已有Drone1时先核对其状态，不能直接重新运行准备入口。
+
+三维通道检查使用保存和当前深度的自由射线，视觉跟踪、深度或通道条件不满足会停止并悬停。该流程假设场景静止，相机近盲区和已出视野的包络依赖此前观测，不能据此宣称动态避障。`report.json`中的`entered=true`表示完成内部悬停确认；`interior-observation.png`保存内部观察图。`signals.jsonl`分别保存视觉进度、实际位姿、通道检查与指令，便于区分视觉控制和独立安全保护。
+
+完整视觉入室记录沿用控制回放格式，保留实际下降轨迹及原时间间隔；RGB-D交接后显示当时原始图像及状态：
+
+```bash
+source /opt/ros/humble/setup.bash
+/usr/bin/python3 src/visualization/opening_replay.py --mode alignment \
+  --flight-dir runs/opening-entry/20261112-hangar2019/control --speed 4 --rviz
+```
+
+## 斜俯视抵近与入室
+
+在UE机场场景进入Play后，准备侧上方起点。镜头向下70度，默认按屋面高度计算水平偏移；准备阶段使用目标包围盒坐标，正式控制依据实时RGB-D：
+
+```bash
+python src/capture/collect_opening_views.py --profile airport \
+  --address 172.21.192.1 --alignment-start-only --camera-down-angle 70 \
+  --start-offset-ne -23 0 \
+  --out-dir runs/opening-entry/<id>/preparation
+```
+
+若当前已有Drone1，默认拒绝重载。明确需要重新准备仿真实验时追加`--reset-scene`，入口先记录当前状态再重载；`--start-offset-ne N E`可指定相对于目标包围盒中心的水平起点偏移。
+
+先观察8组独立输入，核对DINO匹配、相机实际朝向及拟发控制，不发送飞行指令：
+
+```bash
+python src/control/run_opening_alignment.py --profile airport \
+  --address 172.21.192.1 --enter --oblique \
+  --runtime-scene runs/opening-entry/<id>/preparation/runtime-scene.json \
+  --out-dir runs/opening-entry/<id>/observation
+```
+
+观察满足条件后执行斜向抵近，前进与下降同时进行，进入后确认悬停并采图：
+
+```bash
+python src/control/run_opening_alignment.py --profile airport \
+  --address 172.21.192.1 --enter --oblique --execute \
+  --runtime-scene runs/opening-entry/<id>/preparation/runtime-scene.json \
+  --out-dir runs/opening-entry/<id>/control
+```
+
+斜向入室要求近似水平屋面，并核验包含整机扫掠范围的采样通道；相机角度与路径角度分别记录。水平速度上限0.25米/秒，下降随路径斜率协调限速，近屋面上限0.35米/秒。光轴附近距离小于5米、视觉失锁、未知通道或深度异常都会停止。70度在合成视野检查中可完整覆盖指定包络，实际场景仍须通过实时检查；角度更浅时可能因包络出视野被拒绝。
+
+洞口上下文接近图像边缘、最小边界余量降至8%或更少时，当前帧DINO与RGB-D几何一致性仍须通过，再交接给RGB-D跟踪；到估计屋面25米也会交接。`dino_handoff`记录实际触发原因。该视角与起点偏移属于开发参数，观察失败时先核对记录，再决定是否重新布置起点。
+
+`report.json`记录`oblique`、交接洞口位置、路径倾角和实际完成状态。`signals.jsonl`记录视觉路径横向误差、下行进度和路径前视点；`render_opening_features.py`与`opening_replay.py`支持这些记录。未完成内部悬停确认的执行不报告成功。
+
+本轮斜向入室记录的响应与轨迹回放：
+
+```bash
+source /opt/ros/humble/setup.bash
+/usr/bin/python3 src/visualization/opening_replay.py --mode alignment \
+  --flight-dir runs/opening-entry/20261112-oblique-hangar2019/control \
+  --feature-view-dir runs/opening-entry/20261112-oblique-hangar2019/control/rviz/feature-view \
+  --speed 4 --image-window --rviz
+```
+
+## F-14机头、主翼与垂尾
+
+目标配置为`airport_f14`，Actor为`StaticMeshActor_7888`。`nose`选择机头，`wing`选择一侧主翼，`tail`选择同侧垂尾。每个部位分别准备与归档；准备阶段重载机器人、按已知坐标采集模板并布置起点，控制阶段根据DINO与深度抵近。
+
+```bash
+python src/capture/prepare_scene.py --profile airport_f14 \
+  --address 172.21.192.1 --target-part nose \
+  --out-dir runs/approach/<id>/nose
+python src/control/run_approach.py --out-dir runs/approach/<id>/nose \
+  --max-duration 600
+```
+
+机翼、垂尾分别把`nose`换成`wing`、`tail`，准备和控制使用同一个部位目录。控制省略`--profile`时读取该目录已保存的场景和实际传输地址。默认35度下俯、60米水平起点、远段前向速度1.5米/秒、6米深度停车，12米内合速度上限0.35米/秒；停车深度与到所选部位表面的距离分别评价。
+
+准备后可先用`run_approach.py --out-dir <部位目录> --validate-only`离线核对远景、35米视角和8米视角的模板落点。预检失败先核查`matching-preflight.json`、模板ROI与校验图；对应部位的视觉控制须全部通过预检再开始。`report.json`保存实际停止原因和到达确认，`front.mp4`、`chase.mp4`及`viz_dump/`用于录像和DINO匹配展示。
 
 ## 附录：PX4接口
 
