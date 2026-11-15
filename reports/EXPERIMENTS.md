@@ -355,7 +355,7 @@ RGB与深度最大时差为84—110毫秒，39项测试通过。离线复核命�
 
 **目的**：核实多部位共享模型的标签正确性。此前把同一网络的三个通道当作机头、主翼、垂尾训练，机头通道报出91.1%，但叠加图显示机头掩码与垂尾掩码几乎重合、主翼掩码全为零。目标是查清原因、修正区域定义并用同一批帧重训。
 
-**问题与修正**：`capture/part_masks.py`的部位成员判定中，半径一律以共用尾参考点为圆心。原配置只给机头`radius_m 2.2`、主翼横向从4.5米起，于是机头半径圈住的其实是垂尾附近，主翼的分区则完全不与网格相交。修正后机头为前向10.0—13.6米、横向±2.5米、高度0—3米；主翼为横向2.5—8.5米、前向−4.5—1.5米、高度0.5—3.8米；两者半径提到30米，使半径约束失效、只由分区边界决定成员；垂尾定义不变。机头91.1%的结果作废（`local-matcher-allparts`目录，保留未删，结论不采用）。
+**问题与修正**：`capture/part_masks.py`的部位成员判定中，半径一律以共用尾参考点为圆心。原配置只给机头`radius_m 2.2`、主翼横向从4.5米起，于是机头半径圈住的其实是垂尾附近，主翼的分区则完全不与网格相交。修正后机头为前向10.0—13.6米、横向±2.5米、高度0—3米；主翼为横向2.5—8.5米、前向−4.5—1.5米、高度0.5—3.8米；两者半径提到30米，使半径约束失效、只由分区边界决定成员；垂尾定义不变。机头91.1%的结果作废（无效标签的旧运行已删除，结论不采用）。
 
 **环境与参数**：同一批5000帧（4970帧用于训练）与同样的DINO粗候选搜索块。用保存的相机位姿和目标网格离线重渲染全部掩码（`src/capture/rerender_part_masks.py`，不连仿真），再按已记录的搜索块边界重建64×64目标；机头在4029帧的搜索块内有目标像素，主翼和垂尾全部4970帧有。网络、损失、优化器和5折（15°侧向扇区×距离分层）分组与上一节相同，服务器RTX PRO 6000，约13分钟。
 
@@ -381,4 +381,4 @@ RGB与深度最大时差为84—110毫秒，39项测试通过。离线复核命�
 
 **结论与下一步**：部位标签错误已修正，此前的多部位机头结果无效；共享模型可行，垂尾与单部位持平，机头明显更难。下一步先定义面积归一化的部位定位指标，再沿用组合接受层（NCC特征+热图统计量）重做可信工作点。
 
-见[掩码重渲染入口](../src/capture/rerender_part_masks.py)、[部位配置](../configs/scenes/airport_f14.json)、[三分支指标](../runs/training/f14_tail_acceptance/local-matcher-allparts-fixed/metrics.json)、[逐帧OOF](../runs/training/f14_tail_acceptance/local-matcher-allparts-fixed/oof.jsonl)、[训练日志](../runs/training/f14_tail_acceptance/local-matcher-allparts-fixed.log)、[无效的旧三分支结果](../runs/training/f14_tail_acceptance/local-matcher-allparts/metrics.json)。
+见[掩码重渲染入口](../src/capture/rerender_part_masks.py)、[部位配置](../configs/scenes/airport_f14.json)、[三分支指标](../runs/training/f14_tail_acceptance/local-matcher-allparts-fixed/metrics.json)、[逐帧OOF](../runs/training/f14_tail_acceptance/local-matcher-allparts-fixed/oof.jsonl)、[训练日志](../runs/training/f14_tail_acceptance/local-matcher-allparts-fixed.log)。
