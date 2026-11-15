@@ -1,0 +1,20 @@
+{
+  "profile": "airport_f14",
+  "target_part": "tail",
+  "horizontal_ranges_m": [45, 30, 18],
+  "bearings_from_front_deg": [-12, 0, 12],
+  "heading_offsets_deg": [-8, 8],
+  "frames_per_condition": 3,
+  "camera_pitch_deg": 35,
+  "speed_mps": 2,
+  "spawn_ned_m": [556.8, 178.88071, -1],
+  "cruise_ned_m": [556.8, 178.88071, -38],
+  "position_tolerance_m": 0.35,
+  "speed_tolerance_mps": 0.08,
+  "heading_tolerance_deg": 0.75,
+  "max_rgb_depth_skew_s": 0.25,
+  "methods": ["cold", "radius_3x", "cold_then_radius_3x"],
+  "min_score": 0.85,
+  "min_margin": 0.15,
+  "expanded_radius_multiplier": 3
+}

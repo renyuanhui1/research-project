@@ -367,6 +367,69 @@ python src/control/run_approach.py --out-dir runs/approach/<id>/nose \
 
 准备后可先用`run_approach.py --out-dir <部位目录> --validate-only`离线核对远景、35米视角和8米视角的模板落点。预检失败先核查`matching-preflight.json`、模板ROI与校验图；对应部位的视觉控制须全部通过预检再开始。`report.json`保存实际停止原因和到达确认，`front.mp4`、`chase.mp4`及`viz_dump/`用于录像和DINO匹配展示。
 
+### 部位冷启动离线对照
+
+使用`airsim`环境，读取已保存的窄ROI垂尾试验，不需要启动UE：
+
+```bash
+python src/evaluation/eval_part_reacquisition.py \
+  --run-dir runs/approach/20261113-f14-tail-local-refinement/tail \
+  --out-dir runs/approach/<研究id>
+```
+
+输出目录须独立于原试验目录，且不能含已有的`report.json`或`records.json`。入口对比冷启动、单因素历史和搜索范围/尺度的组合，固定配准分数0.85与峰差0.15；条件扩展方法只在默认冷启动失败时扩大三倍搜索半径。原始图和投影框擦除图分别运行。`report.json`保存环境、参数、距离分组、输入哈希和评价限制，`records.json`保存每帧每种方法的诊断，`summary.csv`保存汇总，`comparison.png`展示落点，`negative-examples.png`展示合成擦除图。
+
+样本为起始图、全部无损全画面记录和独立终点图，距离分布不均。中间帧几何使用异步位姿，仅作近似诊断；终点使用相机元数据。继承状态的方法使用之前已接受的记录，起始图没有历史时不参与。运行需保留原试验与共用参考资产；每帧耗时仅统计配准，不能当作实飞帧率或独立测试成功率。
+
+### 固定方案的新视角采集
+
+在UE机场关卡进入Play后，使用已有垂尾试验作为固定参考；采集会加载机器人并执行坐标飞行：
+
+```bash
+python src/capture/collect_part_views.py \
+  --source-run runs/approach/20261113-f14-tail-local-refinement/tail \
+  --out-dir data/captures/f14_tail/<采集id> --validate-only
+```
+
+预检通过后去掉`--validate-only`开始采集。方案来自`configs/missions/f14_tail_reacquisition_validation.json`：45、30、18米水平距离，−12/0/+12度侧向角，−8/+8度航向偏移，每个条件3组RGB-D，共18个条件、54组。坐标只用于采集与事后核验；结束后在巡航位置悬停。输出目录必须为空。入口发现已有机器人会停止，不直接重载。
+
+本入口若在取图前中断，可先检查原机器人状态，再用新的空采集目录和`--resume-from <中断目录>`恢复；仅接受零采样中断、相同配置且原机器人仍在出生点或预定航点附近悬停的情况。已有采样的中断目录应保留，不能套用该恢复方式。
+
+采集完成后运行离线评价，无需保持UE运行：
+
+```bash
+python src/evaluation/eval_part_reacquisition.py \
+  --run-dir runs/approach/20261113-f14-tail-local-refinement/tail \
+  --capture-dir data/captures/f14_tail/<采集id> \
+  --out-dir runs/approach/<评价id>
+```
+
+评价核对采集前冻结的代码与参考资产，参数不匹配时停止。`report.json`分别汇总帧与观察条件，`records.json`保存逐帧判断，`view-overview.png`显示全部观察条件的首帧，`comparison.png`显示三种方法的落点。新视角来自同一静态飞机场景，不代表跨飞机泛化或在线失锁恢复。
+
+### 训练视角采集
+
+`capture/collect_training_views.py`按`configs/missions/f14_training_views.json`在飞机前向坐标系内随机采样位姿，用`SetPose`逐帧瞬移取图，不执行航线飞行：
+
+```bash
+python src/capture/collect_training_views.py \
+  --source-run runs/approach/20261113-f14-tail-local-refinement/tail \
+  --out-dir data/captures/f14_tail/<采集id> --validate-only
+```
+
+预检只核对地图间距与参考点是否在画面内，不连接仿真；通过后去掉`--validate-only`，在UE关卡进入Play后开始采集。无需改动关卡的曝光设置：采集相机的自动曝光在场景加载后约30帧内从纯白收敛到正常亮度，采集器在记录前持续取图，直到连续3帧均值低于220且标准差大于5才进入采样，120秒仍未收敛则报错停止；收敛过程产生的帧不会写入数据集。默认5000个位姿，距离按70%取12–60米、30%取60–150米分层，对应相对垂尾约8–105米高度；侧向角±40度（相对飞机前向），航向偏移±20度，相机保持固定−35度。近中段用于部位匹配，远段用于整机粗定位。每帧保存原生RGB、深度、机头/主翼/垂尾/整机掩码、相机元数据和机体位姿，`report.json`每50帧写一次。`--count`覆盖采样数量；输出目录必须为空；`--resume-from`只接受准备阶段的零采样中断。
+
+掩码由`capture/part_masks.py`用目标网格射线投射生成，部位区域与评价标签使用同一规则。部位成员同时受场景档案中的前向、横向、高度边界和以共用尾参考点为圆心的半径约束；机头与主翼的半径放宽到30米，实际只由分区边界决定，垂尾保留2.5米半径。位姿取自图像消息自带的相机位置与四元数，而不是取图后读取的机体运动学；后者可能晚于图像约0.5秒，无人机在此期间会掉落，直接用会造成米级偏差。掩码只依赖位姿、网格和区域配置，不读图像，因此可在不连仿真时预先统计各视角的可见性。
+
+改动部位区域后，用保存的相机位姿离线重渲染掩码，不需要重新仿真：
+
+```bash
+python src/capture/rerender_part_masks.py \
+  --capture-dir data/captures/f14_tail/<采集id> \
+  --run-dir runs/approach/<运行目录>
+```
+
+加`--patches-dir`与`--features`时按已记录的搜索块边界重写64×64目标；在没有Open3D的机器上用`--targets-only`只从已渲染的掩码重建目标。
+
 ## 附录：PX4接口
 
 `src/px4/`通过MAVSDK连接PX4，使用ProjectAirSim提供相机。配置为`configs/simulation/scene_airport_px4.jsonc`与`robot_quadrotor_px4.jsonc`。

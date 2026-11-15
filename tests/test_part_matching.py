@@ -19,6 +19,31 @@ from control.servo_closed_loop import sample_depth_array
 
 
 class PartMatchingTests(unittest.TestCase):
+    def test_registration_ablation_changes_radius_without_previous_state(self):
+        rng=np.random.default_rng(51);template=rng.integers(0,256,(40,24,3),dtype=np.uint8)
+        rgb=rng.integers(20,55,(220,300,3),dtype=np.uint8);rgb[80:120,124:148]=template
+        base=refine_local_image(rgb,template,[12,20],[136,130],[0,0,300,220])
+        expanded=refine_local_image(rgb,template,[12,20],[136,130],[0,0,300,220],radius_multiplier=3.)
+        self.assertFalse(base['accepted']);self.assertTrue(expanded['accepted'])
+        np.testing.assert_allclose(expanded['point_px'],[136,100],atol=.5)
+        self.assertEqual(expanded['search_source'],'DINO_candidate')
+        for invalid in (0.,-1.,float('nan')):
+            with self.assertRaises(ValueError):
+                refine_local_image(rgb,template,[12,20],[136,130],[0,0,300,220],radius_multiplier=invalid)
+
+    def test_registration_ablation_separates_search_grid_from_position_prior(self):
+        rng=np.random.default_rng(61);template=rng.integers(0,256,(40,24,3),dtype=np.uint8)
+        rgb=rng.integers(20,55,(220,300,3),dtype=np.uint8);rgb[80:140,124:160]=cv2.resize(template,(36,60))
+        wrong_scale={'point_px':[142,110],'scale':3.,'angle_deg':0.}
+        base=refine_local_image(rgb,template,[12,20],[142,130],[0,0,300,220],wrong_scale)
+        override=refine_local_image(rgb,template,[12,20],[142,130],[0,0,300,220],wrong_scale,
+                                   search_scales=[1.5],search_angles=[0.])
+        self.assertFalse(base['accepted']);self.assertTrue(override['accepted'])
+        np.testing.assert_allclose(override['point_px'],[142,110],atol=.5)
+        for options in ({'search_scales':[]},{'search_angles':[float('nan')]}):
+            with self.assertRaises(ValueError):
+                refine_local_image(rgb,template,[12,20],[142,110],[0,0,300,220],**options)
+
     def test_overlap_preserves_thin_ROI_between_cell_centers(self):
         weights,box=roi_overlap_weights([.49,.1,.51,.9],2,padding=0)
         np.testing.assert_allclose(weights,np.full((2,2),.25))

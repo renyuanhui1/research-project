@@ -51,12 +51,15 @@ def roi_overlap_weights(roi, grid, padding=1.):
 
 
 def refine_local_image(rgb, template, anchor, candidate, coarse_box, previous=None,
-                       min_score=.85, min_margin=.15):
+                       min_score=.85, min_margin=.15, *, search_scales=None,
+                       search_angles=None, radius_multiplier=1.):
     """Bounded, multiscale registration of a fixed context image and part anchor."""
     gray=cv2.cvtColor(rgb,cv2.COLOR_RGB2GRAY);raw=cv2.cvtColor(template,cv2.COLOR_RGB2GRAY)
     invalid={'accepted':False,'score':-1.,'margin':-1.,'reason':'no_local_match'}
     if raw.size<16 or float(raw.std())<1.:return dict(invalid,reason='uninformative_reference')
-    h,w=gray.shape;radius=(np.array(coarse_box[2:])-coarse_box[:2])/32*1.5
+    if not np.isfinite(radius_multiplier) or radius_multiplier<=0:
+        raise ValueError('Search radius multiplier must be positive and finite')
+    h,w=gray.shape;radius=(np.array(coarse_box[2:])-coarse_box[:2])/32*1.5*radius_multiplier
     coarse_candidate=np.asarray(candidate,float);anchor=np.asarray(anchor,float)
     candidate=np.asarray(previous.get('point_px',coarse_candidate) if previous else coarse_candidate,float)
     if previous is None:
@@ -64,6 +67,10 @@ def refine_local_image(rgb, template, anchor, candidate, coarse_box, previous=No
     else:
         scales=[previous['scale']*x for x in (.9,1.,1.1)]
         angles=[previous['angle_deg']+x for x in (-3.,0.,3.)]
+    if search_scales is not None:scales=list(search_scales)
+    if search_angles is not None:angles=list(search_angles)
+    if not scales or not angles or not np.isfinite(scales).all() or not np.isfinite(angles).all():
+        raise ValueError('Search scales and angles must be nonempty and finite')
     matches=[]
     for scale in scales:
         if not .5<=scale<=12.:continue
@@ -96,7 +103,8 @@ def refine_local_image(rgb, template, anchor, candidate, coarse_box, previous=No
             competitors.append(match['score'])
     margin=best['score']-max(competitors);inside=bool(np.all(np.abs(point-candidate)<=radius+1.))
     accepted=best['score']>=min_score and margin>=min_margin and inside
-    return dict(best,accepted=accepted,margin=float(margin),reason=None if accepted else 'registration_confidence',
+    return dict(best,accepted=accepted,margin=float(margin),inside=inside,
+                reason=None if accepted else 'registration_confidence',
                 min_score=min_score,min_margin=min_margin,coarse_candidate_px=coarse_candidate.tolist(),
                 search_center_px=candidate.tolist(),search_source='previous_registered_point' if previous and 'point_px' in previous else 'DINO_candidate')
 

@@ -1,0 +1,17 @@
+{
+  "profile": "airport_f14",
+  "target_part": "tail",
+  "count": 5000,
+  "seed": 20261114,
+  "spawn_ned_m": [556.8, 178.88071, -1],
+  "range_strata": [[12, 60, 0.7], [60, 150, 0.3]],
+  "bearing_deg": [-40, 40],
+  "heading_offset_deg": [-20, 20],
+  "position_jitter_m": 0.5,
+  "camera_pitch_deg": 35,
+  "position_tolerance_m": 0.5,
+  "max_rgb_depth_skew_s": 0.25,
+  "settle_sec": 0.2,
+  "mask_stride": 2,
+  "report_every": 50
+}

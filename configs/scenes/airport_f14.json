@@ -37,17 +37,27 @@
   },
   "parts": {
     "nose": {
-      "radius_m": 2.2
+      "description": "nose cone ahead of the cockpit",
+      "longitudinal_min_m": 10.0,
+      "longitudinal_max_m": 13.6,
+      "lateral_min_m": -2.5,
+      "lateral_max_m": 2.5,
+      "min_altitude_m": 0.0,
+      "max_altitude_m": 3.0,
+      "radius_m": 30.0
     },
     "wing": {
-      "lateral_min_m": 4.5,
+      "description": "one main wing on the positive lateral side",
+      "lateral_min_m": 2.5,
+      "lateral_max_m": 8.5,
       "longitudinal_min_m": -4.5,
       "longitudinal_max_m": 1.5,
-      "min_altitude_m": 1.4,
+      "min_altitude_m": 0.5,
+      "max_altitude_m": 3.8,
       "seed_longitudinal_m": -2.2,
       "seed_lateral_m": 6.0,
       "seed_altitude_m": 2.2,
-      "radius_m": 2.2
+      "radius_m": 30.0
     },
     "tail": {
       "description": "one vertical stabilizer on the positive lateral side",
