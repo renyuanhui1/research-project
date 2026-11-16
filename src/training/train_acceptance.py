@@ -153,7 +153,6 @@ def main(argv=None):
     summary['baseline_recall_at_precision_95'] = (
         summary['frozen_recall'] if (summary['frozen_precision'] or 0) >= .95 else 0.)
     (out/'metrics.json').write_text(json.dumps(summary, indent=2))
-    np.save(out/'oof_scores.npy', np.stack([oof[name] for name in oof], 1))
     with (out/'oof.jsonl').open('w') as file:
         for index, row in enumerate(rows):
             file.write(json.dumps(dict(sample=row['sample'], label=bool(y[index]),

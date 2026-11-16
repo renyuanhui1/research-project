@@ -158,3 +158,9 @@ src/visualization/matching.launch.py
 ## F-35部位数据
 
 `configs/scenes/airport.json`是F-35（`StaticMeshActor_7890`）的部位档案，给出机头、主翼和一侧垂尾的前向、横向、高度边界及半径，共同参考点取机头。`configs/missions/f35_approach.json`定义斜俯视准备任务，`configs/missions/f35_training_views.json`定义瞬移采样方案。准备、采集、掩码和训练入口与F-14相同，只替换档案和任务。参考图以机头为中心时，三个部位ROI都覆盖整机裁剪中心，`thin_roi_refinement`不产生局部参考点，冻结匹配器没有候选；这批数据只用于局部匹配器的搜索块与目标，没有NCC特征。
+
+`evaluation/eval_cross_template.py`读取带`patch_xyxy`的特征文件与HDF5样本文件或图片目录，按训练相同的（15度侧向扇区×距离档）分组重建5折。`--mode self`只用各折留出帧，复现训练时的OOF；`--mode transfer`用全部折模型推理另一份数据，用于跨采集、跨机型评价。两种模式都报告3像素正确率、峰值落在掩码内的比例，以及除以掩码等效半径的面积归一化距离，避免大掩码被3像素容差抬高。迁移结果同时混有外观、部位边界和搜索块中心三类差异，不能单独归因于外观。
+
+`evaluation/eval_nadir_template.py`是模板条件化主线的离线粗定位基线：按采集报告的相机位姿把目标网格顶点投影到高空俯视图上，外扩裁出俯视模板，与斜视模板一起编码成整机DINO原型，在给定采集的每帧上求响应图，统计峰值与softmax质心是否落在整机掩码内。标准化统计量来自被评采集自身的抽样帧，两个模板共用。整机原型对朝向敏感，脚本对每个模板做0/90/180/270度旋转，逐帧按峰分选最高者；这一选择不使用真值。该基线只含整机一级，部位定位与接受层不在其中。
+
+训练样本由`common/patches.py`统一读写。`extract_part_features.py --patches <文件.h5>`把每帧保存为`/<sample>/rgb_png`（256×256 RGB图像的无损PNG编码）和`/<sample>/targets/<part>`（64×64、float16，gzip无损压缩）。特征和裁剪框保存为`features.jsonl`，汇总保存为`summary.json`。局部匹配器训练、跨模板评价与标签重建共用此存储接口，也可读取PNG/NPY目录。训练仍先把样本读入内存，再按原分组与增强方法训练；接受层的逐帧分数保存在`oof.jsonl`的`scores`字段。

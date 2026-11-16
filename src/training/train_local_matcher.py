@@ -19,17 +19,16 @@ import torch.nn.functional as F
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT/'src'))
+from common.patches import open_patches, has_patch, read_rgb, read_target
 
 
 def read_rows(path, patch_dir):
     rows = []
-    for line in Path(path).read_text().splitlines():
-        row = json.loads(line)
-        if row.get('patch_xyxy') is None:
-            continue
-        if not (Path(patch_dir)/(row['sample']+'.png')).exists():
-            continue
-        rows.append(row)
+    with open_patches(patch_dir) as store:
+        for line in Path(path).read_text().splitlines():
+            row = json.loads(line)
+            if row.get('patch_xyxy') is not None and has_patch(store, row['sample']):
+                rows.append(row)
     return rows
 
 
@@ -143,11 +142,12 @@ def mask_distance(mask, point):
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--features', type=Path, required=True)
-    parser.add_argument('--patch-dir', type=Path, required=True)
+    parser.add_argument('--patch-dir', type=Path, required=True,
+                        help='HDF5 patch file or image directory')
     parser.add_argument('--capture-dir', type=Path, required=True)
     parser.add_argument('--out-dir', type=Path, required=True)
     parser.add_argument('--parts', nargs='+', default=['tail'],
-                        help='Parts to predict; each part needs a <sample>-<part>.npy target')
+                        help='Parts to predict; each part needs a stored target')
     parser.add_argument('--folds', type=int, default=5)
     parser.add_argument('--train-count', type=int, default=0,
                         help='Subsample each fold training set to this many frames; 0 keeps all')
@@ -170,15 +170,10 @@ def main(argv=None):
     groups = np.array([group_of(row) for row in rows])
     print('samples', len(rows), 'groups', len(set(groups)), 'parts', parts, flush=True)
     cache = {}
-    for row in rows:
-        targets = {}
-        for name in parts:
-            path = options.patch_dir/(row['sample']+'-'+name+'.npy')
-            if not path.exists():
-                path = options.patch_dir/(row['sample']+'-mask.npy')
-            targets[name] = np.load(path)
-        cache[row['sample']] = (
-            cv2.imread(str(options.patch_dir/(row['sample']+'.png')))[:, :, ::-1], targets)
+    with open_patches(options.patch_dir) as store:
+        for row in rows:
+            targets = {name: read_target(store, row['sample'], name) for name in parts}
+            cache[row['sample']] = (read_rgb(store, row['sample']), targets)
     print('cache loaded', len(cache), flush=True)
     oof = []
     for fold, (train_index, test_index) in enumerate(GroupKFold(n_splits=options.folds).split(rows, groups=groups)):

@@ -428,7 +428,31 @@ python src/capture/rerender_part_masks.py \
   --run-dir runs/approach/<运行目录>
 ```
 
-加`--patches-dir`与`--features`时按已记录的搜索块边界重写64×64目标；在没有Open3D的机器上用`--targets-only`只从已渲染的掩码重建目标。
+加`--patches-dir <样本.h5或图片目录>`与`--features <features.jsonl>`时按已记录的搜索块边界重写64×64目标；在没有Open3D的机器上用`--targets-only`只从已渲染的掩码重建目标。
+
+### 训练样本与局部匹配器
+
+特征导出用`--patches <文件.h5> --all-parts`把RGB裁剪块及各部位目标写入一个HDF5文件；不加`--all-parts`时只写任务指定部位。`--out-dir`保存`features.jsonl`与`summary.json`。例如：
+
+```bash
+python src/training/extract_part_features.py \
+  --capture-dir data/captures/f14_tail/20261114-training-views \
+  --run-dir runs/approach/20261113-f14-tail-local-refinement/tail \
+  --out-dir runs/training/<运行id>/patches-all \
+  --patches runs/training/<运行id>/patches-all/patches.h5 --all-parts --skip 30
+```
+
+F-14现有4970帧样本保存在`runs/training/f14_tail_acceptance/patches-all/patches.h5`，训练命令为：
+
+```bash
+python src/training/train_local_matcher.py \
+  --features runs/training/f14_tail_acceptance/patches-all/features.jsonl \
+  --patch-dir runs/training/f14_tail_acceptance/patches-all/patches.h5 \
+  --capture-dir data/captures/f14_tail/20261114-training-views \
+  --parts nose wing tail --out-dir runs/training/<运行id>/local-matcher
+```
+
+训练和跨模板评价的`--patch-dir`、标签重建的`--patches-dir`均可传HDF5文件或PNG/NPY目录。每折权重为`fold*.pt`，指标为`metrics.json`，逐帧预测为`oof.jsonl`；接受层输出另含`acceptance.joblib`，每个候选模型的分数直接读取`oof.jsonl`中的`scores`。
 
 ### F-35部位参考与训练采集
 
@@ -446,6 +470,38 @@ python src/capture/collect_training_views.py \
 ```
 
 参考图以机头为中心时，三个部位ROI覆盖整机裁剪中心，冻结匹配器不产生候选，特征提取只输出裁剪块和三个部位的64×64目标，没有NCC特征；训练局部匹配器时使用`--parts nose wing tail`。
+
+### 跨模板与跨机型评价
+
+`evaluation/eval_cross_template.py`读取带`patch_xyxy`的特征文件和对应的HDF5样本文件或图片目录，按训练相同的（15度侧向扇区×距离档）分组重建5折。`--mode self`每折只评自己的留出帧，用于复现训练指标；`--mode transfer`用全部折模型推理另一份数据，用于跨采集或跨机型评价。两种模式都输出3像素正确率、峰值落在掩码内的比例，以及除以掩码等效半径√(面积/π)的面积归一化距离。迁移模式下每个样本有5个模型的预测，结论以每折均值±标准差为准。
+
+```bash
+python src/evaluation/eval_cross_template.py --mode transfer \
+  --features runs/training/f35/patches-all/features.jsonl \
+  --patch-dir runs/training/f35/patches-all/patches.h5 \
+  --capture-dir data/captures/f35/20261115-training-views \
+  --weights-dir runs/training/f14_tail_acceptance/local-matcher-allparts-fixed \
+  --out-dir runs/evaluation/<运行id>
+```
+
+`--limit`用于小样本冒烟检查。结果写入`oof.jsonl`与`metrics.json`，逐帧记录折号、部位、预测点、有符号距离、掩码面积和归一化距离。
+
+### 俯视模板基线
+
+`evaluation/eval_nadir_template.py`从记录的高空俯视图裁出目标模板：按采集报告里的相机位姿投影目标网格顶点，外扩`margin=1.15`取正方形裁片。随后在给定采集的每帧上比较俯视模板与斜视模板的整机响应，报告峰值/质心是否落在整机掩码内及落点距离。标准化统计量取被评采集自身等间隔32帧（`--stats-frames`），两个模板共用。
+
+```bash
+python src/evaluation/eval_nadir_template.py \
+  --capture-dir data/captures/f35/20261115-training-views \
+  --overhead-image data/captures/aircraft-overhead/StaticMeshActor_7890_overhead.png \
+  --overhead-report data/captures/aircraft-overhead/capture-report.json \
+  --mesh data/maps/airport_scene/meshes/StaticMeshActor_7890.npz \
+  --actor StaticMeshActor_7890 \
+  --oblique-template data/templates/airport_7890/oblique/aircraft-template.png \
+  --out-dir runs/evaluation/<运行id> --skip 30
+```
+
+`--skip 30`去掉曝光未收敛的开头帧。每个模板同时取0/90/180/270度四个旋转，`metrics.json`的`single`为原方向结果，`best_of_4`为逐帧按峰分选最高旋转的非真值结果。输出`template-nadir.png/json`、`records.jsonl`（逐帧、逐模板、逐旋转）和按距离档的叠加图`peak-<距离档>-<旋转>.png`。
 
 ## 附录：PX4接口
 

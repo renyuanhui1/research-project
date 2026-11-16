@@ -1,12 +1,13 @@
 # 机场视觉抵近实验记录
 
-运行命令与参数见[使用手册](../docs/USAGE.md)，模块、控制律与保护条件见[架构说明](../docs/ARCHITECTURE.md)，配置与回放检查见[项目入口与数据验证](VALIDATION.md)。逐帧数据和完整诊断保存在各实验目录，本文只记录目的、关键参数、结果、失败与限制，以及数据入口。
+运行命令与参数见[使用手册](../docs/USAGE.md)，模块、控制律与保护条件见[架构说明](../docs/ARCHITECTURE.md)，配置与回放检查见[项目入口与数据验证](VALIDATION.md)。保留的逐帧数据和完整诊断位于各实验目录，本文记录目的、关键参数、结果、失败与限制、数据入口及清理情况。
 
 ## 通用口径
 
 - **视觉控制**：冻结DINOv2 ViT-S/14，448输入、32×32特征格、softmax温度0.005，不训练；统计帧只用于计算标准化均值和方差。速度由图像匹配中心与深度生成。
 - **坐标准备不计为视觉闭环**：按已知坐标采集模板、布置起点和转场。目标坐标只用于准备和事后评价，无人机位姿另用于高度、范围等独立保护。全部记录都不能证明未知目标坐标下的自主搜索能力。
 - **距离分别报告**：停车滤波深度、到参考点、到整机最近表面、到所选部位表面的距离互不替代；深度阈值确认只说明测距满足停车条件。
+- **定位指标**：3像素容差与面积归一化距离并列报告。归一化距离为有符号像素距离除以掩码等效半径√(面积/π)，同时给出峰值落在掩码内的比例；3像素容差对大掩码偏宽松。
 - **帧率**：录像按30FPS编码并含重复帧，实际独立帧率以`report.json`和`*-frames.csv`为准。
 - **热力图**：红色为相似度或softmax相对权重的显示，绿色十字为滤波后的控制中心；两者都不是分割掩膜或校准置信度，见[热力图说明](../docs/USAGE.md#匹配热力图的显示与解读)。
 - **成功计数**：部位抵近以`arrival_confirmed=true`、入室以`entered=true`计为完成；预检失败和中断目录保留实际状态，不计为成功。运行目录中各文件的含义见[运行文件](../docs/USAGE.md#运行文件)。
@@ -34,12 +35,15 @@
 
 | 试验 | 控制周期 | 末帧深度/m | 最近模型表面/m | 结果与记录 |
 |---|---:|---:|---:|---|
-| 俯视机头 | 451 | 11.95 | — | 深度阈值确认；[报告](../runs/approach/near-nose-dual_1106/report.json) |
-| 俯视机头与栅格同步 | 614 | 11.97 | — | 深度阈值确认；[报告](../runs/approach/map-session-1793950632689/report.json) |
-| 100米斜俯视机头 | 228 | 11.75 | — | 深度阈值确认；[报告](../runs/approach/oblique100-1793952243221/report.json) |
+| 早期俯视机头 | 300 | 11.79 | — | 达到步数上限，未取得3张独立帧停车确认；原始文件已清理 |
+| 俯视机头 | 451 | 11.95 | — | 12米深度阈值确认；原始文件已清理 |
+| 俯视机头与栅格同步 | 614 | 11.97 | — | 12米深度阈值确认；原始文件已清理 |
+| 100米斜俯视机头 | 228 | 11.75 | — | 12米深度阈值确认；原始文件已清理 |
 | 机头近距 | 184 | 3.76 | 3.14 | 4米阈值连续独立帧确认；[记录](../runs/approach/close4-1793954736186/README.md) |
 | 正前方机翼 | 606 | 8.06 | 3.87 | 碰撞体接触后停滞，由操作中断；[记录](../runs/approach/wing4-1793956203311/README.md) |
 | 翼外侧机翼 | — | — | — | 远、近景校验未通过，未执行闭环；[记录](../runs/approach/wing4-outboard-20261106/README.md) |
+
+**2026-11-16清理记录**：按用户要求删除12米停车阈值的四组实验目录：`near-nose_1106`、`near-nose-dual_1106`、`map-session-1793950632689`、`oblique100-1793952243221`，共1,383个文件、1,607,834,612字节。对应的原始数据、模板快照、录像、报告与日志均已删除，仅保留本节历史结果；这些记录不再支持回放或逐帧复核。4米、6米抵近及机库入室数据保留。本次未运行新实验。
 
 - 机头近距：到最终参考点约3.53米，到网格表面约3.14米，见[距离评价](../runs/approach/close4-1793954736186/distance-validation.json)。实际独立帧率约2.82FPS。
 - 正前方机翼：到所选机翼区域的表面仍约6.67米，不能用到任意机体表面的3.87米替代；接触信息见[碰撞诊断](../runs/approach/wing4-1793956203311/collision-diagnostics.json)。实际独立帧率约2.84FPS。
@@ -303,7 +307,7 @@ RGB与深度最大时差为84—110毫秒，39项测试通过。离线复核命�
 
 **结论与下一步**：学习型接受层把95%精度下的召回从7.1%提到57.7%，说明固定阈值损失了大量正确配准，路径1成立。下一步实现路径2（可学习的局部匹配器），在同一批帧上比较端到端局部定位精度；接受层暂不接入在线链路。
 
-见[特征提取入口](../src/training/extract_part_features.py)、[训练入口](../src/training/train_acceptance.py)、[采集报告](../data/captures/f14_tail/20261114-training-views/report.json)、[特征与标签](../runs/training/f14_tail_acceptance/features/features.jsonl)、[训练指标](../runs/training/f14_tail_acceptance/acceptance-tol3/metrics.json)、[逐帧OOF](../runs/training/f14_tail_acceptance/acceptance-tol3/oof.jsonl)。
+见[特征提取入口](../src/training/extract_part_features.py)、[训练入口](../src/training/train_acceptance.py)、[采集报告](../data/captures/f14_tail/20261114-training-views/report.json)、[特征与标签](../runs/training/f14_tail_acceptance/patches-all/features.jsonl)。 本节对照实验的权重和逐帧数据已于2026-11-16清理，汇总结果保留在本节。
 
 ### 2026-11-14：学习型局部匹配器（路径2）
 
@@ -328,7 +332,7 @@ RGB与深度最大时差为84—110毫秒，39项测试通过。离线复核命�
 
 **结论与下一步**：学习型局部匹配器把3像素内定位从38.6%提到88.2%；在95%精度约束下，可信且正确的帧覆盖率从23.4%提到42.4%，90%精度下可达93.4%。路径2优于路径1，且合并两者的接受层是最佳配置。下一步把该局部匹配器与接受层接入离线重新截获评价，在独立视角上复核。
 
-见[裁剪块与特征导出](../src/training/extract_part_features.py)、[局部匹配器训练](../src/training/train_local_matcher.py)、[接受层训练](../src/training/train_acceptance.py)、[裁剪块数据](../runs/training/f14_tail_acceptance/patches/features.jsonl)、[网络指标](../runs/training/f14_tail_acceptance/local-matcher-v2/metrics.json)、[逐帧OOF](../runs/training/f14_tail_acceptance/local-matcher-v2/oof.jsonl)、[模型权重](../runs/training/f14_tail_acceptance/local-matcher-v2)、[组合接受层指标](../runs/training/f14_tail_acceptance/acceptance-local/metrics.json)、[组合接受层逐帧OOF](../runs/training/f14_tail_acceptance/acceptance-local/oof.jsonl)。
+见[裁剪块与特征导出](../src/training/extract_part_features.py)、[局部匹配器训练](../src/training/train_local_matcher.py)、[接受层训练](../src/training/train_acceptance.py)、[裁剪块数据](../runs/training/f14_tail_acceptance/patches-all/features.jsonl)。 本节对照实验的权重和逐帧数据已于2026-11-16清理，汇总结果保留在本节。
 
 ### 2026-11-14：局部匹配器的数据量学习曲线
 
@@ -349,7 +353,7 @@ RGB与深度最大时差为84—110毫秒，39项测试通过。离线复核命�
 
 **结论与下一步**：换模板/换部位时，定位网络可用1000–2000帧起步；若需要95%精度的可信输出，当前方法仍要接近全量数据，瓶颈在接受层的区分度而不是定位精度。下一步优先改进置信度信号（联合训练置信度头或引入时序一致性），再重测小数据工作点。
 
-见[学习曲线训练入口](../src/training/train_local_matcher.py)、[接受层入口](../src/training/train_acceptance.py)、[各档指标](../runs/training/f14_tail_acceptance/lc-300/metrics.json)、[300帧OOF](../runs/training/f14_tail_acceptance/lc-300/oof.jsonl)、[1000帧指标](../runs/training/f14_tail_acceptance/lc-1000/metrics.json)、[2000帧指标](../runs/training/f14_tail_acceptance/lc-2000/metrics.json)、[全量指标](../runs/training/f14_tail_acceptance/lc-full/metrics.json)、[各档接受层](../runs/training/f14_tail_acceptance/lc-accept-full/metrics.json)。
+见[学习曲线训练入口](../src/training/train_local_matcher.py)、[接受层入口](../src/training/train_acceptance.py)。 本节对照实验的权重和逐帧数据已于2026-11-16清理，汇总结果保留在本节。
 
 ### 2026-11-14：部位标签修正与三分支共享模型
 
@@ -381,7 +385,7 @@ RGB与深度最大时差为84—110毫秒，39项测试通过。离线复核命�
 
 **结论与下一步**：部位标签错误已修正，此前的多部位机头结果无效；共享模型可行，垂尾与单部位持平，机头明显更难。下一步先定义面积归一化的部位定位指标，再沿用组合接受层（NCC特征+热图统计量）重做可信工作点。
 
-见[掩码重渲染入口](../src/capture/rerender_part_masks.py)、[部位配置](../configs/scenes/airport_f14.json)、[三分支指标](../runs/training/f14_tail_acceptance/local-matcher-allparts-fixed/metrics.json)、[逐帧OOF](../runs/training/f14_tail_acceptance/local-matcher-allparts-fixed/oof.jsonl)、[训练日志](../runs/training/f14_tail_acceptance/local-matcher-allparts-fixed.log)。
+见[掩码重渲染入口](../src/capture/rerender_part_masks.py)、[部位配置](../configs/scenes/airport_f14.json)、[三分支指标](../runs/training/f14_tail_acceptance/local-matcher-allparts-fixed/metrics.json)、[逐帧OOF](../runs/training/f14_tail_acceptance/local-matcher-allparts-fixed/oof.jsonl)、[训练日志](../runs/training/f14_tail_acceptance/local-matcher-allparts-fixed/train.log)。
 
 ## F-35部位数据与三分支训练（StaticMeshActor_7890）
 
@@ -421,4 +425,96 @@ RGB与深度最大时差为84—110毫秒，39项测试通过。离线复核命�
 
 **结论与下一步**：部位定义、准备、采集和训练链路在第二架飞机上直接复用，不需要改训练代码；垂尾是最能暴露误差的部位，F-35上为79.2%。下一步做跨模板评价：用F-14训练的模型直接推理F-35搜索块，再与各自训练的模型比较，检验共享模型能否跨机型使用。
 
-见[F-35部位配置](../configs/scenes/airport.json)、[准备任务](../configs/missions/f35_approach.json)、[采集方案](../configs/missions/f35_training_views.json)、[准备入口](../src/capture/prepare_scene.py)、[采集报告](../data/captures/f35/20261115-training-views/report.json)、[参考目录](../runs/approach/20261115-f35-training-v2/nose/)、[特征提取摘要](../runs/training/f35/features/features.jsonl)、[训练指标](../runs/training/f35/local-matcher/metrics.json)、[逐帧OOF](../runs/training/f35/local-matcher/oof.jsonl)、[训练日志](../runs/training/f35/train.log)。
+见[F-35部位配置](../configs/scenes/airport.json)、[准备任务](../configs/missions/f35_approach.json)、[采集方案](../configs/missions/f35_training_views.json)、[准备入口](../src/capture/prepare_scene.py)、[采集报告](../data/captures/f35/20261115-training-views/report.json)、[参考目录](../runs/approach/20261115-f35-training-v2/nose/)、[特征提取摘要](../runs/training/f35/patches-all/features.jsonl)、[训练指标](../runs/training/f35/local-matcher/metrics.json)、[逐帧OOF](../runs/training/f35/local-matcher/oof.jsonl)、[训练日志](../runs/training/f35/local-matcher/train.log)。
+
+## 2026-11-16：跨机型权重迁移与面积归一化指标
+
+**目的**：检验F-14三分支局部匹配器不做微调、直接推理F-35数据时的定位能力，并把3像素指标与面积归一化指标并列，确定阶段3模板条件化模型要超过的基线。
+
+**环境与输入**：本地WSL，RTX 4060 Ti 8 GB，Python来自conda `airsim`（PyTorch 2.6.0+cu124、OpenCV 4.13.0）；全程离线，未连接UE或发送飞行指令。F-14使用`patches-all`（4970帧）与三分支5折权重，F-35使用`patches-all`（4991帧）与三分支5折权重。评价入口[src/evaluation/eval_cross_template.py](../src/evaluation/eval_cross_template.py)按训练相同的（15度侧向扇区×距离档）分组重建5折。
+
+**方法**：`--mode self`只用各折留出帧，复现训练时的OOF；`--mode transfer`用F-14全部5折模型推理F-35全部帧，报5个模型均值±标准差。标签与训练一致，为峰值到全分辨率部位掩码的有符号距离，过滤搜索块内该部位像素少于20的样本。指标包括3像素正确率、峰值落在掩码内的比例、面积归一化距离（除以掩码等效半径）不超过1个半径的比例。
+
+| 评估 | 机头3px | 主翼3px | 垂尾3px | 机头掩码内 | 主翼掩码内 | 垂尾掩码内 |
+|---|---:|---:|---:|---:|---:|---:|
+| F-14自评 | 74.4% | 98.7% | 86.5% | 35.9% | 97.2% | 65.0% |
+| F-14→F-35迁移 | 46.9%±9.3 | 52.2%±12.5 | 9.4%±4.2 | 33.4% | 46.7% | 3.6% |
+| F-35自评 | 95.7% | 95.4% | 79.2% | 94.2% | 93.9% | 59.0% |
+
+面积归一化距离不超过1个等效半径的比例：F-14自评为90.8%、99.8%、95.9%（机头、主翼、垂尾），迁移为80.5%、80.8%、28.4%，F-35自评为97.8%、98.0%、92.2%。
+
+**复现**：两轮自评的pooled结果与[F-14三分支指标](../runs/training/f14_tail_acceptance/local-matcher-allparts-fixed/metrics.json)和[F-35三分支指标](../runs/training/f35/local-matcher/metrics.json)逐项一致（F-14为0.7437/0.9873/0.8647，F-35为0.9573/0.9538/0.7924），确认权重与patches管线正确。
+
+**迁移的分组表现**：F-14→F-35的主翼随距离快速下降，12—30米93.3%、30—60米42.9%、60—100米26.1%、100—150米22.7%，近距高值由大掩码基率造成；垂尾各档为8.9%、8.3%、12.4%、12.3%，没有可用档位；机头各档为46.3%、46.8%、44.6%、50.7%。5折波动较大，主翼35.6%—73.7%，机头37.5%—62.0%。
+
+**结论**：固定通道的局部匹配器不能跨机型使用。垂尾只剩9.4%，是小掩码部位最干净的失败证据；机头、主翼的约一半不能当作可用，主翼近距结果被掩码面积抬高。迁移时同时改变飞机外观、部位边界定义和搜索块中心（F-35以机头为参考中心），掉分不能单独归因于外观。面积归一化结果表明3像素正确里很大一部分只是落在掩码边界附近：F-14机头3像素正确74.4%，但落在掩码内只有35.9%。
+
+**限制**：每类只有一架飞机、一个场景、固定−35度相机；F-35数据来自一次连续瞬移采集，没有独立飞行或新视角复核；迁移结果只覆盖定位，没有接受层，因为F-35的冻结匹配器5000帧全部`no_candidate`。迁移模式的pooled统计每个样本有5个折模型预测，不能当作独立样本，结论以每折均值±标准差为准。
+
+见[评价入口](../src/evaluation/eval_cross_template.py)、[F-14自评指标](../runs/evaluation/20261116-f14-self-allparts/metrics.json)、[F-14自评逐帧](../runs/evaluation/20261116-f14-self-allparts/oof.jsonl)、[迁移指标](../runs/evaluation/20261116-f14-to-f35-transfer/metrics.json)、[迁移逐帧](../runs/evaluation/20261116-f14-to-f35-transfer/oof.jsonl)、[F-35自评指标](../runs/evaluation/20261116-f35-self-allparts/metrics.json)、[F-14自评日志](../runs/evaluation/20261116-f14-self-allparts/run.log)、[迁移日志](../runs/evaluation/20261116-f14-to-f35-transfer/run.log)、[F-35自评日志](../runs/evaluation/20261116-f35-self-allparts/run.log)。
+
+## 2026-11-16：俯视模板与斜视模板的离线跨视角基线
+
+**目的**：新主线要求用高空俯视图裁出的目标模板驱动抵近，因此先回答两个问题：整机俯视模板能否作为粗定位模板；它与传统斜视模板在相同指标下差多少。全程离线，不连接仿真。
+
+**环境与输入**：本地WSL，RTX 4060 Ti 8 GB，conda `airsim`（PyTorch 2.6.0+cu124、OpenCV 4.13.0）。F-35取`data/captures/f35/20261115-training-views`（4970帧，跳过前30帧曝光未收敛帧），F-14取`data/captures/f14_tail/20261114-training-views`（同样4970帧）。俯视模板由`src/evaluation/eval_nadir_template.py`按记录的相机位姿投影目标网格顶点、外扩1.15倍裁出（F-35 319×319，F-14 322×322）；斜视模板分别用`data/templates/airport_7890/oblique/aircraft-template.png`与`data/templates/airport_7888/tail/aircraft-template.png`。冻结DINOv2 ViT-S/14，输入448，32×32 patch。
+
+**方法**：模板编码后对全部patch取归一化均值得到整机原型。标准化统计量取被评采集自身等间隔32帧的DINO token均值与标准差，两个模板共用，以隔离视角因素；统计不使用任何标签。每帧计算响应图，峰值为最大响应patch的中心，质心为温度0.005的softmax加权中心；命中定义为落点位于整机掩码内。整机原型对朝向敏感，因此每个模板再取0/90/180/270度四个旋转，逐帧按峰分选最高者，记为`best_of_4`；该选择不使用真值。
+
+| 评估 | 模板 | 原方向峰命中 | 4方向峰命中 | 原方向质心命中 | 4方向质心命中 |
+|---|---|---:|---:|---:|---:|
+| F-35 | 俯视 | 59.3% | 57.7% | 78.7% | 77.2% |
+| F-35 | 斜视 | 45.5% | 46.3% | 62.0% | 62.2% |
+| F-14 | 俯视 | 26.1% | 48.9% | 55.9% | 65.7% |
+| F-14 | 斜视 | 56.7% | 54.3% | 69.4% | 69.6% |
+
+4方向峰命中按距离档（12–30 / 30–60 / 60–100 / 100–150米）：F-35俯视85.9 / 58.3 / 39.2 / 27.5%，F-35斜视64.3 / 50.8 / 30.5 / 19.7%，F-14俯视69.3 / 52.7 / 31.1 / 21.2%，F-14斜视69.0 / 62.2 / 36.8 / 23.9%。所选旋转：F-35俯视r0占84.8%，F-14俯视r0仅1.0%、r180占47.0%、r270占38.6%。
+
+**复现**：200帧冒烟结果与逐帧诊断一致（F-14俯视best_of_4峰命中0.48、质心0.665），全量两套各4970帧。指标见[F-35结果](../runs/evaluation/20261116-nadir-template-f35/metrics.json)与[F-14结果](../runs/evaluation/20261116-nadir-template-f14/metrics.json)，逐帧记录为同目录`records.jsonl`，日志为`run.log`。
+
+**结论**：俯视模板可作为粗定位模板，不弱于斜视模板。F-35上俯视在峰命中、质心命中两项均高约11–17个百分点；F-14上经4方向搜索后俯视峰命中低约5个百分点、质心低约4个百分点，而斜视模板来自同一架飞机、同一接近方式，俯视模板没有这种视角便利。整机原型对朝向很敏感：F-14俯视不做旋转搜索时峰命中只有26.1%，搜索后升至48.9%，说明单朝向评价会误判模板可用性。峰值分数不能跨模板比较：F-35斜视峰分更高（0.507对0.423）但命中率更低。
+
+**限制**：每类只有一架飞机、一个场景、一个模板，固定35度俯仰相机；指标只判断整机掩码命中，没有部位级定位和接受层。标准化统计来自被评采集本身，属离线可用、在线需改由抵近起始帧估计的做法。4方向搜索只覆盖90度倍数，其他朝向未验证。F-35采集首帧亮度220（曝光未收敛），已用跳过前30帧排除；稳定帧均值156，与F-14的163基本一致。
+
+**下一步**：模板条件化学习模型的最低基线是近距（12–30米）峰命中60–86%，并需在60–150米显著优于本基线的20–39%；同时验证单朝向模板不依赖人工选向。
+
+见[评价入口](../src/evaluation/eval_nadir_template.py)、[F-35俯视模板](../runs/evaluation/20261116-nadir-template-f35/template-nadir.png)、[F-14俯视模板](../runs/evaluation/20261116-nadir-template-f14/template-nadir.png)、[F-35日志](../runs/evaluation/20261116-nadir-template-f35/run.log)、[F-14日志](../runs/evaluation/20261116-nadir-template-f14/run.log)。
+
+
+## 2026-11-16：F-14训练样本合并与重复输出清理
+
+**目的**：精简`runs/training/f14_tail_acceptance`的样本散文件和重复输出，保持样本、模型及实验结果一致。
+
+**环境与方法**：本地WSL，conda `airsim`，Python 3.10.20、h5py 3.16.0、NumPy 2.2.6、OpenCV 4.13.0、PyTorch 2.6.0+cu124；预测检查使用CUDA，训练更新检查使用CPU。将4970张256×256 RGB图像和14910份64×64 float16标签合并到一个HDF5文件，RGB保存为无损PNG编码，标签用gzip压缩。逐项核对全部图像与标签的形状、类型和数值；核对两份特征表的共有字段、CSV内容及6份分数数组与对应JSONL的一致性，再删除原散文件和重复输出。
+
+**结果**：文件数19933→46，文件系统分配空间约779→646 MiB（减少约133 MiB）。删除19880个样本散文件及10个重复输出；保留较完整的`patches-all/features.jsonl`和摘要，以及各组权重、指标、逐帧预测和日志。保留的43个文件SHA256全部一致。按特征行序等间隔选32帧，五折三部位预测在两种存储下完全相同；固定种子7、取2帧进行一次Adam更新，损失均为8.20649242401123，更新后的全部网络状态逐值一致。真实采集单帧特征导出成功；训练输入（含增强和单部位标签）、标签重建两项回归测试通过，五个入口的`--help`检查通过。
+
+**结论与限制**：合并只改变存储和输出方式，没有重新训练或全量重跑评价，不据此报告精度提升。初次直接压缩RGB数组产生更大的HDF5，已改用无损PNG编码并重新全量校验；过程文件已清理。现有PNG/NPY目录仍可作为训练、评价和标签重建输入。后续特征导出只保存一份JSONL，接受层分数直接保存在逐帧JSONL中。
+
+见[样本数据](../runs/training/f14_tail_acceptance/patches-all/patches.h5)、[特征表](../runs/training/f14_tail_acceptance/patches-all/features.jsonl)、[使用命令](../docs/USAGE.md#训练样本与局部匹配器)。
+
+样本合并校验摘要：4970张RGB与14910份标签逐值一致，特征共有字段、CSV和6份分数数组与JSONL一致；32帧×5折×3部位预测一致，种子7的两帧Adam更新后网络状态一致；真实单帧导出、2项回归测试和5个入口帮助检查通过。合并数据SHA256为`cd1368bf92edde853f80a522f4f4cfb871e897ee35586d69232fd9ea0a4f0a25`。独立存储校验文件的要点归入本节，不另保留过程文件。
+
+## 2026-11-16：F-14训练目录只保留样本与三部位模型
+
+**目的与范围**：按确认清单精简本地`runs/training/f14_tail_acceptance`，保留当前训练样本与三部位模型；不修改训练代码，不运行训练或评价。
+
+**方法**：删除8个`lc-*`学习曲线目录、`acceptance-local`、`acceptance-tol3`、`local-matcher-v2`，以及已归纳到上一节的两个`storage-validation`文件。三部位训练日志移入模型目录，名称为`train.log`。实验汇总表保留，移除已删除数据的链接，方案中的现有权重清单同步移除单垂尾条目。
+
+**结果**：删除11个实验目录、35个文件；文件数46→11，顶层只剩两个目录。文件分配空间约646.0→609.7 MiB，释放约36.3 MiB。保留的11个文件在清理前后SHA256一致，包括4970帧样本、特征和摘要、三部位5折权重、指标、逐帧预测及训练日志。
+
+**结论与限制**：本地已删除对照实验的权重和逐帧数据，历史指标仍保存在本文对应小节；本次没有重训或复算指标。
+
+见[样本](../runs/training/f14_tail_acceptance/patches-all/patches.h5)、[三部位结果与权重](../runs/training/f14_tail_acceptance/local-matcher-allparts-fixed/)、[训练日志](../runs/training/f14_tail_acceptance/local-matcher-allparts-fixed/train.log)。
+
+## 2026-11-16：F-35训练样本合并与目录精简
+
+**目的与环境**：精简本地`runs/training/f35`，沿用F-14的HDF5存储接口；WSL、conda `airsim`，NumPy 2.2.6、h5py 3.16.0、PyTorch 2.6.0+cu124。未修改训练代码，未重训或全量重跑评价。
+
+**方法**：把4991张PNG和14973份部位标签写入一个HDF5文件，图像保留PNG原始字节，float16标签使用gzip无损压缩。全量核对PNG字节以及图像、标签的类型、形状和数值；读取特征筛选后的样本顺序也保持一致。按特征行序等间隔选32帧，用F-35五折三部位模型在CUDA上比较两种存储的预测结果。全部通过后删除19964个样本散文件，将特征表移入样本目录、训练日志移入模型目录。
+
+**结果**：文件数19973→10，顶层只剩`patches-all`与`local-matcher`。文件分配空间约729.3→602.1 MiB，减少约127.2 MiB。全部样本逐值一致，32帧×5折×3部位预测完全一致；原有9个特征、权重、指标、逐帧预测及日志文件的SHA256保持不变。特征表完整保留5000行，其中9行原本没有裁剪框，不生成额外样本。数据文件SHA256：`e913a86e8b13be7235eabeb1f0604bf676c9b59aeab026ddb74fe4460d71c020`。
+
+**结论与限制**：仅改变存储与目录布局，未删模型或实验结果，未重新计算总体精度。校验要点直接记录在本节，不保留单独的过程脚本和校验输出文件。
+
+见[合并样本](../runs/training/f35/patches-all/patches.h5)、[完整特征表](../runs/training/f35/patches-all/features.jsonl)、[模型与指标](../runs/training/f35/local-matcher/)、[训练日志](../runs/training/f35/local-matcher/train.log)、[评价命令](../docs/USAGE.md#跨模板与跨机型评价)。
