@@ -416,7 +416,7 @@ python src/capture/collect_training_views.py \
   --out-dir data/captures/f14_tail/<采集id> --validate-only
 ```
 
-预检只核对地图间距与参考点是否在画面内，不连接仿真；通过后去掉`--validate-only`，在UE关卡进入Play后开始采集。无需改动关卡的曝光设置：采集相机的自动曝光在场景加载后约30帧内从纯白收敛到正常亮度，采集器在记录前持续取图，直到连续3帧均值低于220且标准差大于5才进入采样，120秒仍未收敛则报错停止；收敛过程产生的帧不会写入数据集。默认5000个位姿，距离按70%取12–60米、30%取60–150米分层，对应相对垂尾约8–105米高度；侧向角±40度（相对飞机前向），航向偏移±20度，相机保持固定−35度。近中段用于部位匹配，远段用于整机粗定位。每帧保存原生RGB、深度、机头/主翼/垂尾/整机掩码、相机元数据和机体位姿，`report.json`每50帧写一次。`--count`覆盖采样数量；输出目录必须为空；`--resume-from`只接受准备阶段的零采样中断。
+预检只核对地图间距与参考点是否在画面内，不连接仿真；通过后去掉`--validate-only`，在UE关卡进入Play后开始采集。无需改动关卡的曝光设置：采集相机的自动曝光在场景加载后约30帧内从纯白收敛到正常亮度，采集器在记录前持续取图，直到连续3帧均值低于220且标准差大于5才进入采样，120秒仍未收敛则报错停止；收敛过程产生的帧不会写入数据集。准备阶段创建共用参考图时使用同一判据等待曝光收敛，避免模板和统计量取自过曝帧。默认5000个位姿，距离按70%取12–60米、30%取60–150米分层，对应相对垂尾约8–105米高度；侧向角±40度（相对飞机前向），航向偏移±20度，相机保持固定−35度。近中段用于部位匹配，远段用于整机粗定位。每帧保存原生RGB、深度、机头/主翼/垂尾/整机掩码、相机元数据和机体位姿，`report.json`每50帧写一次。`--count`覆盖采样数量；输出目录必须为空；`--resume-from`只接受准备阶段的零采样中断。
 
 掩码由`capture/part_masks.py`用目标网格射线投射生成，部位区域与评价标签使用同一规则。部位成员同时受场景档案中的前向、横向、高度边界和以共用尾参考点为圆心的半径约束；机头与主翼的半径放宽到30米，实际只由分区边界决定，垂尾保留2.5米半径。位姿取自图像消息自带的相机位置与四元数，而不是取图后读取的机体运动学；后者可能晚于图像约0.5秒，无人机在此期间会掉落，直接用会造成米级偏差。掩码只依赖位姿、网格和区域配置，不读图像，因此可在不连仿真时预先统计各视角的可见性。
 
@@ -429,6 +429,23 @@ python src/capture/rerender_part_masks.py \
 ```
 
 加`--patches-dir`与`--features`时按已记录的搜索块边界重写64×64目标；在没有Open3D的机器上用`--targets-only`只从已渲染的掩码重建目标。
+
+### F-35部位参考与训练采集
+
+`configs/scenes/airport.json`已按F-35配置机头、主翼和一侧垂尾区域，共同参考点取机头。准备共同参考后按同一入口采集训练视角：
+
+```bash
+python src/capture/prepare_scene.py --profile configs/scenes/airport.json \
+  --mission configs/missions/f35_approach.json --common-start \
+  --reference-dir runs/approach/<运行目录>/nose/reference \
+  --target-part nose --out-dir runs/approach/<运行目录>/nose
+python src/capture/collect_training_views.py \
+  --source-run runs/approach/<运行目录>/nose \
+  --out-dir data/captures/f35/<采集id> \
+  --protocol configs/missions/f35_training_views.json
+```
+
+参考图以机头为中心时，三个部位ROI覆盖整机裁剪中心，冻结匹配器不产生候选，特征提取只输出裁剪块和三个部位的64×64目标，没有NCC特征；训练局部匹配器时使用`--parts nose wing tail`。
 
 ## 附录：PX4接口
 

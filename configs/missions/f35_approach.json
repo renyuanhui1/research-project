@@ -1,0 +1,21 @@
+{
+  "profile": "airport",
+  "mode": "oblique",
+  "target_part": "nose",
+  "start_distance": 60,
+  "speed": 1.5,
+  "camera_pitch": 35,
+  "stop_distance": 6,
+  "common_start": {
+    "position_ned_m": [
+      174.874,
+      -218.527,
+      -38.803
+    ],
+    "yaw_deg": -161.0,
+    "position_tolerance_m": 0.35,
+    "yaw_tolerance_deg": 0.75,
+    "speed_tolerance_mps": 0.08,
+    "tilt_tolerance_deg": 1.0
+  }
+}

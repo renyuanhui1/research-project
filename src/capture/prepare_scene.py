@@ -194,6 +194,16 @@ async def settle_common_start():
  if not check['passed']:raise RuntimeError('Common start outside tolerance: '+json.dumps(check))
  print('COMMON_START',json.dumps(check),flush=True)
 
+async def settle_exposure(tag='front', deadline_s=120):
+ stable=0
+ deadline=time.monotonic()+deadline_s
+ while stable<3:
+  msg=latest.get(tag)
+  if msg is not None:
+   im=decode_image(msg)[0]
+   stable=stable+1 if im.mean()<220 and im.std()>5 else 0
+  if time.monotonic()>=deadline:raise RuntimeError('Camera exposure did not settle')
+  await asyncio.sleep(.2)
 async def prepare_common(world):
  shared=options.reference_dir;manifest=shared/'template.json'
  pose=world.get_object_pose(PROFILE['target']['actor']);map_root=project_path(PROFILE['map']['root'])
@@ -203,6 +213,7 @@ async def prepare_common(world):
  await settle_common_start()
  for tag,cam,key in (('front','FrontCamera','scene_camera'),('depth','FrontCamera','depth_camera'),('chase','Chase','scene_camera')):client.subscribe(drone.sensors[cam][key],cb(tag))
  await asyncio.sleep(3)
+ await settle_exposure()
  frames=[];last=-1;deadline=time.monotonic()+10
  while len(frames)<6 and time.monotonic()<deadline:
   msg=latest.get('front')
