@@ -670,3 +670,40 @@ RGB与深度最大时差为84—110毫秒，39项测试通过。离线复核命�
 **核验与限制**：84个设置共32172对预测按原生标签复算一致，六项整目标/部位基线复现，原型各落点方法的分数与朝向选择相同；26项测试、两个文件编译及格式检查通过。首次运行因缺少共享数据链接在读取阶段失败，补齐后重跑，日志保留。最优方法及阈值均在同一开发验证集选择，只有3个目标、2组主体网格；未读既有测试查询图、未连接UE、未改控制器。当前结果可用于后续方法选择，尚不足以接管抵近控制。
 
 见[实验登记](../runs/evaluation/20261117-dino-matching-ablation/pre-registration.json)、[全部指标](../runs/evaluation/20261117-dino-matching-ablation/comparison.json)、[消融图](../runs/evaluation/20261117-dino-matching-ablation/comparison.png)、[开发方法选择](../runs/evaluation/20261117-dino-matching-ablation/selection.json)、[身份诊断](../runs/evaluation/20261117-dino-matching-ablation/identity-diagnostic.json)、[中心位置对照](../runs/evaluation/20261117-dino-matching-ablation/center-prior-diagnostic.json)、[本机耗时](../runs/evaluation/20261117-dino-matching-ablation/latency.json)、[评价日志](../runs/evaluation/20261117-dino-matching-ablation/evaluation.log)、[原生标签复算](../runs/evaluation/20261117-dino-matching-ablation/result-audit.json)、[测试日志](../runs/evaluation/20261117-dino-matching-ablation/validation.log)。各编码器目录保留全部逐对结果。
+
+
+## 2026-11-17：模板分数诊断与折外候选覆盖率
+
+**目的**：检查冻结核验器的连续分数及RGB对应特征，量化多目标粗定位候选是否足以支撑模板选择。代码已证明现有单候选位置不随模板改变，不重复进行单候选模板切换推理。本轮不训练模型、不调整阈值、不读取测试查询图、不连接UE。
+
+**服务器准备与环境**：237主项目通过Git快进同步；原有工作区文件保存在`pre-sync-main-e50f14a-20261117` stash中，原stash也保留。数据、模板、特征和模型以软链接引用已有实验目录。使用`/home/ryh2025/miniconda3/envs/ryh-dinov2/bin/python`，PyTorch 2.11.0+cu128、OpenCV 4.13.0、NumPy 2.2.6、h5py 3.16.0、RTX PRO 6000。准备自检核对训练/验证14个分片共1600帧、19张模板、同图标签及模型哈希；已有验证帧的点、框、分数和接受结果完全复现，三个CLI入口通过。准备时发现`ryh-project`缺少h5py、`airsim`的OpenCV为5.0，未安装或修改环境。见[服务器准备报告](../runs/validation/20261117-server-ready/report.json)。
+
+**连续分数诊断方法**：复用冻结`linear-s1732`核验器及阈值0.9188354332252644。验证383对、190个可见正例；训练2808对、1384个可见正例。训练的粗定位候选来自交叉拟合，但接受层拟合过这些特征，训练分数不能记作接受层留出结果。按目标、距离、可见面积和遮挡报告分位数、AUC及20箱直方图重叠；接受精度另给Wilson区间。SIFT内点数由保存的内点/描述子比例及重提的描述子数恢复，不运行DINO编码。
+
+**分数结果**：验证38/40正确接受，95% Wilson区间83.50%—98.62%；飞机16/18对应67.20%—96.90%；7920的3/3对应43.85%—100%。区间为当前配对样本的二项描述，不是连续飞行可靠性保证。验证落点正确性AUC为0.841；训练分数为0.904，但两者用途及分布不同，不能单凭差异确定原因。
+
+| 验证目标 | 正例分数中位数 | 负例分数中位数 | RGB内点数中位数（正例） | 落点正确性AUC |
+|---|---:|---:|---:|---:|
+| 折翼F-35 | 0.828 | 0.415 | 3 | 0.779 |
+| 机库3955 | 0.796 | 0.201 | 9 | 0.908 |
+| 机库7920 | 0.607 | 0.137 | 6 | 0.851 |
+
+7920正例裁剪的目标覆盖率第10/50/90百分位均为100%，正例RGB内点数第10/50/90百分位为4/6/15。它的分数整体偏低且与负例重叠，不能据此直接降低阈值，也不能把低召回单独归因为没有内点或重复纹理。
+
+**F-35面积与限制**：指定主翼部位在640×360标签上的面积中位数，按12—30/30—60/60—100/100—150米为1223.5/149.5/50/29像素。两个误接受位于22.70与89.39米，对应部位面积209与13像素。现有标签是任务部位，不是同机型不同损伤状态的差异区域；报告中的`part_equivalent_input_pixels`是整图448输入上的等效面积，不是核验裁剪缩放后的面积。该统计不能证明损伤不可辨，精细损伤区域标注与可辨性结论仍未验证，也未引入按距离放宽身份的判据。
+
+**候选覆盖率方法**：重放三组按主体网格分组的折外粗定位器；使用637张有额外实例标签的训练图，共1795个可见目标（原目标637、同图额外目标1158）。响应局部峰值按分数排序，平台取固定首点，以候选裁剪框IoU>0.5执行NMS，比较K=1/3/5。裁剪沿用1.5倍余量、最小边长比例0.12、响应差2.0。标签不参与候选生成，只事后判定峰值是否落入原生可见掩码、候选裁剪是否包含至少50%目标。所有637帧K=1的点和框与保存结果一致。
+
+| 目标集合 | K=1峰值覆盖 | K=3峰值覆盖 | K=5峰值覆盖 | K=5裁剪覆盖 |
+|---|---:|---:|---:|---:|
+| 全部1795个目标 | 30.97% | 43.73% | 46.69% | 65.74% |
+| 原目标637个 | 81.32% | 87.76% | 89.80% | 92.46% |
+| 同图其他目标1158个 | 3.28% | 19.52% | 22.97% | 51.04% |
+
+K=5时只有137/637帧（21.51%）的全部请求目标都被峰值覆盖。同图额外目标中711个占画面不足0.1%；面积分档后仍有差距：占0.1%—1%时，原目标/额外目标的K=5峰值覆盖为175/192（91.15%）和70/214（32.71%）；占1%—10%时为189/222（85.14%）和108/211（51.18%）。因此尺寸构成不能完全解释差距，但位置、类别及采样分布仍可能影响结果，不能仅凭此认定唯一机制。
+
+**结论与下一步**：当前粗定位器及上述top-K配置不足以提供多目标候选，不能仅增加逐候选核验就宣称模板选择问题解决。下一项受控实验应优先比较全目标、按实例平衡的粗定位监督，保留同样的编码器、定位器、数据和折划分，分别检查小目标及同图其他目标的覆盖；之后再决定多候选接受层。部位精定位、距离分级接受、多帧接受与独立序列均未在本轮实施。
+
+**异常及验证**：折外产物含NumPy标量，受限权重读取失败；仅对项目自产折外权重使用完整读取并记录SHA256，冻结核验器仍受限读取。首次覆盖率运行误从粗定位训练配置读取裁剪参数，以`KeyError: crop_logit_delta`停止；修正为读取核验配置后重跑成功。失败日志及登记保留在同一执行历史，统计模式未重复运行。21项相关测试在两端通过，修复后的4项针对性测试通过；3191对诊断、1795个目标覆盖和637帧原目标标签经本地复核一致。该覆盖率使用训练图的交叉拟合查询，缓存仍可能含内层留出主体的偶然背景，不是严格独立外观或连续飞行评价。
+
+见[评价配置](../configs/evaluation/template_selection.json)、[诊断登记](../runs/evaluation/20261117-template-selection/diagnose-registration.json)、[连续分数统计](../runs/evaluation/20261117-template-selection/diagnosis.json)、[逐对诊断](../runs/evaluation/20261117-template-selection/diagnosis-records.json)、[分数与RGB内点图](../runs/evaluation/20261117-template-selection/score-diagnosis.png)、[覆盖率登记](../runs/evaluation/20261117-template-selection/coverage-registration.json)、[覆盖率](../runs/evaluation/20261117-template-selection/coverage.json)、[候选及逐目标记录](../runs/evaluation/20261117-template-selection/coverage-candidates.json)、[覆盖率图](../runs/evaluation/20261117-template-selection/candidate-coverage.png)、[本地复算与面积分层](../runs/evaluation/20261117-template-selection/result-audit.json)、[执行历史](../runs/evaluation/20261117-template-selection/execution-history.json)、[统计日志](../runs/evaluation/20261117-template-selection/diagnose.log)、[覆盖率日志（含失败）](../runs/evaluation/20261117-template-selection/coverage.log)、[测试日志](../runs/evaluation/20261117-template-selection/validation.log)。
