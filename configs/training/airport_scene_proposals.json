@@ -1,0 +1,8 @@
+{
+  "evaluation_config": "configs/evaluation/template_selection.json",
+  "output_directory": "runs/training/20261117-scene-proposals",
+  "seeds": [1731, 1732, 1733],
+  "variants": ["original", "all_balanced"],
+  "epochs": 18,
+  "scope": "Paired original-target and instance-balanced all-visible-fit-target supervision; unchanged architecture, loss, query folds and budget; shared-cache crossfit development, not independent testing."
+}

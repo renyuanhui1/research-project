@@ -721,3 +721,16 @@ python src/evaluation/eval_template_selection.py --stage plot
 结果位于`runs/evaluation/20261117-template-selection/`，含两个模式的登记、逐对诊断、逐目标候选覆盖、候选清单及图表。统计和覆盖率结果各只写一次，绘图读取已有结果。训练接受分数不属于接受层留出评价，开发验证不属于独立测试。任务部位像素面积不能证明损伤差异在该距离可辨。
 
 237使用`/home/ryh2025/miniconda3/envs/ryh-dinov2/bin/python`。数据与模型通过主项目中的软链接引用已有实验产物，无需复制全量数据；准备检查记录见`runs/validation/20261117-server-ready/report.json`。
+
+## 全目标粗定位监督对照
+
+在237项目根目录使用上述Python环境运行：
+
+```bash
+python src/training/train_scene_proposals.py --config configs/training/airport_scene_proposals.json
+python src/training/train_scene_proposals.py --config configs/training/airport_scene_proposals.json --plot
+```
+
+`evaluation_config`指定数据和候选评价配置，`seeds`指定配对随机种子，`epochs`指定每折轮数；`original`与`all_balanced`分别使用原目标和按实例平衡的全目标标签。训练采用固定末轮，三折来自已有粗定位权重，模型结构及损失函数共用已有实现。
+
+`runs/training/20261117-scene-proposals/`保存登记、监督使用审计、各种子/方法/折的模型与训练曲线、候选和逐目标记录，以及汇总指标和图。`comparison.json`分别报告种子结果、均值/标准差及配对百分点差值；`manifest.json`记录模型哈希。模型仅提供候选，模板身份、接受阈值和连续控制需分别评价。
