@@ -288,10 +288,11 @@ def coverage(cfg, out):
                     if index in candidates:
                         raise ValueError('Repeated crossfit query')
                     m = data['records'][index]['camera_metadata']; shape = (m['height'], m['width'])
-                    peaks = peak_candidates(heatmap, shape, parameters, maximum, cfg['nms_iou'])
+                    crop_cfg = bundle['configuration']
+                    peaks = peak_candidates(heatmap, shape, crop_cfg, maximum, cfg['nms_iou'])
                     changed['points'] += int(peaks[0]['point_xy'] != saved['points'][index].tolist())
                     changed['boxes'] += int(peaks[0]['box_xyxy'] != saved['boxes'][index].tolist())
-                    if peaks[0]['box_xyxy'] != proposal_box(heatmap, shape, parameters['crop_margin'], parameters['crop_minimum_fraction'], parameters['crop_logit_delta']):
+                    if peaks[0]['box_xyxy'] != proposal_box(heatmap, shape, crop_cfg['crop_margin'], crop_cfg['crop_minimum_fraction'], crop_cfg['crop_logit_delta']):
                         raise ValueError('Top-1 crop differs from frozen image-only algorithm')
                     candidates[index] = peaks
         print('COVERAGE_FOLD', path.parent.name, 'context_frames', len(candidates), flush=True)
