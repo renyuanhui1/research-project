@@ -1,0 +1,7 @@
+{
+  "source_config": "configs/training/airport_scene_proposals.json",
+  "output_directory": "runs/evaluation/20261117-proposal-fusion",
+  "methods": ["original", "all_balanced", "alternate_original", "alternate_balanced", "original_anchor"],
+  "benchmark": {"seed": 1731, "fold": 0, "warmup": 8, "frames": 48},
+  "scope": "Fixed-budget cached-candidate fusion on existing crossfit training-context predictions; rank schedules fixed before fusion evaluation; no training, threshold fitting, independent test or control."
+}

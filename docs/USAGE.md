@@ -734,3 +734,17 @@ python src/training/train_scene_proposals.py --config configs/training/airport_s
 `evaluation_config`指定数据和候选评价配置，`seeds`指定配对随机种子，`epochs`指定每折轮数；`original`与`all_balanced`分别使用原目标和按实例平衡的全目标标签。训练采用固定末轮，三折来自已有粗定位权重，模型结构及损失函数共用已有实现。
 
 `runs/training/20261117-scene-proposals/`保存登记、监督使用审计、各种子/方法/折的模型与训练曲线、候选和逐目标记录，以及汇总指标和图。`comparison.json`分别报告种子结果、均值/标准差及配对百分点差值；`manifest.json`记录模型哈希。模型仅提供候选，模板身份、接受阈值和连续控制需分别评价。
+
+## 固定候选预算融合
+
+```bash
+python src/evaluation/eval_proposal_fusion.py --stage evaluate
+python src/evaluation/eval_proposal_fusion.py --stage plot
+python src/evaluation/eval_proposal_fusion.py --stage benchmark
+```
+
+默认配置为`configs/evaluation/proposal_fusion.json`，`source_config`引用已完成的配对训练，`methods`列出单路及固定融合顺序。候选预算、跨路NMS和标签口径沿用其评价配置；已有缓存每路最多5个候选，结果记录返回不足预算的帧数。缓存评价不运行模型，单路记录以来源文件链接保存。融合顺序不依据原始分数或标签调整。
+
+在本地控制端运行`benchmark`，`benchmark.seed`和`fold`指定模型，`warmup`和`frames`指定预热及测量数量；图像按该折既有记录顺序选择，方法顺序轮转。计时含一次共享DINO编码、一或两个定位头和候选融合；RGB解码及按数据协议擦除在计时前完成。
+
+`runs/evaluation/20261117-proposal-fusion/`保存预先登记、单路复现、各种子候选来源及抑制记录、覆盖指标、图表和`latency.json`。这些是已有训练图的开发评价，不提供独立泛化或在线身份接受结论。
