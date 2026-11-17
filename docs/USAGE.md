@@ -705,3 +705,19 @@ python src/evaluation/eval_dino_matching.py --config configs/evaluation/dino_mat
 输出位于`runs/evaluation/20261117-dino-matching-ablation/`，`baseline-parity.json`核对基线命中数，`records.json`保留各设置的落点、分数及对应支持，`selection.json`区分命中最优和接受召回最优。所有选择和阈值均来自开发验证数据，不能作为独立测试成绩。
 
 `--benchmark`在本机对基线及各编码器的命中最优设置计时，模板在计时前编码；`latency.json`保存单帧RGB到指定整目标或部位落点的中位与P95耗时。互近邻模式跳过未使用的仿射拟合；该操作不改变互近邻的对应点。
+
+## 模板身份诊断与候选覆盖率
+
+在具备已有RGB-D、模板、同图标签、特征缓存和折外模型的项目根目录运行：
+
+```bash
+python src/evaluation/eval_template_selection.py --stage diagnose
+python src/evaluation/eval_template_selection.py --stage coverage
+python src/evaluation/eval_template_selection.py --stage plot
+```
+
+默认配置为`configs/evaluation/template_selection.json`，可用`--config`指定。`diagnose`复算已有开发预测并输出连续分数分组统计，不运行DINO；`coverage`需要CUDA及全图特征，重放折外粗定位器。`candidate_counts`指定K，`nms_iou`指定候选裁剪框抑制阈值，`minimum_crop_coverage`指定目标可见掩码被候选包含的最低比例；峰值命中率另行报告，不以大裁剪框覆盖代替准确定位。
+
+结果位于`runs/evaluation/20261117-template-selection/`，含两个模式的登记、逐对诊断、逐目标候选覆盖、候选清单及图表。统计和覆盖率结果各只写一次，绘图读取已有结果。训练接受分数不属于接受层留出评价，开发验证不属于独立测试。任务部位像素面积不能证明损伤差异在该距离可辨。
+
+237使用`/home/ryh2025/miniconda3/envs/ryh-dinov2/bin/python`。数据与模型通过主项目中的软链接引用已有实验产物，无需复制全量数据；准备检查记录见`runs/validation/20261117-server-ready/report.json`。

@@ -1,0 +1,16 @@
+{
+  "catalog": "data/templates/airport_targets_20261116/catalog.json",
+  "capture_directory": "data/captures/airport_targets/20261117-multitarget",
+  "feature_directory": "data/features/airport_targets/20261117-template",
+  "context_labels": "data/labels/airport_targets/20261117-context",
+  "baseline_directory": "runs/training/20261117-template-verification-rgb",
+  "proposal_directory": "runs/training/20261117-template-verification",
+  "output_directory": "runs/evaluation/20261117-template-selection",
+  "protocol": "appearance",
+  "candidate_counts": [1, 3, 5],
+  "nms_iou": 0.5,
+  "minimum_crop_coverage": 0.5,
+  "area_fraction_bins": [0, 0.001, 0.01, 0.1, 1],
+  "score_histogram_bins": 20,
+  "scope": "Existing-score development diagnosis and query-group-crossfit candidate coverage on training context labels; no new test, retraining, threshold adjustment or flight."
+}
