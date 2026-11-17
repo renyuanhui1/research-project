@@ -1,0 +1,19 @@
+{
+  "catalog": "data/templates/airport_targets_20261116/catalog.json",
+  "capture_directory": "data/captures/airport_targets/20261117-multitarget",
+  "reference_pair_plan": "runs/training/20261117-template-verification-rgb/pair-plan.json",
+  "output_directory": "runs/evaluation/20261117-dino-backbones",
+  "protocol": "appearance",
+  "seed": 1731,
+  "negative_visibility_margin_deg": 2.0,
+  "feature_batch": 4,
+  "temperature": 0.005,
+  "calibration_precision": 0.95,
+  "benchmark_warmup": 8,
+  "benchmark_frames": 48,
+  "conditions": [
+    {"name": "dinov2-448", "model": "dinov2_vits14", "image_size": 448, "repository": "third_party/dinov2", "weights": "weights/dinov2_vits14_pretrain.pth"},
+    {"name": "dinov3-448", "model": "dinov3_vits16", "image_size": 448, "repository": "third_party/dinov3", "weights": "weights/dinov3_vits16_pretrain_lvd1689m-08c60483.pth"},
+    {"name": "dinov3-512", "model": "dinov3_vits16", "image_size": 512, "repository": "third_party/dinov3", "weights": "weights/dinov3_vits16_pretrain_lvd1689m-08c60483.pth"}
+  ]
+}

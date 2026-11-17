@@ -1,0 +1,13 @@
+{
+  "base_config": "configs/evaluation/dino_backbone_comparison.json",
+  "baseline_directory": "runs/evaluation/20261117-dino-backbones",
+  "output_directory": "runs/evaluation/20261117-dino-matching-ablation",
+  "normalizations": ["standardized", "l2"],
+  "readouts": ["legacy", "cell", "peak", "soft", "local", "mutual", "affine"],
+  "soft_temperature": 0.02,
+  "local_radius_cells": 1,
+  "maximum_correspondences": 1000,
+  "reprojection_threshold": 0.04,
+  "ransac_iterations": 2000,
+  "ransac_confidence": 0.99
+}

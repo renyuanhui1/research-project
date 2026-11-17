@@ -1,8 +1,95 @@
-"""固定洞口模板的深度候选与DINO空间对应，供离线评价及水平对准复用。"""
+"""整目标屋面关联或固定洞口模板的RGB-D候选匹配，供评价及水平对准复用。"""
 import cv2
 import numpy as np
 import torch
-from perception.opening_geometry import opening_candidates
+from perception.opening_geometry import opening_candidates, plane_aperture, plane_region_center
+
+
+def body_constrained_match(fp, rgb, depth, min_peak, down=None, previous_box=None, allow_tracked_gap=False, previous_group_box=None):
+    """确认整目标后，在定位点所属屋面中选择任一闭合破口；不辨认指定洞口。"""
+    geometry = opening_candidates(depth, down=down,tracked_box=previous_box if allow_tracked_gap else None,
+        tracked_group_box=previous_group_box if allow_tracked_gap else None)
+    dh,dw=depth.shape
+    query_box=[0,0,rgb.shape[1],rgb.shape[0]]
+    query_previous=previous_group_box if previous_group_box is not None else previous_box
+    if query_previous is not None and allow_tracked_gap:
+        x0,y0,x1,y1=np.asarray(query_previous,float)
+        query_box=[max(0,int((2*x0-x1)*rgb.shape[1]/dw)),max(0,int((2*y0-y1)*rgb.shape[0]/dh)),
+                   min(rgb.shape[1],int((2*x1-x0)*rgb.shape[1]/dw)),min(rgb.shape[0],int((2*y1-y0)*rgb.shape[0]/dh))]
+    x0,y0,x1,y1=query_box
+    cx,cy,mass,peak,_ = fp.query(np.ascontiguousarray(rgb[y0:y1,x0:x1]))
+    cx=2*(x0+(cx+1)*(x1-x0)/2)/rgb.shape[1]-1
+    cy=2*(y0+(cy+1)*(y1-y0)/2)/rgb.shape[0]-1
+    px=int(np.clip((cx+1)*dw/2,0,dw-1))
+    py=int(np.clip((cy+1)*dh/2,0,dh-1))
+    near=geometry['valid'] & ~geometry['far_mask']
+    _,labels=cv2.connectedComponents(near.astype(np.uint8),8)
+    roof_label=int(labels[py,px])
+    choices=[]
+    for candidate in geometry['candidates']:
+        ring=(cv2.dilate(candidate['group_mask'].astype(np.uint8),np.ones((5,5),np.uint8))>0)&~candidate['group_mask']
+        surrounding=labels[ring & near]
+        ids,counts=np.unique(surrounding[surrounding>0],return_counts=True)
+        if not len(ids):continue
+        enclosing=int(ids[np.argmax(counts)])
+        same_roof=(roof_label>0 and roof_label==enclosing) or bool(candidate['group_mask'][py,px])
+        if not same_roof and not (allow_tracked_gap and previous_box is not None):continue
+        if down is not None:
+            group_point=plane_region_center(candidate['visible_gap_mask'],candidate['bbox_depth_xyxy'],
+                geometry['near_layer_depth_m'],dw/2,np.asarray(down)/np.linalg.norm(down))
+        else:
+            yy,xx=np.where(candidate['visible_gap_mask']);group_point=[xx.mean(),yy.mean()]
+        group_choices=[]
+        count,gaps,stats,_=cv2.connectedComponentsWithStats(candidate['visible_gap_mask'].astype(np.uint8),8)
+        for gap_label in range(1,count):
+            x,y,width,height,area=map(int,stats[gap_label])
+            if area<30:continue
+            visible=gaps==gap_label;box=[x,y,x+width,y+height]
+            if down is not None:
+                gx,gy,radius=plane_aperture(visible,box,geometry['near_layer_depth_m'],dw/2,np.asarray(down)/np.linalg.norm(down))
+            else:
+                distance=cv2.distanceTransform(np.pad(visible.astype(np.uint8),1),cv2.DIST_L2,cv2.DIST_MASK_PRECISE)[1:-1,1:-1]
+                gy,gx=np.unravel_index(np.argmax(distance),distance.shape)
+                radius=float(distance[gy,gx]*geometry['near_layer_depth_m']/(dw/2))
+            overlap=0.
+            if previous_box is not None:
+                old=np.asarray(previous_box,float);new=np.asarray(box,float)
+                intersection=np.maximum(0,np.minimum(old[2:],new[2:])-np.maximum(old[:2],new[:2])).prod()
+                overlap=float(intersection/((old[2:]-old[:2]).prod()+(new[2:]-new[:2]).prod()-intersection))
+            group_choices.append({'candidate_label':candidate['label'],'visible_gap_component_label':gap_label,
+                'bbox_depth_xyxy':box,'group_bbox_depth_xyxy':candidate['bbox_depth_xyxy'],
+                'group_alignment_point_rgb_xy':[(float(group_point[0])+.5)*rgb.shape[1]/dw-.5,
+                                                (float(group_point[1])+.5)*rgb.shape[0]/dh-.5],
+                'crop_rgb_xyxy':[int(box[0]*rgb.shape[1]/dw),int(box[1]*rgb.shape[0]/dh),
+                                 int(box[2]*rgb.shape[1]/dw),int(box[3]*rgb.shape[0]/dh)],
+                'group_area_px':area,'projected_aperture_radius_m':radius,
+                'aperture_point_rgb_xy':[(gx+.5)*rgb.shape[1]/dw-.5,(gy+.5)*rgb.shape[0]/dh-.5],
+                'enclosing_roof_component':enclosing,'previous_box_iou':overlap,
+                'tracked_boundary_gap':candidate['tracked_boundary_gap']})
+        tracked=allow_tracked_gap and any(c['previous_box_iou']>=.5 for c in group_choices)
+        if same_roof or tracked:
+            for choice in group_choices:choice['identity_association']='current_body_point' if same_roof else 'verified_free_gap_continuity'
+            choices.extend(group_choices)
+    choices.sort(key=lambda c:(c['previous_box_iou'],c['projected_aperture_radius_m']),reverse=True)
+    selected=choices[0] if choices else None
+    strong=bool(np.isfinite(peak) and peak>=min_peak and selected is not None)
+    result={k:geometry[k] for k in ('status','near_layer_depth_m','far_layer_depth_m','threshold_m','grouping_kernel_px') if k in geometry}
+    result.update(candidates=choices,selected=selected,identity_score=peak,
+        group_alignment_point_rgb_xy=selected['group_alignment_point_rgb_xy'] if strong else None,
+        group_alignment_point_is_free_passage_proof=False,
+        body_identity={'peak':peak,'center_normalized_xy':[cx,cy],'roof_component':roof_label,'query_crop_rgb_xyxy':query_box},
+        proposed_aperture_point_rgb_xy=selected['aperture_point_rgb_xy'] if strong else None,
+        reference_match_status='whole_target_roof_association' if strong else 'body_or_roof_association_missing',
+        selection_method='any closed opening on the DINO identified connected roof',
+        ue_target_coordinates_used=False,collision_truth_used=False,
+        projected_clearance_is_3d_passage_proof=False,
+        development_score_threshold=min_peak,threshold_calibrated_on_held_out_data=False)
+    view=cv2.cvtColor(rgb,cv2.COLOR_RGB2BGR)
+    cv2.drawMarker(view,(round((cx+1)*rgb.shape[1]/2),round((cy+1)*rgb.shape[0]/2)),(255,0,255),cv2.MARKER_CROSS,25,2)
+    if selected:
+        box=selected['crop_rgb_xyxy'];cv2.rectangle(view,tuple(box[:2]),tuple(box[2:]),(0,255,255),3)
+        cv2.drawMarker(view,tuple(round(v) for v in selected['aperture_point_rgb_xy']),(255,255,0),cv2.MARKER_CROSS,25,2)
+    return result,cv2.resize(view,(960,540))
 
 
 @torch.no_grad()

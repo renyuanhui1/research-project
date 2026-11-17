@@ -64,7 +64,7 @@ class VisualAnchor:
     def gray_image(rgb):
         return cv2.cvtColor(cv2.resize(rgb,(960,540)),cv2.COLOR_RGB2GRAY)
 
-    def update(self,rgb,depth):
+    def update(self,rgb,depth,mask=None):
         gray=self.gray_image(rgb)
         old=self.pixels.reshape(-1,1,2).astype(np.float32)
         new,status,_=cv2.calcOpticalFlowPyrLK(self.gray,gray,old,None,
@@ -106,7 +106,7 @@ class VisualAnchor:
         self.quality={'tracked':len(points),'inliers':len(ids),'median_reprojection_px':residual,
                       'median_registration_m':metric_residual,'reprojection_limit_px':pixel_limit}
         if np.linalg.norm(center-self.keyframe_center)>4. or metric_residual>.06 or len(ids)<150:
-            pixels,current_points=self.seed_points(gray,depth)
+            pixels,current_points=self.seed_points(gray,depth,mask)
             self.pixels=pixels;self.points=(current_points-translation)@rotation
             self.keyframe_center=center.copy();self.keyframes+=1
         self.quality['keyframes']=self.keyframes
@@ -148,7 +148,7 @@ class FreeTube:
     def update(self,depth,rotation,translation,now,center):
         depth=np.asarray(depth,np.float32)
         h,w=depth.shape
-        safe=np.where(np.isfinite(depth)&(depth>.1)&(depth<150),depth,0).astype(np.float32)
+        safe=np.where(np.isfinite(depth)&(depth>.1),depth,0).astype(np.float32)
         # 取邻域最小值，横梁与无效像素不能被平均掉。
         safe=cv2.erode(safe,np.ones((5,5),np.uint8),borderType=cv2.BORDER_CONSTANT,borderValue=0)
         local=self.points@rotation.T+translation
@@ -171,6 +171,7 @@ class FreeTube:
         return {'samples':len(self.points),'future_samples':int(future.sum()),
                 'refreshed_samples':int(clear.sum()),'half_width_m':self.half_width_m,
                 'sampling_step_m':self.step_m,'depth_margin_m':self.margin_m,
+                'minimum_observed_margin_m':float(np.min(measured-distance-self.margin_m)) if len(distance) else None,
                 'oblique':self.oblique,'axis_slope_anchor':self.axis_slope.tolist(),
                 'horizontal_half_widths_m':self.horizontal_half_widths.tolist(),
                 'max_future_observation_age_s':float(np.max(now-self.last_seen[future])),

@@ -277,7 +277,7 @@ python src/control/run_opening_alignment.py --profile airport \
   --out-dir runs/opening-alignment/<id>/control --execute
 ```
 
-入口要求无人机已经在空中并启用API控制，保持初始高度。每次水平速度脉冲后悬停并重新取图；弱匹配、失锁、过期图像、目标跳变及高度异常停止。`--max-duration`限制为1—240秒。默认观察8组独立RGB-D，可用`--observe-frames`调整。
+入口要求无人机已经在空中并启用API控制，保持初始高度。每次水平速度脉冲后悬停并重新取图；弱匹配、失锁、过期图像、目标跳变及高度异常停止。`--max-duration`设置正的有限执行时限。默认观察8组独立RGB-D，可用`--observe-frames`调整。
 
 `frames/`保存原始图、深度和匹配诊断，`signals.jsonl`记录候选、图像误差、拟发速度及指令结果，`report.json`记录停止原因、初末状态和保护参数。对准确认只适用于该实验设定，不代表三维净空或穿越成功。原生相机话题只允许一个完整客户端，准备、观察和控制按顺序运行。
 
@@ -531,3 +531,177 @@ python src/px4/servo_closed_loop_px4.py --help
 航向检查显式指定`--yaw`，视觉入口显式指定与PX4相机视角一致的`--template`和`--stats-episode`。通过`--mav-url`选择MAVSDK端点。当前机场的SimpleFlight记录见[实验索引](../reports/EXPERIMENTS.md)；PX4运行需单独完成本场景的相机和飞控验证。
 
 一次运行的控制记录保存在`runs/approach/`。需要重建仿真连接时，先停止客户端，结束UE Play，再重新启动PX4与Play。
+
+## 远端粗定位与近端部位精对准
+
+UE Airport处于Play后，按目标配置执行斜视准备、匹配预检、控制和独立终点核验。第一项F-14示例：
+
+```bash
+python src/capture/prepare_scene.py --profile runs/approach/20261116-coarse-to-fine/01-f14-intact/profile.json --oblique --out-dir runs/approach/20261116-coarse-to-fine/01-f14-intact/control
+python src/control/run_approach.py --out-dir runs/approach/20261116-coarse-to-fine/01-f14-intact/control --validate-only
+python src/control/run_approach.py --out-dir runs/approach/20261116-coarse-to-fine/01-f14-intact/control --max-duration 600
+python src/evaluation/eval_part_approach.py --run-dir runs/approach/20261116-coarse-to-fine/01-f14-intact/control
+```
+
+远端以整目标原型定位，连续3帧深度进入45米后切换指定部位ROI；6米停车要求3张独立深度帧确认。水平起点距离、相机俯角和实际高度分别记入任务与准备记录。准备、匹配、控制或终点核验失败时停在当前目标，分析后再执行；停车与独立终点核验均通过才进入下一目标。
+
+局部部位在场景档案的`parts`中按名称配置，任务用`target_part`选择。机鼻使用参考球域；其他部位配置前向、横向和高度边界、`seed_longitudinal_m`、`seed_lateral_m`、`seed_altitude_m`及`radius_m`，准备入口从真实网格中选择参考点并生成ROI。高度字段使用世界高度米。`approach_axis`取`rear`时从后方接近，取`negative_side`时从负横向接近，不设置时从正横向接近。方向选择不改变局部区域边界，非机鼻部位近端预检使用0.02归一化容差。
+
+模板中局部框含有大面积相似背景或完整舱沿时，可在该部位配置`template_roi_fraction`，四个比例相对于投影局部框，例如`[0.1,0.1,0.9,0.65]`选择内部纹理。独立评价仍使用原几何区域。屋顶任务的整目标接近使用`run_approach.py --handoff-on-roi`，确认`handoff_ready`后交给洞口匹配和RGB-D通道入口；这一停止不作为近端任务到达。
+
+屋顶任务使用`--roof-handoff`代替普通部位的深度停车：在实时屋面距离进入45米后悬停，读取`part_handoff`中的测量来源和确认帧数，再运行洞口入口。可在`signals.csv`检查`roof_vertical_range_m`和`phase_range_m`；深度分层缺失或屋面余量低于15米时不会继续接近。
+
+普通部位抵近在首次进入`close_range_m`后保持`close_speed_mps`限速，即使后续取样落到较远背景也不重新加速。查看报告的`close_speed_latched_at_step`与`signals.csv`的`close_speed_latched`；该状态只在当前运行内有效。
+
+给同质纹理部位配置独立近端参考时，设置`part_template_distance_m`和该距离原生图上的归一化`part_template_roi`，并把参考距离及`controller.close_range_m`加入`preparation.calibration_distances_m`。准备输出`part-template.png`、模板元数据和`fine-validation.png`。控制从整目标原型开始，原切换距离使用整目标模板中的部位ROI，进入`close_range_m`后停车并切到独立近端原型。远景、原部位、近端切换图及8米图分别预检；实际精细模板切换见报告`part_template_switch`。部位几何和终点评价条件独立于模板ROI。
+
+粗定位报告确认`handoff_ready`后，用`python src/capture/prepare_opening_handoff.py --coarse-run-dir <粗定位目录> --out-dir <相机交接目录> --camera-down-angle 45`准备洞口相机。洞口入口的`--runtime-scene`指向该目录的`runtime-scene.json`，先不加`--execute`观察独立帧，再加`--execute --enter --oblique`执行。相机交接入口不会加载场景或移动无人机。
+
+需要围绕已选表面点提取局部纹理时，在部位字段设置`template_anchor_half_size`，例如0.0625；它与`template_roi_fraction`共同约束实际匹配框，不修改几何评价区域。准备统计可设置`preparation.statistics_source=far_start`，使用最后6张未标注远端标定帧；默认`all_calibration`使用所有标定帧。元数据同时保存参考相机、完整目标投影框、参考点在模板中的位置和统计来源。
+
+粗定位交接前会减速并实测停车；相机交接要求机体速度低于0.1米/秒、偏航角速度低于0.02弧度/秒，且当前航向与粗定位报告相差不超过5度。检查失败时先处理停车与航向，不直接开始入室。
+
+任务允许从同一目标的任一屋顶破口进入时，可给洞口入口添加`--whole-target-run-dir <已确认粗定位目录>`。该模式用整目标模板及原门槛确认屋面归属，随后按真实RGB-D对准同一屋面内的闭合破口；报告`identity_mode=whole_target_then_any_opening_on_same_roof`。指定洞口身份验证继续使用原俯视参考入口，不添加此参数。
+
+`--alignment-pulse <秒>`配置水平对准的速度脉冲时长，默认0.3秒；速度限幅仍由控制器执行，每次脉冲后实测停车并读取新RGB-D。运行记录保存实际时长，指令等待时限随该时长计算。
+
+近端图像区域中断后，若无人机与相机保持原位，可添加`--resume-from <上一观察或控制目录>`重新获取目标。入口核对引用、配置及机体状态；下降记录只在仍高于已观测屋面至少`--min-roof-range`米时允许重新获取，默认15米。入口重新确认独立帧、屋面及完整通道，不恢复旧视觉位姿或通道缓存；接近或穿过屋面后的中断不能这样恢复。
+
+任一破口任务会在投影对准后检查同屋面候选的完整三维通道，按实际射线选择通过者；查看`entry_path_candidates`与`handoff`中的路径，不以二维半径代替通道通过。`--entry-pulse <秒>`配置入室脉冲，默认0.8秒，报告保存实际值。
+
+入室在已完整核验的通道内连续发送短速度指令，每次使用新RGB-D更新视觉位姿和通道；到达、等待或异常时执行实测停车。`--min-roof-range`配置获取屋面所需的最小观测距离，不改变完整通道、45秒观测缓存和碰撞保护。
+
+屋顶正上方垂直入室可添加`--vertical-entry --enter`，初始斜视相机由控制器逐步跟随破口至垂直，保持高度水平对准后核验竖直下降通道。搭配`--whole-target-run-dir`确认目标屋面，运行快照保存相机实际安装姿态。普通`--oblique --enter`继续沿视觉斜线通道执行。
+
+任一屋顶破口的垂直入室依次执行破损组上方对准、垂直视角下梁间空隙精对准、完整通道核验和下降。查看`roof_group_alignment`及逐帧`alignment_phase`；组中心可以位于梁上，仅作上方航点，下降使用另行精对准并核验的真实空隙。初始不足3帧稳定时会清零计数并悬停，`acquisition_resets`记录次数；确认后的跳变仍停止。
+
+组水平段在获取完成后固定航点，通过近层屋面RGB-D视觉锚点跟踪相对运动；查看`roof_group_visual_anchor`及逐帧`group_visual_anchor`的配准质量。分割中心保存在`group_alignment_geometry_point_rgb_xy`，实际跟踪点保存在`group_alignment_point_cv_m`，两者用途不同。
+
+`group_visual_anchor.inside_matched_group`表示锚点投影位于当前匹配破损组内；该条件与已验证视觉配准成立时，`region_continuity`可记录组框分裂后的连续身份。精对准及实际入室仍使用原真实空隙和通道条件。
+
+垂直入室可直接使用粗定位的35度相机快照，无需另行切换相机：`--runtime-scene <粗定位目录>/runtime-scene.json --whole-target-run-dir <粗定位目录> --enter --vertical-entry`。该模式允许35—90度并跟随破口，普通斜线入口仍为40—80度。
+
+## 目标库、俯视模板与数据划分
+
+从保存的资产核对俯视图和导出网格离线建库，无需UE或无人机：
+
+```bash
+python src/capture/build_target_catalog.py --config configs/datasets/airport_targets.json
+python src/capture/build_target_catalog.py --config configs/datasets/airport_targets.json --validate-only
+```
+
+输入路径、裁片余量、类别映射和训练/验证/测试划分由配置指定。输出`data/templates/airport_targets_20261116/catalog.json`，每个目标目录包含`template.png`、`assembly-mask.png`、`part-mask.png`；总览、构建日志和核验报告位于`runs/catalog/20261117-airport-targets/`。`--validate-only`核对输入/输出哈希及划分，不重写数据。
+
+训练按`catalog.json.splits`中的目标ID选择数据，未来同目标的全部视角须跟随该目标的分区。`appearance`按主体网格分组；`tower_category`完全排除训练及验证中的塔台，测试结果区分未见类别和已见类别的新外观；`hangar_instance`仅作同网格机库的位置/背景对照，不能报告为新外观泛化。不同协议须分别训练，测试搜索图不得用于标定统计或阈值。
+
+`catalog.json.primary_protocol`指定主实验。主体外观划分为训练11/验证3/测试5个目标，塔台类别留出为10/3/6，同网格机库对照为14/1/4。主实验训练包含机鼻、主翼、尾翼和座舱；座舱只有一个资产，仅作训练示例，塔台外观协议没有独立塔台验证样本。
+
+`region.visible_in_nadir`和`visible_pixels`描述网格自遮挡后的部位可见性，`projected_crop_roi`仅是几何投影范围。空部位掩码不能作为可见部位正例；屋面掩码也不能作为可通行开口标签。模板检查没有实测深度，后续训练采集仍需用真实深度排除外部遮挡。
+
+## 多目标斜视采集小样本
+
+先离线查看采样计划，再在UE Play且无无人机Actor时执行：
+
+```bash
+python src/capture/collect_target_pilot.py --protocol configs/datasets/airport_pilot.json --validate-only
+python src/capture/collect_target_pilot.py --protocol configs/datasets/airport_pilot.json
+```
+
+协议配置目标编号、距离、各类方位、相机尺寸和深度容差；小样本限定使用主协议训练目标。采集采用无物理相机，结束后移除；输出目录必须为空，避免覆盖已有样本。现有配置为F-35座舱、机库910、轻损塔台共44组，RGB 1280×720、深度及标签640×360。
+
+数据位于`data/captures/airport_targets/20261117-pilot/`，包括`samples.h5`、`report.json`、`plan.json`、相机配置和`overview.png`。HDF5每组的`rgb_png`可用`common.patches.read_rgb`读取，`depth_m`为float16米制透视距离；掩码字段见[架构说明](ARCHITECTURE.md#多目标斜视采集)。训练时用`valid_mask`排除未知像素，不能将所有非目标像素都直接当成背景。完整原生图像和深度只有一份，不逐帧保存诊断PNG；总览为离线生成的标签叠加图。
+
+## 多目标分片采集与整目标训练
+
+采集在连接UE的本机执行；保持Airport处于Play、窗口可见，场景中没有无人机Actor：
+
+```bash
+python src/capture/collect_target_pilot.py --protocol configs/datasets/airport_multitarget.json --validate-only
+python src/capture/collect_target_pilot.py --protocol configs/datasets/airport_multitarget.json
+python src/capture/collect_target_pilot.py --protocol configs/datasets/airport_multitarget.json --resume
+```
+
+前两条分别查看计划和首次采集，第三条用于同协议中断恢复。输出`data/captures/airport_targets/20261117-multitarget/<目标ID>/`，每目标一个HDF5及报告。配置采用训练目标各128组、验证及测试目标各64组，共1920组；RGB 896×504，深度及标签640×360。根报告只列已完成并回读校验的分片。原始RGB保留，`ignored_mask`在编码前擦除后续分区资产；测试图不擦除。
+
+将代码、目标库模板、完成的采集分片和DINO权重准备到237同一项目根下，再执行：
+
+```bash
+python src/training/extract_template_features.py --config configs/training/airport_template_matcher.json
+python src/training/train_template_matcher.py --config configs/training/airport_template_matcher.json
+python src/evaluation/plot_template_comparison.py --config configs/training/airport_template_matcher.json
+```
+
+提取器可添加`--target <目标ID>`逐个处理已完成分片，输入哈希一致时复用缓存。已有完整特征时直接运行训练命令；开发训练只要求所用分片可核验。配置指定数据协议、目录和参数，不能复用其他划分训练出的权重作为本协议结果；结果位于`runs/training/20261117-template-identity-context/`。
+
+配置`context_labels`时，先在具备导出网格和Open3D的本机离线生成同图其他目标标签，无需UE Play：
+
+```bash
+python src/capture/label_target_context.py --config configs/training/airport_template_matcher.json
+```
+
+输出`data/labels/airport_targets/20261117-context/`的`labels.h5`与`report.json`；已有完成标签时直接复用，随后将该目录同步到237相同相对路径，再运行训练。只处理训练帧，原始RGB-D不变；训练入口核对标签、原始采集、特征及目标库的哈希。
+
+查看`comparison.json`比较命中率、接受精度、覆盖率和错误模板误接受；`frozen-validation-selection.json`记录选定阈值，`manifest.json`记录Git提交及数据、配置、代码哈希。目标坐标和几何仅参与标签、负例构造与评价，模型输入只有模板及搜索图特征。经验95%验证精度不保证测试或在线精度，空接受集不能解释为控制可用。
+
+`evaluation_partition=validation`用于开发，只读取训练和验证特征；`paired_variants`配置响应差异损失权重，`confidence_folds`配置按主体网格分组的交叉拟合折数。每轮按指定精度下的有效正例召回选模，置信度头使用折外预测拟合。`selection.json`记录所选方法及开发验收，`minimum_verified_recall`配置最低有效正例召回；开发结果不能代替独立测试。
+
+绘图入口读取已有结果和本地原始分片，生成`comparison.png`、`prediction-examples.png`及`figure-selection.json`。示例固定为各评估目标每距离档第一张正例和第一张错误模板负例，不按预测成败选择；图中圆点表示接受、叉号表示拒绝，角落显示请求模板。
+
+237上的独立代码目录、原始分片和特征缓存位置见[远端产物清单](../runs/training/20261117-template-identity-context/remote-artifacts.json)。最终权重、指标和日志保存在本地结果目录；重新训练须在具备所用特征缓存的项目根下执行。各定位器目录的`model.pt`包含定位器、置信度头、统计量、`thresholds`及配置，离线加载使用`torch.load(..., map_location=...)`；`presence/`和`crossfit/`分别保存两种分数的指标，`confidence-fold-*/`保存交叉拟合依据。控制入口尚未读取这些权重。
+
+## 候选裁剪的模板核验
+
+在237准备已有RGB分片、全图特征、冻结DINO权重及配置中的`coarse_checkpoint`，离线执行：
+
+```bash
+python src/training/train_template_verifier.py --config configs/training/airport_template_verifier.json
+```
+
+不需要UE Play。`crop_margin`、`crop_minimum_fraction`和`crop_logit_delta`控制图像候选裁剪，`reprojection_threshold`控制DINO图像块对应的仿射核验；`rgb_ratio`及`rgb_reprojection_threshold`控制RGB局部描述子的唯一性和几何核验，`classifier_seeds`指定接受层的随机种子。查询世界坐标和网格不参与核验。
+
+`reuse_verification`可指向完整的DINO核验结果目录，复用已冻结候选及特征；训练入口核对配对清单和特征索引。未配置时重新生成折外候选与DINO裁剪特征。启用RGB核验后只补充局部统计，不复制原生RGB。
+
+结果保存在`runs/training/20261117-template-verification-rgb/`。`proposals.npz`记录框、点和响应统计，`verification-features.npz`记录训练/验证特征与拟合标签，`verifier.pt`保存粗定位及接受层，`validation-records.json`保存各方法逐对预测。`selection.json`记录开发门槛是否达到；外层验证用于选模和定阈值，不能当成独立测试结果。用同一配置运行`plot_template_comparison.py`生成曲线及固定示例。
+
+冻结产物可直接接收RGB数组进行离线推理：
+
+```python
+from perception.template_verification import TemplateVerifier
+model = TemplateVerifier("runs/training/20261117-template-verification-rgb/verifier.pt", device="cuda")
+model.set_reference(template_rgb)
+result = model.predict(search_rgb)
+```
+
+数组为H×W×3、uint8、RGB顺序；沿用同一模板时只调用一次`set_reference`。`point_xy`在[0,1]内，`box_xyxy`使用原图像素；`accepted`表示是否通过选定阈值，拒绝时的点仍是待核验候选。接口不连接UE或执行控制。
+
+冻结推理按配置的`feature_batch`及`batch`复现编码和粗定位的算术路径；单帧自动填充，不增加任务观测。完整RGB重放见`runtime-replay.json`，导出边界核验见`numeric-export-audit.json`。`accepted-overview.png`展示全部接受配对，包含误接受案例。
+
+服务器代码、共享原始数据与特征缓存位置见[远端产物清单](../runs/training/20261117-template-verification-rgb/remote-artifacts.json)。`manifest.json`分别记录训练提交与导出提交、权重哈希及来源，`result-audit.json`记录原生标签复算和推理一致性核验。
+
+## DINO骨干离线对照
+
+准备配置指定的RGB-D分片、目标库、固定验证配对、本地权重及`third_party/dinov2`、`third_party/dinov3`官方源码后运行：
+
+```bash
+python src/evaluation/eval_dino_backbones.py --config configs/evaluation/dino_backbone_comparison.json
+python src/evaluation/eval_dino_backbones.py --config configs/evaluation/dino_backbone_comparison.json --stage plot
+python src/evaluation/eval_dino_backbones.py --config configs/evaluation/dino_backbone_comparison.json --stage benchmark
+```
+
+评价使用训练帧拟合各自的标准化统计，在固定验证图上直接执行整目标及ROI模板匹配，不训练定位网络或接受层。`conditions`指定模型、权重、源码目录及输入尺寸；`feature_batch`指定实际编码批量，`temperature`指定softmax温度。只有任务模板的固定部位ROI参与匹配，查询掩码用于事后判分。
+
+输出位于`runs/evaluation/20261117-dino-backbones/`，包括登记与来源哈希、配对、逐对位置和分数、分组指标、参考原型及图表。各模型分别在验证集校准接受阈值，结果属于开发对照。将评价产物同步到本机后执行`benchmark`，`latency.json`记录本机设备与单帧耗时；`benchmark_frames`、`benchmark_warmup`控制计时样本及预热次数。此入口不连接仿真。
+
+匹配方法消融复用以上结果的训练统计及同一批输入：
+
+```bash
+python src/evaluation/eval_dino_matching.py --config configs/evaluation/dino_matching_ablation.json
+python src/evaluation/eval_dino_matching.py --config configs/evaluation/dino_matching_ablation.json --plot
+python src/evaluation/eval_dino_matching.py --config configs/evaluation/dino_matching_ablation.json --benchmark
+```
+
+`normalizations`指定是否在L2前使用通道标准化；`readouts`选择`legacy`、`cell`、`peak`、`soft`、`local`、`mutual`和`affine`。`soft_temperature`控制柔化温度，`local_radius_cells`控制峰值邻域，`reprojection_threshold`及RANSAC参数控制逐块空间核验。部位ROI来自任务模板，匹配不使用查询目标框。
+
+输出位于`runs/evaluation/20261117-dino-matching-ablation/`，`baseline-parity.json`核对基线命中数，`records.json`保留各设置的落点、分数及对应支持，`selection.json`区分命中最优和接受召回最优。所有选择和阈值均来自开发验证数据，不能作为独立测试成绩。
+
+`--benchmark`在本机对基线及各编码器的命中最优设置计时，模板在计时前编码；`latency.json`保存单帧RGB到指定整目标或部位落点的中位与P95耗时。互近邻模式跳过未使用的仿射拟合；该操作不改变互近邻的对应点。

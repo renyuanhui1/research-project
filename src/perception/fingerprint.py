@@ -69,12 +69,12 @@ class Fingerprint:
         return torch.cat(out, 0)
 
     @torch.no_grad()
-    def query(self, rgb224, use_roi=False):
+    def query(self, rgb224, use_roi=False, *, prototype=None):
         """rgb224:(224,224,3) uint8 → (center_x, center_y, mass, peak)。"""
         x = to_input_tensor(rgb224[None], self.args.image_size, self.mean, self.std, self.dev)
         z = self.dino.forward_features(x)["x_norm_patchtokens"][0].float()
         z = (z - self.zm) / self.zs
-        proto = self.protos["roi" if use_roi and self.has_roi else "full"]
+        proto = self.protos[prototype if prototype is not None else ("roi" if use_roi and self.has_roi else "full")]
         sim = torch.matmul(F.normalize(z, dim=-1), proto)           # (P,) 即热力图
         w = torch.softmax(sim / self.args.target_softmax_temp, dim=-1)
         center = torch.matmul(w, self.patch_xy)                     # (2,)

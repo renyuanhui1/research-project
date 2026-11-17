@@ -1,0 +1,40 @@
+{
+  "inspection_directory": "runs/inspection/20261116-target-assets",
+  "map_directory": "data/maps/airport_targets_20261116",
+  "approach_summary": "runs/approach/20261116-coarse-to-fine/summary.json",
+  "output_directory": "data/templates/airport_targets_20261116",
+  "report_directory": "runs/catalog/20261117-airport-targets",
+  "crop_margin": 1.15,
+  "primary_protocol": "appearance",
+  "categories": {
+    "F-14 飞机": "aircraft",
+    "F-35 飞机": "aircraft",
+    "机库": "hangar",
+    "塔台": "tower"
+  },
+  "protocols": {
+    "appearance": {
+      "description": "Hold out primary mesh assets; copies remain together. Training includes nose, wing, tail and cockpit. Tower has no validation instance; the only cockpit asset is training-only.",
+      "disjoint_primary_meshes": true,
+      "train": [1, 2, 4, 5, 7, 9, 10, 11, 14, 15, 18],
+      "validation": [6, 12, 16],
+      "test": [3, 8, 13, 17, 19]
+    },
+    "tower_category": {
+      "description": "Train on aircraft and hangars, validate on those categories, test towers separately from held-out appearances of seen categories.",
+      "disjoint_primary_meshes": true,
+      "held_out_category": "tower",
+      "train": [1, 2, 4, 5, 7, 9, 10, 11, 14, 15],
+      "validation": [6, 12, 16],
+      "test": [3, 8, 13, 17, 18, 19]
+    },
+    "hangar_instance": {
+      "description": "Same-primary-mesh location and assembly-context control, evaluated only on hangars; not appearance generalization.",
+      "disjoint_primary_meshes": false,
+      "evaluation_category": "hangar",
+      "train": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 13, 18, 19],
+      "validation": [11],
+      "test": [14, 15, 16, 17]
+    }
+  }
+}

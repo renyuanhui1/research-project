@@ -7,6 +7,8 @@ import numpy as np
 
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]/'src'))
 from perception.rgbd_entry import CV_TO_SIM, FreeTube, VisualAnchor, entry_velocity
+from perception.opening_geometry import opening_candidates
+from control.run_opening_alignment import verified_entry_path
 
 
 def depth_plane(distance,shape=(360,640)):
@@ -27,6 +29,28 @@ def oblique_scene(angle=70, beam=False):
 
 
 class TubeTests(unittest.TestCase):
+    def test_path_refinement_preserves_blocked_seed_and_finds_clear_path(self):
+        h,w=360,640;y,x=np.mgrid[:h,:w]
+        roof_x=(x+.5-w/2)*30/(w/2);roof_y=(y+.5-h/2)*30/(w/2)
+        hole=(abs(roof_x)<2)&(abs(roof_y)<4)
+        depth=depth_plane(np.where(hole,60.,30.))
+        world=np.array([[0.,-1.,0.],[1.,0.,0.],[0.,0.,1.]])
+        down=np.array([0.,0.,1.]);geometry=opening_candidates(depth,down=down)
+        candidate=geometry['candidates'][0]
+        point=[(w-1)/2+.4/30*(w/2),(h-1)/2]
+        choice={'candidate_label':candidate['label'],'visible_gap_component_label':1,
+                'projected_aperture_radius_m':1.6,'aperture_point_rgb_xy':point,
+                'bbox_depth_xyxy':candidate['bbox_depth_xyxy']}
+        match={'selected':choice,'candidates':[choice],'near_layer_depth_m':30.}
+        seed=FreeTube(np.array([.4,0.,30.]),down,world,oblique=True)
+        with self.assertRaisesRegex(RuntimeError,'obstacle'):
+            seed.update(depth,np.eye(3),np.zeros(3),0.,np.zeros(3))
+        proposal,tube,certificate,attempts=verified_entry_path(match,depth,dict(width=w,height=h),world,down,True,True,1.)
+        self.assertEqual(certificate['refreshed_samples'],certificate['future_samples'])
+        self.assertGreater(certificate['minimum_observed_margin_m'],0.)
+        self.assertNotEqual(proposal['selected']['aperture_offset_ne_m'],[0.,0.])
+        self.assertEqual(attempts[0]['status'],'observed_obstacle_in_entry_tube')
+
     def oblique_tube(self,angle=60):
         a=np.deg2rad(angle);world=np.array([[0.,-np.sin(a),np.cos(a)],[1.,0.,0.],[0.,np.cos(a),np.sin(a)]])
         down=world.T@np.array([0.,0.,1.])
@@ -88,6 +112,12 @@ class TubeTests(unittest.TestCase):
         self.assertEqual(r['future_samples'],r['samples'])
         self.assertEqual(r['max_future_observation_age_s'],0)
         self.assertEqual(tube.goal_progress,38)
+
+    def test_valid_far_depth_still_certifies_near_free_volume(self):
+        tube=self.tube()
+        certificate=tube.update(depth_plane(160.),np.eye(3),np.zeros(3),0.,np.zeros(3))
+        self.assertEqual(certificate['refreshed_samples'],certificate['future_samples'])
+        self.assertGreater(certificate['minimum_observed_margin_m'],100.)
 
     def test_beam_and_invalid_depth_reject_the_body_volume(self):
         for value in (25.,0.,float('nan')):

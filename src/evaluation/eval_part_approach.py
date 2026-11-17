@@ -1,4 +1,4 @@
-"""Capture a stationary endpoint and independently evaluate the selected aircraft part."""
+"""Capture a stationary endpoint and independently evaluate the selected target part."""
 import argparse
 import json
 import math
@@ -84,8 +84,15 @@ def main(argv=None):
     full=scene(faces);local=scene(selected_faces);camera=np.array([message['pos_'+k] for k in ('x','y','z')]);body=np.array([inspection['vehicle_kinematics']['pose']['position'][k] for k in ('x','y','z')]);ray=rotation([message['rot_'+k] for k in ('w','x','y','z')])@np.array([1.,cx,cy*message['height']/message['width']]);ray/=np.linalg.norm(ray)
     distance=float(full.cast_rays(o3d.core.Tensor(np.r_[camera,ray][None].astype(np.float32)))['t_hit'].numpy()[0]);hit=camera+distance*ray if np.isfinite(distance) else None
     point_distance=lambda s,p:float(s.compute_distance(o3d.core.Tensor(p[None].astype(np.float32))).numpy()[0])
-    camera_rotation=rotation([message['rot_'+k] for k in ('w','x','y','z')]);pts=(vertices[selected]-camera)@camera_rotation;uv=np.c_[message['width']/2+message['width']/2*pts[:,1]/pts[:,0],message['height']/2+message['width']/2*pts[:,2]/pts[:,0]]
-    image=rgb[:,:,::-1].copy();cv2.rectangle(image,tuple(np.rint(uv.min(0)).astype(int)),tuple(np.rint(uv.max(0)).astype(int)),(255,255,0),2);center=(round((cx+1)*message['width']/2),round((cy+1)*message['height']/2));cv2.drawMarker(image,center,(0,255,0),cv2.MARKER_CROSS,25,2);cv2.putText(image,'Independent part check: '+part_name,(20,35),cv2.FONT_HERSHEY_SIMPLEX,.8,(0,255,255),2);cv2.imwrite(str(out/'part-validation.png'),image)
+    camera_rotation=rotation([message['rot_'+k] for k in ('w','x','y','z')]);pts=(vertices[selected]-camera)@camera_rotation
+    visible=pts[pts[:,0]>0]
+    uv=np.c_[message['width']/2+message['width']/2*visible[:,1]/visible[:,0],message['height']/2+message['width']/2*visible[:,2]/visible[:,0]]
+    uv=uv[np.isfinite(uv).all(axis=1)]
+    image=rgb[:,:,::-1].copy()
+    if len(uv):
+        bounds=np.clip(np.rint([uv.min(0),uv.max(0)]),[0,0],[message['width']-1,message['height']-1]).astype(int)
+        cv2.rectangle(image,tuple(map(int,bounds[0])),tuple(map(int,bounds[1])),(255,255,0),2)
+    center=(round((cx+1)*message['width']/2),round((cy+1)*message['height']/2));cv2.drawMarker(image,center,(0,255,0),cv2.MARKER_CROSS,25,2);cv2.putText(image,'Independent part check: '+part_name,(20,35),cv2.FONT_HERSHEY_SIMPLEX,.8,(0,255,255),2);cv2.imwrite(str(out/'part-validation.png'),image)
     verified=hit is not None and bool(in_part(hit)[0]) and peak>=args.control_min_peak
     diagnostic=fp.last_diagnostics.get(part_name,{}) if 'common_start' in setup else {}
     result={'status':'passed' if verified and report.get('arrival_confirmed') else 'part_not_verified','part':part_name,'target_actor':profile['target']['actor'],'control_stop_reason':report.get('stop_reason'),'control_final_filtered_depth_m':report.get('final_depth_m'),'fresh_DINO_center_normalized_xy':[cx,cy],'fresh_DINO_peak':peak,'DINO_ray_hits_aircraft':hit is not None,'DINO_ray_hit_ned_m':None if hit is None else hit.tolist(),'DINO_ray_hits_configured_part':verified,'camera_ray_aircraft_range_m':distance if hit is not None else None,'body_to_aircraft_surface_m':point_distance(full,body),'body_to_selected_part_surface_m':point_distance(local,body),'body_to_reference_m':float(np.linalg.norm(body-ref)),'selected_mesh_vertices':int(selected.sum()),'selected_triangles_all_vertices_in_region':len(selected_faces),'camera_position_ned_m':camera.tolist(),'DINO_ray_direction_ned':ray.tolist(),'geometry_used_for_evaluation_only':True,'flight_commands_sent':False,'endpoint_speed_mps':float(np.linalg.norm([inspection['vehicle_kinematics']['twist']['linear'][k] for k in ('x','y','z')]))}

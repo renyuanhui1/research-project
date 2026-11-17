@@ -98,11 +98,64 @@ class AlignmentTests(unittest.TestCase):
     def test_candidate_and_aperture_switch_stop(self):
         for item in [match(n=8), match()]:
             c = Alignment(self.limits, .4)
-            c.update(match(), camera(), 0, 0)
+            for i in range(3):c.update(match(), camera(), 0, i)
             if item['proposed_aperture_point_rgb_xy'] == match()['proposed_aperture_point_rgb_xy']:
                 item['selected']['bbox_depth_xyxy'] = [0, 0, 50, 50]
             with self.assertRaisesRegex(RuntimeError, 'jump'):
-                c.update(item, camera(), 0, 1)
+                c.update(item, camera(), 0, 3)
+
+    def test_unstable_acquisition_waits_for_three_consecutive_frames(self):
+        c=Alignment(self.limits,.4)
+        c.update(match(),camera(),0,0)
+        for i in range(1,3):
+            state,velocity,_=c.update(match(n=8),camera(),0,i)
+            self.assertEqual(state,'ACQUIRE')
+            np.testing.assert_array_equal(velocity,[0,0])
+        self.assertEqual(c.acquisition_resets,1)
+        self.assertEqual(c.update(match(n=8),camera(),0,3)[0],'ALIGN')
+        with self.assertRaisesRegex(RuntimeError,'jump'):c.update(match(),camera(),0,4)
+
+    def test_group_waypoint_does_not_relax_fine_gap_clearance(self):
+        m=match(n=0,e=0);m['group_alignment_point_rgb_xy']=m['proposed_aperture_point_rgb_xy']
+        m['selected'].update(group_bbox_depth_xyxy=[180,80,460,300],projected_aperture_radius_m=.2)
+        group=Alignment(self.limits,.4,True,True,True)
+        for i in range(8):state,_,_=group.update(m,camera(),0,i)
+        self.assertEqual(state,'ALIGNED')
+        fine=copy.deepcopy(m);fine.pop('group_alignment_point_rgb_xy')
+        controller=Alignment(self.limits,.4,True,True,True)
+        controller.update(fine,camera(),0,0);controller.update(fine,camera(),0,1)
+        with self.assertRaisesRegex(RuntimeError,'aligned_projected_gap_guard'):
+            controller.update(fine,camera(),0,2)
+
+    def test_visual_group_anchor_ignores_segmentation_centroid_jump(self):
+        m=match();m['group_alignment_point_rgb_xy']=[959.5,539.5]
+        m['group_alignment_point_cv_m']=[8.,2.,40.]
+        m['selected']['group_bbox_depth_xyxy']=[180,80,460,300]
+        c=Alignment(self.limits,.4,True,True,True)
+        for i in range(3):c.update(m,camera(),0,i)
+        changed=copy.deepcopy(m);changed['group_alignment_point_rgb_xy']=[100.,100.]
+        state,velocity,error=c.update(changed,camera(),0,3)
+        self.assertEqual(state,'ALIGN')
+        np.testing.assert_allclose(error,[-2.,8.],atol=1e-10)
+        changed['group_alignment_point_cv_m']=[11.,2.,40.]
+        with self.assertRaisesRegex(RuntimeError,'jump'):c.update(changed,camera(),0,4)
+
+    def test_group_split_requires_visual_anchor_inside_current_group(self):
+        for inside in (False,True):
+            m=match();m['group_alignment_point_rgb_xy']=[1151.5,587.5]
+            m['group_alignment_point_cv_m']=[8.,2.,40.]
+            m['selected']['group_bbox_depth_xyxy']=[180,80,460,300]
+            c=Alignment(self.limits,.4,True,True,True)
+            for i in range(3):c.update(m,camera(),0,i)
+            changed=copy.deepcopy(m);changed['selected']['group_bbox_depth_xyxy']=[350,175,410,220]
+            changed['group_visual_anchor']={'inside_matched_group':inside}
+            if not inside:
+                with self.assertRaisesRegex(RuntimeError,'jump'):c.update(changed,camera(),0,3)
+            else:
+                self.assertEqual(c.update(changed,camera(),0,3)[0],'ALIGN')
+                self.assertIn('region_continuity',changed['group_visual_anchor'])
+                changed['group_alignment_point_cv_m']=[11.,2.,40.]
+                with self.assertRaisesRegex(RuntimeError,'jump'):c.update(changed,camera(),0,4)
 
     def test_near_roof_and_small_gap_stop(self):
         a, b = match(), match()
@@ -136,6 +189,17 @@ class AlignmentTests(unittest.TestCase):
 
 
 class CameraAndSafetyTests(unittest.TestCase):
+    def test_oblique_camera_boundary_allows_quaternion_roundoff(self):
+        for degrees in (40.-1e-7,80.+1e-7):
+            msg=camera();angle=math.radians(degrees)
+            msg.update(rot_w=math.cos(angle/2),rot_y=-math.sin(angle/2))
+            depth=dict(msg,width=640,height=360,encoding='16FC1')
+            validate_cameras(msg,depth,info(1920,1080),info(640,360),True)
+        msg=camera();angle=math.radians(39.9)
+        msg.update(rot_w=math.cos(angle/2),rot_y=-math.sin(angle/2))
+        with self.assertRaises(ValueError):
+            validate_cameras(msg,dict(msg,width=640,height=360,encoding='16FC1'),info(1920,1080),info(640,360),True)
+
     def test_oblique_handoff_requires_valid_identity_before_context_leaves_view(self):
         m=match();m['selected']['crop_rgb_xyxy']=[300,70,1500,1000]
         checked,event=identity_gate(m,camera(),31.,True,True,.4)
@@ -156,8 +220,25 @@ class CameraAndSafetyTests(unittest.TestCase):
         point=world@aperture_in_camera(m,msg,world.T@np.array([0.,0.,1.]))
         np.testing.assert_allclose(point,[40/math.sqrt(3),0,40],atol=1e-10)
         np.testing.assert_allclose(horizontal_error(m,msg,True),[0,0],atol=1e-10)
+        np.testing.assert_allclose(horizontal_error(m,msg,True,True),[40/math.sqrt(3),0],atol=1e-10)
         m['proposed_aperture_point_rgb_xy'][0]+=96
         self.assertGreater(horizontal_error(m,msg,True)[1],0)
+
+    def test_vertical_entry_tracks_to_nadir_and_moves_above_the_opening(self):
+        msg=camera();angle=math.radians(40)
+        msg.update(rot_w=math.cos(angle/2),rot_y=-math.sin(angle/2))
+        c=Alignment(Limits(),.4,oblique=True,vertical_goal=True)
+        for i in range(3):state,velocity,error=c.update(match(0,0),msg,0.,i)
+        self.assertEqual(state,'ALIGN');self.assertGreater(error[0],40.)
+        self.assertGreater(velocity[0],0.)
+        nadir=camera();depth=dict(nadir,width=640,height=360,encoding='16FC1')
+        validate_cameras(nadir,depth,info(1920,1080),info(640,360),True,True)
+        with self.assertRaises(ValueError):
+            validate_cameras(nadir,depth,info(1920,1080),info(640,360),True)
+        angle=math.radians(35);msg.update(rot_w=math.cos(angle/2),rot_y=-math.sin(angle/2))
+        depth=dict(msg,width=640,height=360,encoding='16FC1')
+        validate_cameras(msg,depth,info(1920,1080),info(640,360),True,True)
+        with self.assertRaises(ValueError):validate_cameras(msg,depth,info(1920,1080),info(640,360),True)
 
     def test_live_intrinsics_pose_and_encoding_checked(self):
         args = [camera(), camera(640, 360), info(1920, 1080), info(640, 360)]

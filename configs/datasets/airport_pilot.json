@@ -1,0 +1,18 @@
+{
+  "catalog": "data/templates/airport_targets_20261116/catalog.json",
+  "scene_template": "runs/inspection/20261116-target-assets/camera-scene.json",
+  "output_directory": "data/captures/airport_targets/20261117-pilot",
+  "address": "172.21.192.1",
+  "target_indices": [7, 9, 18],
+  "horizontal_distances_m": [12, 35, 75, 125],
+  "bearings_deg": {"aircraft": [-45, 0, 45], "hangar": [0, 90, 180, 270], "tower": [0, 90, 180, 270]},
+  "camera_pitch_deg": 35,
+  "rgb_wh": [1280, 720],
+  "depth_wh": [640, 360],
+  "horizontal_fov_deg": 90,
+  "settle_sec": 0.3,
+  "max_rgb_depth_skew_s": 0.05,
+  "depth_tolerance_m": 0.15,
+  "sensor_depth_quantization": "one float16 ULP added to absolute tolerance",
+  "role": "pipeline development on primary-protocol training targets; not model training or held-out evaluation"
+}

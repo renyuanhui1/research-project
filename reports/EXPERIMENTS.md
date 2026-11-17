@@ -518,3 +518,155 @@ RGB与深度最大时差为84—110毫秒，39项测试通过。离线复核命�
 **结论与限制**：仅改变存储与目录布局，未删模型或实验结果，未重新计算总体精度。校验要点直接记录在本节，不保留单独的过程脚本和校验输出文件。
 
 见[合并样本](../runs/training/f35/patches-all/patches.h5)、[完整特征表](../runs/training/f35/patches-all/features.jsonl)、[模型与指标](../runs/training/f35/local-matcher/)、[训练日志](../runs/training/f35/local-matcher/train.log)、[评价命令](../docs/USAGE.md#跨模板与跨机型评价)。
+
+## 2026-11-16：19个目标的在线核对与观察采图
+
+**目的与方法**：按[目标清单](../docs/抵近目标清单.md)核对UE Airport资产。本地WSL经ProjectAirSim连接，使用1280×960、90度水平视场的无物理观察相机，每个目标采集俯视和斜视各一张，取图前等待曝光稳定。
+
+**结果**：7934个对象中找到全部19个目标，最大原点偏差约0.6毫米；38张图曝光检查通过。机库含主体、门和钢梁等多个Actor，塔台另有雷达；原点近邻不能代替完整组成核对。首次连接因GameMode未启动AirSim服务失败，调整后成功。本次仅为坐标辅助资产检查，图中破口不构成可穿越证明。
+
+见[对象与包围盒](../runs/inspection/20261116-target-assets/report.json)、[采图记录](../runs/inspection/20261116-target-assets/capture.json)、[原始图像](../runs/inspection/20261116-target-assets/images/)、[连接日志](../runs/inspection/20261116-target-assets/projectairsim_client.log)。
+
+## 2026-11-16：试跑清理与终点评价修复
+
+**试跑清理**：此前多数试跑从首帧匹配整主体，未执行远端整目标→近端指定部位，曾有8项主体停车核验通过，但不计入分阶段实验。机库910、209高度保护停止，2019超时，3955中断，其余7项未执行。删除该批约24 GB原始数据，保留[结果摘要](../runs/validation/20261116-endpoint-projection/discarded-trials-summary.json)。
+
+**评价修复**：近景投影框因相机后方点和越界坐标导致绘图中断；改为仅绘制前方有限投影并裁剪图像坐标，射线及表面距离计算不变。离线复算中F-35仍为碰撞失败，F-14已通过样本各项数值差为0。另查F-35物理接触点距可见网格约3.37米，碰撞体与可见几何不一致的原因未确认。
+
+见[离线验证](../runs/validation/20261116-endpoint-projection/annotation-validation.json)、[复算日志](../runs/validation/20261116-endpoint-projection/annotation-replay.log)、[碰撞诊断](../runs/validation/20261116-endpoint-projection/collision-analysis.json)。
+
+## 2026-11-16—17：远端粗定位、近端部位精对准与屋顶入室
+
+**目的**：按清单逐项完成视觉抵近和独立终点核验，通过后再执行下一目标。实验从16日22:29至17日08:07，含准备、修复重跑及收尾。
+
+**环境与方法**：UE Airport、ProjectAirSim、本地WSL `airsim`，RGB 1920×1080、深度640×360。冻结DINOv2指纹匹配提供定位，深度参与速度与停车控制。飞机水平远端100米、模板35米，实际起点高度71.67—75.52米；塔台远端150米、模板100米、高度121.49—124.87米；机库距离随尺寸选择，实际远端高度125.96—199.72米。目标坐标仅用于准备和评价。
+
+整目标连续3帧进入45米后切部位；滤波深度≤6米需3张独立深度帧确认停车，12米近端限速0.35米/秒，中央深度保护2米。机库按RGB-D屋面光轴距离45米交接，由屋面身份与破口几何完成对准，转垂直视角后核验完整通道，再由RGB-D相对跟踪控制入室至观测屋面下约8米。重损塔台另在12米切到8米精细参考。具体参数见各次配置快照。
+
+**最终结果**：19个目标均有完整飞行与独立新观测验收通过记录。
+
+| 类别 | 最终通过 | 关键结果 |
+|---|---:|---|
+| 飞机 | 8/8 | 新图射线命中指定部位，末帧滤波深度5.67—5.92米，机体到部位表面4.41—5.87米 |
+| 机库 | 9/9 | 均完成屋顶入室及内部拍照，最终位于观测屋面下7.92—8.11米 |
+| 塔台 | 2/2 | 射线命中原定柱体区域；轻损/重损末帧深度5.31/5.88米，到主体表面2.90/2.14米 |
+
+**失败与处理**：
+
+- 飞机：第4项远端预检失败，改用未标注远端帧标定统计；第6项后方接近主翼时靠近垂尾，改从主翼外侧接近；第7、8项错部位或预检失败，通过局部ROI、相机俯仰锁定和原生校验图修正。评价区域未扩大。见[第4项诊断](../runs/approach/20261116-coarse-to-fine/04-f14-horizontal-tail/matching-diagnosis.json)、[第6项保护停止](../runs/approach/20261116-coarse-to-fine/06-f35-folded-wing/control/report.json)、[第7项失败评价](../runs/approach/20261116-coarse-to-fine/07-f35-collapsed-cockpit/interior-control/evaluation/part-surface-validation.json)、[第8项输入诊断](../runs/approach/20261116-coarse-to-fine/08-f35-tail-back/native-validation-diagnosis.json)。
+- 机库：多次因交接未停稳、身份误关联、梁间空隙跳变、触边区域丢失或通道受阻停止，第9项另有一次主动中断；修复实测停车与身份连续性，采用破损组上方对准→垂直视角梁间精对准→完整通道核验。第16、17项用固定RGB-D组锚点处理质心变化和组框分裂。各次停止及中途恢复均不拼接为完整成功。见[第9项停车诊断](../runs/approach/20261116-coarse-to-fine/09-hangar-910/stop-diagnosis.json)、[第12项触边诊断](../runs/approach/20261116-coarse-to-fine/12-hangar-3955/boundary-gap-diagnosis.json)、[第16项锚点诊断](../runs/approach/20261116-coarse-to-fine/16-hangar-7920/visual-group-anchor-diagnosis.json)、[第17项组框诊断](../runs/approach/20261116-coarse-to-fine/17-hangar-7933/anchor-group-split-diagnosis.json)。
+- 重损塔台：背景深度跳变导致近端重新加速，改为锁存近端限速；远端部位原型误匹配，增加分段精细参考。一次部位核验虽通过，但主体距离仅1.75米，未接受为最终结果；改从正面90度重新完整飞行后通过。最终到指定部位6.01米、主体2.14米，2米事后复核余量仅0.14米。见[首次保护停止](../runs/approach/20261116-coarse-to-fine/19-tower-7892/control/report.json)、[距离不足的评价](../runs/approach/20261116-coarse-to-fine/19-tower-7892/near-template-control/evaluation/part-surface-validation.json)、[最终评价](../runs/approach/20261116-coarse-to-fine/19-tower-7892/staged-frontal-control/evaluation/part-surface-validation.json)。
+
+**验证与限制**：63项测试、14个Python文件编译及差异格式检查通过。19项是同场景逐目标准备、调整及重跑后的最终验收，未冻结最终方法重跑全部目标，不能作为无重试成功率或留出泛化结论；统一模板条件化模型尚未训练。6米停车为滤波光轴深度，网格距离为机体参考点距离，中央深度保护不代表完整机身净空；机库内部核验采用整组凸包占地、高度、观测屋面及照片。
+
+见[逐目标结果与数据路径](../runs/approach/20261116-coarse-to-fine/summary.json)、[协议](../runs/approach/20261116-coarse-to-fine/protocol.json)、[独立验收与产物审计](../runs/approach/20261116-coarse-to-fine/completed-result-audit.json)、[照片总览](../runs/approach/20261116-coarse-to-fine/endpoint-overview.png)、[测试日志](../runs/approach/20261116-coarse-to-fine/final-checks.log)。各目标目录保留准备、控制和评价日志。
+
+## 2026-11-17：失败与重复试次数据清理
+
+按用户要求删除未被最终验收采用的41个失败、重跑及诊断轮次的大体积数据：14,625个文件、18.91 GiB，实验目录由49.67降至30.76 GiB。每轮保留首尾关键帧、模板、配置、报告和日志；其余连续帧、视频及`run.h5`已删除，不能再完整回放这些轮次。28个最终控制目录（19项含9次机库粗定位）的21,960个文件校验未变，成功实验及其RViz回放数据完整保留。
+
+见[清理清单与保留关键帧](../runs/approach/20261116-coarse-to-fine/failed-data-cleanup.json)。
+
+## 2026-11-17：俯视模板库与目标级数据划分
+
+**目的与方法**：建立统一模板输入，先确定后续采集的训练/验证/测试目标。离线复用19张1280×960、90度水平视场的真实俯视图，按35个组成Actor的完整网格投影外扩1.15倍裁片；最近表面射线生成整组及所选部位几何掩码。飞机参考高度30.51—37.25米、机库105.77—192.06米、塔台100.14米，均完整入画。组成按已核对主体和同原点导出Actor建立，排除飞机档案中无关的地图显示Actor，纳入机库配套及塔台雷达。
+
+**结果**：19张模板、38张掩码和相机/部位元数据约9.4 MiB，主体网格共14组。总览检查通过；输入及输出哈希、跨目录CLI、8项针对性测试和两个Python文件编译通过。未连接UE或发送飞行命令。
+
+| 协议 | 训练/验证/测试目标数 | 用途 |
+|---|---|---|
+| 主体外观（主实验） | 11/3/5 | 主体同源网格不跨分区，训练覆盖机鼻、主翼、尾翼及座舱 |
+| 塔台类别留出 | 10/3/6 | 塔台不进入训练或验证，分别报告类别留出与已见类别的新外观 |
+| 同网格机库实例 | 14/1/4 | 仅验证同源机库换位置及组装背景，不计外观泛化 |
+
+**限制**：两座塔台的指定柱体在正俯视下均为0可见像素，模板可提供整塔身份，不能提供被遮挡柱体的损伤纹理，精对准仍需后续侧视观测。座舱仅有一个资产、主外观划分缺少塔台验证样本，不作对应独立泛化结论。几何掩码未用实测深度核验外部遮挡，屋面区域不是可通行开口标签。19个资产都参与过既有DINO/RGB-D开发，本划分约束后续模型训练，不是未经查看的新资产测试；统一模型尚未训练。
+
+见[目标库](../data/templates/airport_targets_20261116/catalog.json)、[划分配置](../configs/datasets/airport_targets.json)、[模板总览](../runs/catalog/20261117-airport-targets/template-overview.png)、[构建报告](../runs/catalog/20261117-airport-targets/report.json)、[构建日志](../runs/catalog/20261117-airport-targets/build.log)、[验证日志](../runs/catalog/20261117-airport-targets/validation.log)。
+
+## 2026-11-17：多目标斜视RGB-D小样本采集
+
+**目的与方法**：用主协议训练目标中的F-35座舱、机库910、轻损塔台检查采样和遮挡标签。UE Play后加载无物理观察相机，35度俯角，12/35/75/125米水平距离；飞机方位−45/0/+45度，机库及塔台0/90/180/270度。RGB 1280×720，深度及标签640×360；网格射线与实测透视距离按0.15米加一个float16量化步长比较，前景遮挡去除目标标签，无效深度及实测更远的几何不一致区域不作监督。
+
+**结果**：44组全部采完，RGB与深度时差均为0，HDF5回读通过；约67.8 MiB，原生RGB无损PNG编码、原生float16深度gzip压缩，不保存逐帧诊断图。飞机12/12、机库16/16、塔台8/16组有所选部位可见像素；塔台另8个方向的部位标签为空。通过容差筛选的目标像素，各帧距离残差中位数约0.003—0.067米，此数值不是独立标签精度。观察相机已移除，未发送飞行命令。
+
+**验证与限制**：4项采集/遮挡/存储测试、8项目标库测试及2项既有存储测试共14项通过，两个Python文件编译通过。总览按每目标每距离的最多可见部位像素选择示例，44组原始观测均保留。这是固定场景的采集链路验证，尚未训练模型或验证留出目标；瞬时相机采样不代表连续飞行，屋面标签不代表可通行破口，俯视模板本身仍不包含被遮挡塔柱纹理。
+
+见[采集协议](../configs/datasets/airport_pilot.json)、[样本与标签](../data/captures/airport_targets/20261117-pilot/samples.h5)、[报告](../data/captures/airport_targets/20261117-pilot/report.json)、[标签总览](../data/captures/airport_targets/20261117-pilot/overview.png)、[采集日志](../runs/capture/20261117-airport-pilot/capture.log)、[验证日志](../runs/capture/20261117-airport-pilot/validation.log)。
+
+## 2026-11-17：多目标扩量与模板条件化整目标模型
+
+**目的与数据**：检验俯视模板到留出主体网格的整目标定位及接受能力。UE Airport无物理相机采集19个目标共1920组，训练/验证/测试1408/192/320组，按目标及主体网格划分。35度俯角，12—150米四档，随机方位、航向±25度和高度扰动；RGB 896×504、深度及标签640×360。原始数据1.58 GiB，237特征缓存1.62 GiB；未发送飞行指令，观察相机已移除。
+
+实测深度过滤遮挡；训练图擦除留出主体及同源复制体、验证图擦除测试主体，并忽略对应监督，原始RGB保留、测试图不擦除。24个训练帧和2个验证帧过滤后完全未知，不参与定位损失；测试320帧均有可见目标标签。全量哈希、标签关系、位姿及时间戳审计通过，RGB-D时差均为0。
+
+**方法**：237 RTX PRO 6000、PyTorch 2.11，冻结DINOv2 ViT-S/14，448×448输入，共享64维投影、模板交叉注意力及64×64定位图；24种模板旋转/亮度/留白增强。40轮、批量32、学习率0.001、种子1731；统计量仅用训练搜索图。独立置信度头拟合训练落点正确性，验证集按经验精度≥95%校准，不能拆分同分组。两定位器分别选第24/10轮，全部方法及阈值冻结后统一测试；测试为320个正确模板对和320个确认视野外的错误模板对。代码快照`cd00acc`，训练前登记及权重/数据哈希保留。
+
+| 方法 | 测试整目标命中 /320 | 验证接受 /383 | 测试接受 /640 |
+|---|---:|---:|---:|
+| DINO单朝向指纹 | 176（55.00%） | 1 | 0 |
+| DINO四朝向指纹 | 180（56.25%） | 1 | 0 |
+| 不输入模板的定位器 | 310（96.88%） | 0 | 0 |
+| 模板条件化定位器 | 306（95.63%） | 0 | 0 |
+
+**结论**：条件化模型飞机/机库/塔台命中率为96.88/97.66/89.06%，但未超过无模板对照，尚不能证明模板收益。错误模板下269/320（84.06%）仍落在查询目标上；置信度正负分数重叠，未找到满足95%验证精度的非空阈值。四组测试均零接受，接受精度未定义，不能解释为高精度或在线可用。先解决模板身份判别与接受判据，再决定扩量及连续飞行验证。本轮仅验证同场景整目标，未训练部位精定位；主协议仍无独立塔台验证样本。
+
+**异常与验证**：准备时严格排除视野内留出资产使第7项远档无法采样，改用投影框擦除及忽略监督，可能同时覆盖有效区域；UE初次连接超时未采到新帧，237曾重启、原因未确认，恢复后以特征批量4完成。23项测试、6个文件编译通过，导出权重在本地加载及前向通过，测试后权重哈希与冻结记录一致。未按测试结果调整权重或阈值。
+
+见[采集报告](../data/captures/airport_targets/20261117-multitarget/report.json)、[数据审计](../runs/capture/20261117-multitarget/data-audit.json)、[采集日志](../runs/capture/20261117-multitarget/capture.log)、[验证日志](../runs/capture/20261117-multitarget/validation.log)、[训练前登记](../runs/training/20261117-template-conditioned/pre-registration.json)、[完整指标](../runs/training/20261117-template-conditioned/comparison.json)、[训练曲线](../runs/training/20261117-template-conditioned/comparison.png)、[固定示例](../runs/training/20261117-template-conditioned/prediction-examples.png)、[身份诊断](../runs/training/20261117-template-conditioned/template-identity-diagnosis.json)、[条件化权重](../runs/training/20261117-template-conditioned/conditioned/model.pt)、[训练日志](../runs/training/20261117-template-conditioned/training.log)、[产物清单](../runs/training/20261117-template-conditioned/manifest.json)、[远端缓存位置](../runs/training/20261117-template-conditioned/remote-artifacts.json)。
+
+## 2026-11-17：模板身份判别与候选接受层开发
+
+**目的与环境**：解决错误模板仍定位到查询目标、接受层无法泛化的问题。237 RTX PRO 6000、PyTorch 2.11，复用上述RGB-D及冻结DINO特征；只读取训练和验证分片，未再使用既有测试查询图或连接UE。验证含3个目标、2组主体网格、192张图，构成192个正确模板对及191个视野外错误模板对，其中190个正例有可见标签。该验证集反复用于开发、选模及校准。
+
+**方法**：原条件化置信度训练/验证AUC为0.980/0.670。先增加同图正负模板响应差异损失、按接受召回选模和3折主体网格交叉拟合；再离线为637张训练图补1158个同图其他目标正例，增加标签约8.43 MiB，未复制RGB-D。两轮均未达到开发门槛，转为无模板粗定位生成单个候选，再用俯视模板核验：四朝向DINO裁剪对应、RGB SIFT唯一匹配及二维仿射一致性，44项统计输入接受层。编码448×448、批量4，粗定位批量32；接受层300轮、学习率0.01、权重衰减0.01，比较线性/小网络及1731/1732/1733三个种子。
+
+| 开发阶段最优方法 | 正确接受 / 全部接受 | 接受精度 | 有效正例召回 |
+|---|---:|---:|---:|
+| [模板响应差异与交叉拟合](../runs/training/20261117-template-identity/comparison.json) | 10/10 | 100% | 5.26% |
+| [加入同图其他目标监督](../runs/training/20261117-template-identity-context/comparison.json) | 6/6 | 100% | 3.16% |
+| [候选DINO对应核验](../runs/training/20261117-template-verification/comparison.json) | 19/20 | 95% | 10% |
+| [候选DINO与RGB对应核验](../runs/training/20261117-template-verification-rgb/comparison.json) | 38/40 | 95% | 20% |
+
+**结果与限制**：最终选线性接受层1732，粗定位186/190（97.89%）；配对接受率10.44%，错误模板误接受2/191（1.05%）。三个线性种子中两个达到95%精度、20%召回的开发门槛，另一个召回17.89%；小网络更差。飞机正确接受16/18，精度仅88.89%；机库3955、7920分别19/19、3/3，召回29.69%、4.84%。两个误接受都是折翼F-35被当成其他损伤状态：22.70米时请求完整F-35、89.39米时请求塌陷座舱F-35。当前只核验一个候选，尚未证明能按模板在整图切换目标；部位定位、塔台接受能力、独立新视角和连续控制均未验证，不能接管飞行。
+
+**异常与验证**：修复float16最大深度量化步长溢出，审计中原目标及补充标签受影响像素均为0；固定单帧/批量推理算术路径，阈值置于相邻接受/拒绝分数组之间，模型参数及缓存接受集合未变。完整383对RGB重放的点、框、特征和接受集合一致，CPU单帧导出核验通过；37项测试、8个文件编译及差异格式检查通过。内层交叉拟合缓存可能含留出主体的偶然背景，不能作为严格内层外观留出。
+
+见[训练前登记](../runs/training/20261117-template-verification-rgb/pre-registration.json)、[同图标签及来源](../data/labels/airport_targets/20261117-context/report.json)、[全部40个接受配对（含2个误接受）](../runs/training/20261117-template-verification-rgb/accepted-overview.png)、[最终权重](../runs/training/20261117-template-verification-rgb/verifier.pt)、[训练日志](../runs/training/20261117-template-verification-rgb/training.log)、[RGB重放](../runs/training/20261117-template-verification-rgb/runtime-replay.json)、[结果复算与来源核验](../runs/training/20261117-template-verification-rgb/result-audit.json)、[测试日志](../runs/training/20261117-template-verification-rgb/validation.log)、[权重与代码清单](../runs/training/20261117-template-verification-rgb/manifest.json)、[服务器数据位置](../runs/training/20261117-template-verification-rgb/remote-artifacts.json)。各阶段目录保留完整权重、配置、逐对结果和日志。
+
+## 2026-11-17：DINOv2与DINOv3冻结模板匹配对照
+
+**目的与环境**：检验替换编码器能否改善俯视模板到斜视图的整目标、指定部位匹配。精度在237 RTX PRO 6000、PyTorch 2.11计算，耗时在本机RTX 4060 Ti、PyTorch 2.6测量。复用1408张训练图拟合各自的标准化统计；验证为3个目标、2组主体网格、192张图及固定383个配对，整目标/部位可见正例190/188个。未读取既有测试查询图、采集新数据或连接UE，未训练网络或接受层。
+
+**方法**：DINOv2 ViT-S/14输入448，DINOv3 ViT-S/16输入448及512，对应32×32、28×28、32×32特征格。统一使用冻结FP16特征、均值模板原型、余弦相似度及温度0.005的softmax中心；分别比较单朝向和按最高响应选取四朝向。整目标使用全模板，部位使用目标库固定ROI；直接匹配完整斜视图。主指标为中心命中原生可见掩码，峰值及面积归一化误差另存。代码登记`66012e8`，正式评价耗时65.6秒。
+
+| 编码器 / 输入 | 单朝向整目标 | 四朝向整目标 | 单朝向部位 | 四朝向部位 | 本机中位/P95耗时 |
+|---|---:|---:|---:|---:|---:|
+| DINOv2 / 448 | 53.68% | 44.74% | 17.55% | 20.21% | 21.48/24.48 ms |
+| DINOv3 / 448 | 46.84% | 43.16% | 10.64% | 11.17% | 21.29/32.05 ms |
+| DINOv3 / 512 | 42.63% | 49.47% | 3.72% | 8.51% | 23.36/31.04 ms |
+
+单帧计时预热8次、测量48帧，模板已编码；包含缩放、传输、编码及四朝向整目标/ROI匹配，不含文件读取。实际输入1帧，重复填充至编码批量4以复现评价算术路径。
+
+**结果与结论**：DINOv3/512的四朝向整目标较DINOv2提高4.74个百分点，但仍低于DINOv2单朝向；两组DINOv3的总体部位定位均下降。折翼F-35的四朝向部位命中由4/64升至8/64，但机库3955、7920分别由15/62、19/62降至DINOv3/448的3/62、10/62，DINOv3/512的3/62、5/62。95%开发接受精度下，所有部位方法均零接受；整目标方法至多接受1对，未改善可靠接受能力，空接受集精度未定义。当前均值原型匹配不支持直接替换为DINOv3；不能外推为所有DINOv3模型或空间对应方法均无收益。
+
+**异常、核验与限制**：官方hub入口导入分割模块时缺`torchmetrics`，改为直接加载骨干，无新增依赖。服务器DINOv2源码没有独立Git元数据，首次来源记录读到了上级项目提交号；已以逐文件哈希更正清单，两端157个DINOv2、173个DINOv3源码文件一致，数值结果未变。12个设置的全部383对结果经原生标签复算一致，DINOv2整目标复现此前基线，22项测试、两个文件编译及格式检查通过。本轮仅为同场景开发对照，无独立塔台、未知场景或飞行结论；耗时不包含深度处理和控制通信。
+
+见[实验登记](../runs/evaluation/20261117-dino-backbones/pre-registration.json)、[完整指标](../runs/evaluation/20261117-dino-backbones/comparison.json)、[指标图](../runs/evaluation/20261117-dino-backbones/comparison.png)、[固定示例](../runs/evaluation/20261117-dino-backbones/prediction-examples.png)、[本机耗时](../runs/evaluation/20261117-dino-backbones/latency.json)、[评价日志](../runs/evaluation/20261117-dino-backbones/evaluation.log)、[原生标签复算](../runs/evaluation/20261117-dino-backbones/result-audit.json)、[源码来源核验](../runs/evaluation/20261117-dino-backbones/source-provenance-audit.json)、[来源清单](../runs/evaluation/20261117-dino-backbones/manifest.json)、[测试日志](../runs/evaluation/20261117-dino-backbones/validation.log)。各编码器目录保留逐对预测与参考原型。
+
+## 2026-11-17：特征归一化、落点与逐块对应消融
+
+**目的与方法**：解释骨干替换后的定位差异。沿用上述3组编码器、192张开发验证图及383个固定配对，复用训练统计；比较通道标准化后L2与仅L2、边界/格心坐标加权中心、峰值、温度0.02的格心加权中心、3×3峰值邻域中心，以及互近邻与仿射一致性逐块对应。统一四朝向，共84个设置。逐块方法在整图匹配，不读取查询目标框；部位点从任务ROI对应中选取。仿射阈值0.04、最多1000个互近邻对应、2000次RANSAC；无网络训练。精度在237计算，正式评价72.4秒。
+
+| 编码器 / 输入 | 整目标：原方法→命中最优 | 部位：原方法→命中最优 |
+|---|---|---|
+| DINOv2 / 448 | 44.74%→48.95%（局部中心） | 20.21%→25.00%（局部中心） |
+| DINOv3 / 448 | 43.16%→56.32%（局部中心） | 11.17%→11.70%（峰值） |
+| DINOv3 / 512 | 49.47%→60.53%（互近邻） | 8.51%→10.11%（峰值） |
+
+**因素结果**：以上最优均保留通道标准化。DINOv3/512仅L2加原落点为18.42%/6.91%（整目标/部位）；仅改格心坐标46.32%/7.45%，温度0.02为26.84%/4.79%，均未改善。局部中心58.95%/10.11%，互近邻60.53%/5.32%；仿射筛选23.16%/4.79%，未体现收益。追加的恒定画面中心诊断为28.42%/4.79%。这些结果支持保留标准化、改善整目标落点，未解决指定部位匹配。
+
+**接受与耗时**：95%开发接受精度下，各整目标设置至多正确接受1对，有效召回至多0.53%；所有部位设置零接受，精度未定义。DINOv3/512命中最优方法在错误模板下仍有139/191（72.77%）落到实际查询资产上，不能将60.53%命中率解释为可靠身份识别。本机RTX 4060 Ti上，该互近邻整目标方法单帧中位/P95为54.53/72.25 ms，同模型原方法23.57/36.23 ms；预热8帧、计时48帧，实际输入1帧、编码填充至4帧，包含缩放、传输及匹配，不含文件读取、深度和控制通信。
+
+**核验与限制**：84个设置共32172对预测按原生标签复算一致，六项整目标/部位基线复现，原型各落点方法的分数与朝向选择相同；26项测试、两个文件编译及格式检查通过。首次运行因缺少共享数据链接在读取阶段失败，补齐后重跑，日志保留。最优方法及阈值均在同一开发验证集选择，只有3个目标、2组主体网格；未读既有测试查询图、未连接UE、未改控制器。当前结果可用于后续方法选择，尚不足以接管抵近控制。
+
+见[实验登记](../runs/evaluation/20261117-dino-matching-ablation/pre-registration.json)、[全部指标](../runs/evaluation/20261117-dino-matching-ablation/comparison.json)、[消融图](../runs/evaluation/20261117-dino-matching-ablation/comparison.png)、[开发方法选择](../runs/evaluation/20261117-dino-matching-ablation/selection.json)、[身份诊断](../runs/evaluation/20261117-dino-matching-ablation/identity-diagnostic.json)、[中心位置对照](../runs/evaluation/20261117-dino-matching-ablation/center-prior-diagnostic.json)、[本机耗时](../runs/evaluation/20261117-dino-matching-ablation/latency.json)、[评价日志](../runs/evaluation/20261117-dino-matching-ablation/evaluation.log)、[原生标签复算](../runs/evaluation/20261117-dino-matching-ablation/result-audit.json)、[测试日志](../runs/evaluation/20261117-dino-matching-ablation/validation.log)。各编码器目录保留全部逐对结果。

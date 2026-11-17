@@ -14,11 +14,58 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]/'src'))
 from common.start_state import start_state_check
 from perception.part_matching import CroppedPartMatcher, crop_to_full, response_crop, roi_overlap_weights, refine_local_image
 from perception.fingerprint import Fingerprint
-from control.run_approach import common_preflight_passed,refined_depth_half_width
+from control.run_approach import common_preflight_passed,refined_depth_half_width,close_speed_limit,SmallBatchFingerprint
 from control.servo_closed_loop import sample_depth_array
 
 
 class PartMatchingTests(unittest.TestCase):
+    def test_separate_near_template_keeps_whole_proto_and_requires_patches(self):
+        args=SimpleNamespace(part_template='near.png',part_template_roi=[0.,0.,.5,.5])
+        def initialize(fp,args,device):
+            fp.args=args;fp.dev=device;fp.grid=2;fp.zm=torch.zeros(2);fp.zs=torch.ones(2)
+            fp.protos={'full':torch.tensor([1.,0.])};fp.roi_patch_count=0
+            if getattr(args,'template_roi',None) is not None:fp.protos['roi']=torch.tensor([1.,0.])
+        tokens=torch.tensor([[[0.,2.],[1.,0.],[1.,0.],[1.,0.]]])
+        with patch.object(Fingerprint,'__init__',initialize),patch.object(SmallBatchFingerprint,'_encode',return_value=tokens),patch('control.run_approach.cv2.imread',return_value=np.zeros((8,8,3),np.uint8)):
+            fp=SmallBatchFingerprint(args,'cpu')
+            np.testing.assert_allclose(fp.protos['full'],[1.,0.])
+            np.testing.assert_allclose(fp.protos['roi'],[0.,1.])
+            self.assertEqual(fp.roi_patch_count,1)
+            args.template_roi=[0.,0.,.5,.5];args.part_template_active=False
+            staged=SmallBatchFingerprint(args,'cpu')
+            np.testing.assert_allclose(staged.protos['roi'],[1.,0.])
+            np.testing.assert_allclose(staged.protos['near'],[0.,1.])
+            args.part_template_active=True
+            active=SmallBatchFingerprint(args,'cpu')
+            np.testing.assert_allclose(active.protos['roi'],[0.,1.])
+            np.testing.assert_allclose(active.protos['full'],[1.,0.])
+            args.part_template_roi=[.49,.49,.51,.51]
+            with self.assertRaisesRegex(RuntimeError,'no feature patches'):SmallBatchFingerprint(args,'cpu')
+
+    def test_explicit_near_query_does_not_change_default_prototype(self):
+        fp=Fingerprint.__new__(Fingerprint);fp.dev='cpu'
+        fp.args=SimpleNamespace(image_size=28,target_softmax_temp=.005,target_mass_thresh=.2,target_mass_sharpness=20.)
+        fp.mean=torch.zeros(1,3,1,1);fp.std=torch.ones(1,3,1,1);fp.zm=torch.zeros(2);fp.zs=torch.ones(2)
+        fp.protos={'full':torch.tensor([1.,0.]),'roi':torch.tensor([1.,0.]),'near':torch.tensor([0.,1.])}
+        fp.patch_xy=torch.tensor([[-1.,0.],[1.,0.]])
+        fp.dino=SimpleNamespace(forward_features=lambda x:{'x_norm_patchtokens':torch.tensor([[[1.,0.],[0.,1.]]])})
+        rgb=np.zeros((28,28,3),np.uint8)
+        self.assertLess(fp.query(rgb,use_roi=True)[0],-.99)
+        self.assertGreater(fp.query(rgb,use_roi=True,prototype='near')[0],.99)
+        self.assertLess(fp.query(rgb,use_roi=True)[0],-.99)
+
+    def test_near_speed_stays_capped_through_background_depth_jump(self):
+        cruise=(1.5,0.,1.05)
+        for close_range,cap in ((12.,.35),(20.,.4)):
+            latched=False
+            command,latched=close_speed_limit(cruise,3*close_range,latched,close_range,cap)
+            self.assertFalse(latched);self.assertEqual(command,cruise)
+            for depth in (close_range-1,4*close_range,None,close_range/2):
+                command,latched=close_speed_limit((0.,0.,0.) if depth is None else cruise,depth,latched,close_range,cap)
+                self.assertTrue(latched);self.assertLessEqual(np.linalg.norm(command),cap+1e-12)
+            command,latched=close_speed_limit(cruise,3*close_range,False,close_range,cap)
+            self.assertFalse(latched);self.assertEqual(command,cruise)
+
     def test_registration_ablation_changes_radius_without_previous_state(self):
         rng=np.random.default_rng(51);template=rng.integers(0,256,(40,24,3),dtype=np.uint8)
         rgb=rng.integers(20,55,(220,300,3),dtype=np.uint8);rgb[80:120,124:148]=template

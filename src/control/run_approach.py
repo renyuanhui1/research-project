@@ -12,6 +12,7 @@ from common.runtime import configure_client_log
 from control import servo_closed_loop as sc
 from common.start_state import start_state_check
 from perception.part_matching import CroppedPartMatcher
+from perception.opening_geometry import opening_candidates
 def initialize(argv=None):
  global OUT, VDIR, BASE, setup, target_part, oblique, assets, cfg, meta, ref, args, PROFILE, options, common_start
  parser=argparse.ArgumentParser(description=__doc__)
@@ -21,8 +22,11 @@ def initialize(argv=None):
  parser.add_argument('--preflight-selected-part-only',action='store_true',help='Common-start experiment: require reference and start matching for the selected part; retain all part diagnostics')
  parser.add_argument('--thin-roi-refinement',action='store_true',help='Use overlap-weighted context and bounded image registration for empty center-selected reference ROIs')
  parser.add_argument('--max-duration',type=float,default=600.,help='Control time limit in seconds; stop and hover on expiry')
+ parser.add_argument('--handoff-on-roi',action='store_true',help='Hover at the confirmed full-to-part switch for a specialized part controller')
+ parser.add_argument('--roof-handoff',action='store_true',help='Use live RGB-D roof-plane range for the specialized part handoff')
  options=parser.parse_args(argv);OUT=options.out_dir.expanduser().resolve();VDIR=OUT/'viz_dump'
- if not math.isfinite(options.max_duration) or not 1<=options.max_duration<=1800:parser.error('max-duration must be finite and within [1,1800]')
+ options.handoff_on_roi=options.handoff_on_roi or options.roof_handoff
+ if not math.isfinite(options.max_duration) or options.max_duration<=0:parser.error('max-duration must be finite and positive')
  snapshot=OUT/'scene-profile.json'
  PROFILE=load_profile(options.profile) if options.profile or not snapshot.exists() else json.loads(snapshot.read_text())
  if any((OUT/name).exists() for name in ('run.h5','report.json','front.mp4','chase.mp4')) and not options.validate_only:
@@ -32,6 +36,7 @@ def initialize(argv=None):
  setup=json.loads((OUT/'controller-setup.json').read_text())
  if setup.get('target_actor',PROFILE['target']['actor'])!=PROFILE['target']['actor']:raise RuntimeError('Run target disagrees with scene profile')
  target_part=setup.get('target_part','nose');oblique=setup.get('mode')=='oblique';common_start='common_start' in setup;assets=Path(setup['shared_reference']) if common_start else (OUT if oblique else BASE)
+ if options.handoff_on_roi and (not oblique or common_start):parser.error('part handoff requires the staged oblique controller')
  if options.preflight_selected_part_only and not common_start:parser.error('selected-part preflight requires a common-start experiment')
  if options.thin_roi_refinement and not common_start:parser.error('thin ROI refinement requires a common-start experiment')
  cfg=json.loads((OUT/'runtime-scene.json').read_text());meta=json.loads((assets/'template.json').read_text());ref=np.array(meta['reference_ned_m']) if meta.get('reference_ned_m') is not None else None
@@ -46,10 +51,28 @@ def initialize(argv=None):
  if oblique and not common_start:controller_argv+=['--template-roi',*map(str,setup['template_roi']),'--roi-switch-dist',str(setup['roi_switch_dist'])]
  if not oblique:controller_argv+=['--nadir']
  args=sc.parse_args(controller_argv)
+ if setup.get('part_template'):
+  args.part_template=str(OUT/setup['part_template']);args.part_template_roi=setup['part_template_roi']
+  args.part_template_active=False
  if options.thin_roi_refinement:
   args.thin_roi_refinement=True;args.local_refinement_min_score=.85;args.local_refinement_min_margin=.15
  if not options.validate_only:VDIR.mkdir(parents=True,exist_ok=True);configure_client_log(OUT)
 class SmallBatchFingerprint(sc.Fingerprint):
+ def __init__(self,args,device):
+  super().__init__(args,device)
+  part_template=getattr(args,'part_template',None)
+  if part_template:
+   image=cv2.imread(str(part_template))
+   if image is None:raise FileNotFoundError(part_template)
+   tokens=(self._encode(np.ascontiguousarray(image[:,:,::-1])[None])[0].to(device)-self.zm)/self.zs
+   axis=(torch.arange(self.grid,device=device)+.5)/self.grid;yy,xx=torch.meshgrid(axis,axis,indexing='ij')
+   x0,y0,x1,y1=args.part_template_roi;mask=(xx>=x0)&(xx<=x1)&(yy>=y0)&(yy<=y1)
+   if not mask.any():raise RuntimeError('Near part template ROI contains no feature patches')
+   self.protos['near']=torch.nn.functional.normalize(torch.nn.functional.normalize(tokens[mask.reshape(-1)],dim=-1).mean(0),dim=0)
+   self.near_roi_patch_count=int(mask.sum())
+   if getattr(args,'part_template_active',False) or not self.has_roi:
+    self.protos['roi']=self.protos['near'];self.roi_patch_count=self.near_roi_patch_count
+   print('近端部位模板:',part_template,'ROI=',args.part_template_roi,'patches=',self.near_roi_patch_count,flush=True)
  def _encode(self,rgb,bs=2):return super()._encode(rgb,bs=2)
 def common_preflight_passed(validation,selected_part=None,min_peak=.2):
  checks=[v for v in validation if selected_part is None or v['part']==selected_part]
@@ -57,6 +80,20 @@ def common_preflight_passed(validation,selected_part=None,min_peak=.2):
 def refined_depth_half_width(part_wh,rgb_wh,depth_wh):
  footprint=np.asarray(part_wh,float)*np.asarray(depth_wh)/np.asarray(rgb_wh)
  return max(0,min(4,int(np.floor(float(footprint.min())/4))))
+def close_speed_limit(command,depth,latched,close_range,cap):
+ """单向抵近一旦进入近端即保持限速，深度跳到背景不会恢复巡航速度。"""
+ latched=latched or (depth is not None and depth<=close_range)
+ f,r,d=command;speed=math.sqrt(f*f+r*r+d*d)
+ if latched and speed>cap:f*=cap/speed;r*=cap/speed;d*=cap/speed
+ return (f,r,d),latched
+def roof_ranges(rgb_message,depth_message):
+ w,x,y,z=[float(rgb_message['rot_'+k]) for k in ('w','x','y','z')]
+ down=np.array([2*(y*z+x*w),1-2*(x*x+y*y),2*(x*z-y*w)])
+ geometry=opening_candidates(np.asarray(sc.ce.decode(depth_message),np.float32).squeeze(),down=down)
+ if geometry['status'] not in ('candidates_found','no_closed_opening') or down[2]<=0:
+  raise RuntimeError('roof_depth_layers_unavailable: '+geometry['status'])
+ vertical=float(geometry['near_layer_depth_m'])
+ return vertical,vertical/float(down[2])
 def matching_preflight():
  global fp
  torch.set_num_threads(2);cv2.setNumThreads(1)
@@ -85,9 +122,10 @@ def matching_preflight():
  if oblique:
   validation=[]
   with np.load(OUT/'validation-frames.npz') as checks:
-   for name,roi in [('far',False),('near',True)]+([('close',True)] if 'close_rgb' in checks.files else []):
-    cx,cy,mass,peak,sim=fp.query(checks[name+'_rgb'],use_roi=roi);box=checks[name+'_bbox'];tolerance=.02 if roi and target_part in ('wing','tail') else .1;inside=bool(box[0]-tolerance<=cx<=box[2]+tolerance and box[1]-tolerance<=cy<=box[3]+tolerance)
-    validation.append({'frame':name,'use_roi':roi,'cx':cx,'cy':cy,'peak':peak,'expected_bbox':box.tolist(),'bbox_tolerance':tolerance,'inside':inside})
+   phases=[('far',False,None)] if options.handoff_on_roi else [('far',False,None),('near',True,None)]+([('fine',True,'near')] if setup.get('part_template') else [])+([('close',True,'near' if setup.get('part_template') else None)] if 'close_rgb' in checks.files else [])
+   for name,roi,prototype in phases:
+    cx,cy,mass,peak,sim=fp.query(checks[name+'_rgb'],use_roi=roi,prototype=prototype);box=checks[name+'_bbox'];tolerance=.02 if roi and target_part!='nose' else .1;inside=bool(box[0]-tolerance<=cx<=box[2]+tolerance and box[1]-tolerance<=cy<=box[3]+tolerance)
+    validation.append({'frame':name,'use_roi':roi,'prototype':prototype or ('roi' if roi else 'full'),'cx':cx,'cy':cy,'peak':peak,'expected_bbox':box.tolist(),'bbox_tolerance':tolerance,'inside':inside})
   if not options.validate_only:(OUT/'matching-preflight.json').write_text(json.dumps(validation,indent=2))
   print('MATCHING_PREFLIGHT',json.dumps(validation),flush=True)
   if not all(v['peak']>=args.control_min_peak and v['inside'] for v in validation):raise RuntimeError('Oblique matching validation failed; drone remains hovering')
@@ -165,7 +203,17 @@ def cb(tag):
     while len(cache)>20:cache.pop(min(cache))
  return receive
 async def hover():
- if drone is not None:await asyncio.wait_for(await drone.hover_async(),8)
+ if drone is None:return
+ q=drone.get_ground_truth_kinematics()['pose']['orientation']
+ yaw=math.atan2(2*(q['w']*q['z']+q['x']*q['y']),1-2*(q['y']**2+q['z']**2))
+ deadline=time.monotonic()+20;stable=0
+ while time.monotonic()<deadline:
+  await asyncio.wait_for(await drone.move_by_velocity_async(0.,0.,0.,duration=.3,yaw_is_rate=False,yaw=yaw),3)
+  kin=drone.get_ground_truth_kinematics();twist=kin['twist']
+  speed=math.sqrt(sum(twist['linear'][k]**2 for k in ('x','y','z')))
+  stable=stable+1 if speed<.1 and abs(twist['angular']['z'])<.02 else 0
+  if stable>=5:return
+ raise RuntimeError('zero_velocity_hold_did_not_settle')
 async def velocity(f,r,d,duration=.4,yaw_rate=0.):
  return await drone.move_by_velocity_body_frame_async(f,r,d,duration=duration,yaw=yaw_rate,yaw_is_rate=True)
 async def run_control():
@@ -197,7 +245,8 @@ async def run_control():
  for rec in recorders.values():rec.launch(start)
  report['recording_start_monotonic']=start
  report.update(mode='oblique' if oblique else 'nadir',setup=setup,altitude_guard_m=setup.get('altitude_guard_m',14))
- filtered={k:None for k in ('cx','cy','dist')};last=-1;lastdepth=-1;contact=0;aligned=0;lost=0;step=0;pending=[];roi_active=common_start;roi_hits=0;previous_cmd=np.zeros(3);previous_tick=time.monotonic()
+ filtered={k:None for k in ('cx','cy','dist')};last=-1;lastdepth=-1;contact=0;aligned=0;lost=0;step=0;pending=[];roi_active=common_start;roi_hits=0;previous_cmd=np.zeros(3);previous_tick=time.monotonic();close_latched=False
+ if options.roof_handoff:filtered['roof_dist']=None
  while True:
   tick=time.monotonic();deadline=tick+3;matched=None
   if tick-start>=options.max_duration:reason='duration_limit';break
@@ -226,6 +275,10 @@ async def run_control():
   dist=sc.sample_depth(dm,depth_cx,depth_cy,half=depth_half) if locked else None
   if dist is not None:filtered['dist']=sc.ema_update(filtered['dist'],dist,.5)
   df=filtered['dist'] if dist is not None else None
+  phase_dist=df;roof_vertical=None
+  if options.roof_handoff:
+   roof_vertical,roof_optical=roof_ranges(m,dm)
+   filtered['roof_dist']=sc.ema_update(filtered['roof_dist'],roof_optical,.5);phase_dist=filtered['roof_dist']
   kin=drone.get_ground_truth_kinematics();pos=kin['pose']['position'];alt=-pos['z'];distance=None if ref is None else float(np.linalg.norm(ref-np.array([pos[k] for k in ('x','y','z')])))
   aligned=aligned+1 if locked and math.hypot(xf,yf)<.15 else 0
   f,r,d,yaw_rate,_,_=sc.compute_body_cmd(args,xf,yf,0)
@@ -237,9 +290,12 @@ async def run_control():
    scale=sc.depth_speed_scale(df,args.slow_dist,args.stop_dist,.15);f*=scale;r*=scale;d*=scale
   if oblique and locked and df is not None:
    delta=max(.02,min(time.monotonic()-previous_tick,.3));command=np.clip(np.array([f,r,d]),previous_cmd-delta,previous_cmd+delta);f,r,d=map(float,command)
-  if df is not None and df<=setup.get('close_range_m',0):
-   speed=math.sqrt(f*f+r*r+d*d);cap=setup['close_speed_mps']
-   if speed>cap:f*=cap/speed;r*=cap/speed;d*=cap/speed
+  if 'close_range_m' in setup:
+   (f,r,d),close_latched=close_speed_limit((f,r,d),df,close_latched,setup['close_range_m'],setup['close_speed_mps'])
+   if close_latched and 'close_speed_latched_at_step' not in report:report['close_speed_latched_at_step']=step
+  if options.handoff_on_roi and phase_dist is not None and phase_dist<=args.roi_switch_dist+10:
+   speed=math.sqrt(f*f+r*r+d*d)
+   if speed>.35:f*=.35/speed;r*=.35/speed;d*=.35/speed
   previous_cmd=np.array([f,r,d]);previous_tick=time.monotonic()
   depthts=int(dm['time_stamp'])
   if depthts!=lastdepth:
@@ -255,12 +311,15 @@ async def run_control():
   if int(collision.get('time_stamp',0))>collision_baseline:
    stop='collision';report['collision_event']=collision
   elif contact>=3:stop='range_threshold'
+  elif roof_vertical is not None and roof_vertical<15:stop='roof_clearance_guard'
   elif guard_depth is not None and guard_depth<setup['depth_guard_m']:stop='depth_clearance_guard'
   elif alt<=setup.get('altitude_guard_m',14):stop='altitude_guard'
   elif lost>=15:stop='tracking_lost'
   elif alt>setup.get('max_altitude_m',40):stop='unexpected_altitude'
   row={'step':step,'time_s':time.monotonic()-start,'north':pos['x'],'east':pos['y'],'down':pos['z'],'cx':xf,'cy':yf,'peak':peak,'depth_m':-1 if df is None else df,'forward':f,'right':r,'down_speed':d,'reference_distance_m':distance,'rgb_timestamp':last,'depth_timestamp':depthts,'sensor_skew_ms':abs(last-depthts)/1e6,'contact_count':contact,'state':state}
-  row.update(yaw_rate=yaw_rate,roi_active=roi_active,guard_depth_m=guard_depth)
+  row.update(yaw_rate=yaw_rate,roi_active=roi_active,guard_depth_m=guard_depth,close_speed_latched=close_latched,
+             near_part_template_active=getattr(args,'part_template_active',False))
+  if options.roof_handoff:row.update(roof_vertical_range_m=roof_vertical,phase_range_m=phase_dist)
   if common_start:
    row.update(crop_xyxy=fp.last_diagnostics['crop_xyxy'],whole_peak=fp.last_diagnostics['whole_peak'])
   if options.thin_roi_refinement:
@@ -272,16 +331,29 @@ async def run_control():
   if stop:reason=stop;break
   pending.append(await velocity(f,r,d,yaw_rate=yaw_rate));step+=1
   if oblique and not roi_active:
-   roi_hits=roi_hits+1 if locked and df is not None and df<=args.roi_switch_dist else 0
+   roi_hits=roi_hits+1 if locked and df is not None and phase_dist is not None and phase_dist<=args.roi_switch_dist else 0
    if roi_hits>=3:
     roi_active=True;contact=0;aligned=0
     for key in filtered:filtered[key]=None
     print('PROTOTYPE_SWITCH FULL -> '+target_part.upper(),flush=True)
+    if options.handoff_on_roi:
+     report['part_handoff']={'target_part':target_part,'filtered_depth_m':phase_dist,'matched_point_depth_m':df,'confirm_frames':roi_hits,'threshold_m':args.roi_switch_dist,'measurement':'RGBD_roof_plane_optical_range' if options.roof_handoff else 'matched_point_depth'}
+     reason='part_handoff';break
+  if (roi_active and setup.get('part_template') and not args.part_template_active and
+      locked and df is not None and df<=setup['part_template_switch_range_m']):
+   await asyncio.wait_for(await velocity(0,0,0,.3),3);await hover()
+   fp.protos['roi']=fp.protos['near'];fp.roi_patch_count=fp.near_roi_patch_count;args.part_template_active=True
+   report['part_template_switch']={'at_step':step,'filtered_depth_m':df,'threshold_m':setup['part_template_switch_range_m'],
+                                   'template':args.part_template,'source_distance_m':setup['part_template_distance_m']}
+   for key in filtered:filtered[key]=None
+   contact=aligned=lost=0;previous_cmd[:]=0;previous_tick=time.monotonic()
+   print('PROTOTYPE_SWITCH '+target_part.upper()+' -> NEAR_'+target_part.upper(),flush=True)
   await asyncio.sleep(max(0,.2-(time.monotonic()-tick)))
- await velocity(0,0,0,.2)
+ await asyncio.wait_for(await velocity(0,0,0,.3),3)
  if pending:await asyncio.gather(*pending,return_exceptions=True)
  await hover();await asyncio.sleep(2)
  report['stop_reason']=reason;report['arrival_confirmed']=reason=='range_threshold';report['final_state']=drone.get_ground_truth_kinematics();report['status']='completed'
+ report['handoff_ready']=reason=='part_handoff'
  print('CONTROL_DONE',reason,'steps',len(rows),flush=True)
 def main(argv=None):
  global recorders,c,drone,latest,buffers,lock,rows,rgbs,poses,sims,report
@@ -293,7 +365,9 @@ def main(argv=None):
  c=ProjectAirSimClient(address=args.address);drone=None;latest={};buffers={};lock=threading.Lock();rows=[];rgbs=[];poses=[];sims=[]
  report={'status':'started','output_dir':str(OUT),'live_viz_dump':str(VDIR),'map_used_for_control':False,'max_steps':None,'max_duration_s':None,'camera_capture_interval_s':.0167,'distance_stop_m':args.stop_dist,'stop_confirm_frames':3,'altitude_guard_m':14,'reference_used_for_control':False,'online_segmentation':False,'depth_resolution':[640,360],'source_configuration_modified':False,'transport_address':args.address,'max_sensor_skew_s':.25,'topic_receive_buffer_messages':32}
  report['max_duration_s']=options.max_duration
+ report['roof_handoff']=options.roof_handoff
  report['matching_preflight_scope']=target_part if options.preflight_selected_part_only else 'all_parts'
+ if options.handoff_on_roi:report['matching_preflight_scope']='far_whole_target_for_part_handoff'
  report['thin_roi_refinement']=options.thin_roi_refinement
  if options.thin_roi_refinement:
   report.update(refinement_min_score=.85,refinement_min_margin=.15,max_perception_duration_s=.75,refined_point_depth_sampling='raw registered anchor; neighborhood limited by registered part size')
@@ -322,6 +396,6 @@ def main(argv=None):
   report['controller_args']={k:str(v) if isinstance(v,Path) else v for k,v in vars(args).items()}
   (OUT/'report.json').write_text(json.dumps(report,indent=2))
   print('REPORT',json.dumps({k:v for k,v in report.items() if k not in ('controller_args','final_state')}),flush=True)
- return 0 if report['status']=='completed' and report.get('arrival_confirmed') else 1
+ return 0 if report['status']=='completed' and (report.get('arrival_confirmed') or report.get('handoff_ready')) else 1
 
 if __name__=='__main__':raise SystemExit(main())

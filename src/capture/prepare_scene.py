@@ -35,7 +35,7 @@ def initialize(argv=None):
   if not options.oblique or 'common_start' not in mission or options.reference_dir is None:parser.error('common-start requires oblique mode, mission common_start and reference-dir')
   options.reference_dir=options.reference_dir.expanduser().resolve()
  if options.address:PROFILE['simulator']['address']=options.address
- if options.target_part in ('wing','tail') and not options.oblique:parser.error('Wing/tail preparation requires --oblique')
+ if options.target_part!='nose' and not options.oblique:parser.error('Part-region preparation requires --oblique')
  if options.oblique and not (30<=options.start_distance<=300 and 0<options.speed<=5 and 15<=options.camera_pitch<=50):parser.error('Invalid oblique distance/speed/pitch')
  if not 3<=options.stop_distance<=12:parser.error('Stop distance must be between 3 and 12 m')
  BASE=project_path(PROFILE['assets']['preparation_assets'])
@@ -46,6 +46,7 @@ def initialize(argv=None):
  robot=next(a for a in cfg['actors'] if a['name']==PROFILE['simulator']['drone'])['robot-config']
  front=next(sensor for sensor in robot['sensors'] if sensor['id']==PROFILE['simulator']['camera'])
  front['origin']['rpy-deg']=f"0 {-options.camera_pitch if options.oblique else -90} 0"
+ front['gimbal']={'lock-roll':True,'lock-pitch':True,'lock-yaw':False}
  front['capture-settings']=[cap for cap in front['capture-settings'] if cap['image-type'] in (0,2)]
  for cap in front['capture-settings']:
   if cap['image-type']==2:cap['width']=640;cap['height']=360
@@ -94,23 +95,28 @@ async def prepare_oblique(world):
  if not np.allclose(world.get_object_scale(PROFILE['target']['actor']),expected['scale'],atol=.01):raise RuntimeError('Target scale changed')
  with np.load(map_root/'meshes'/(PROFILE['target']['actor']+'.npz')) as data:vertices=data['vertices_enu'][:,[1,0,2]].copy();vertices[:,2]*=-1
  reference=np.array(json.loads((BASE/'template.json').read_text())['reference_ned_m'])
- if options.target_part in ('wing','tail'):
+ if options.target_part!='nose':
   origin=np.array([pose['translation'][k] for k in ('x','y','z')]);lateral=np.array([-direction[1],direction[0]])
   longitudinal=(vertices[:,:2]-origin[:2])@direction;side=(vertices[:,:2]-origin[:2])@lateral
   part=PROFILE['parts'][options.target_part]
   wing=(side>=part['lateral_min_m'])&(longitudinal>part['longitudinal_min_m'])&(longitudinal<part['longitudinal_max_m'])&(-vertices[:,2]>part['min_altitude_m'])
   if 'lateral_max_m' in part:wing &= side<=part['lateral_max_m']
   if 'max_altitude_m' in part:wing &= -vertices[:,2]<part['max_altitude_m']
-  if wing.sum()<10:raise RuntimeError('Configured wing/tail region missing from mesh')
+  if wing.sum()<10:raise RuntimeError('Configured part region missing from mesh')
   seed=np.r_[origin[:2]+part['seed_longitudinal_m']*direction+part['seed_lateral_m']*lateral,-part['seed_altitude_m']]
   candidates=vertices[wing];reference=candidates[np.linalg.norm(candidates-seed,axis=1).argmin()]
   near=wing&(np.linalg.norm(vertices-reference,axis=1)<=part['radius_m'])
-  direction=-direction if part.get('approach_axis')=='rear' else lateral
+  axis=part.get('approach_axis')
+  bearing=part.get('approach_bearing_deg')
+  if bearing is None:direction=-direction if axis=='rear' else (-lateral if axis=='negative_side' else lateral)
+  else:
+   angle=math.radians(bearing);direction=math.cos(angle)*direction+math.sin(angle)*lateral
   heading=math.atan2(-direction[1],-direction[0])
  else:near=np.linalg.norm(vertices-reference,axis=1)<=PROFILE['parts']['nose']['radius_m']
  if near.sum()<10:raise RuntimeError('Target-part reference missing from mesh')
  with np.load(map_root/'grids/context_voxels.npz') as data:obstacles=data['centers_enu_m']
- distances=tuple(d for d in PROFILE['preparation']['calibration_distances_m'] if d!=8 or options.stop_distance<8)+(options.start_distance,)
+ part_template_distance=PROFILE['parts'][options.target_part].get('part_template_distance_m')
+ distances=tuple(d for d in PROFILE['preparation']['calibration_distances_m'] if d!=8 or options.stop_distance<8 or d==part_template_distance)+(options.start_distance,)
  route=[np.array(PROFILE['preparation']['cruise_ned_m'])[[1,0,2]]*np.array([1,1,-1])]+[waypoint(d)[[1,0,2]]*np.array([1,1,-1]) for d in distances]
  clearances=[]
  for a,b in zip(route[:-1],route[1:]):
@@ -133,26 +139,64 @@ async def prepare_oblique(world):
   pixels=project(vertices if index in (0,len(distances)-1) else vertices[near],msg);low=np.floor(pixels.min(0)).astype(int);high=np.ceil(pixels.max(0)).astype(int)
   padding=np.maximum(np.rint((high-low)*.05).astype(int),4);low=np.maximum(low-padding,0);high=np.minimum(high+padding,[msg['width'],msg['height']])
   if index==0:
+   bounds=np.r_[pixels.min(0),pixels.max(0)]
+   meta.update(reference_camera_metadata={k:v for k,v in msg.items() if k!='data'},reference_full_mesh_bbox_xyxy=bounds.tolist(),reference_full_target_in_frame=bool(np.all(bounds[:2]>=0) and np.all(bounds[2:]<=[msg['width'],msg['height']])))
    rgb=decode_image(msg)[0];crop=rgb[low[1]:high[1],low[0]:high[0]];cv2.imwrite(str(P/'aircraft-template.png'),crop[:,:,::-1])
    nose_pixels=project(vertices[near],msg);roi_low=np.clip((nose_pixels.min(0)-low)/(high-low),0,1);roi_high=np.clip((nose_pixels.max(0)-low)/(high-low),0,1)
+   fraction=PROFILE['parts'][options.target_part].get('template_roi_fraction')
+   if fraction is not None:
+    origin=roi_low.copy();extent=roi_high-roi_low
+    roi_low=origin+extent*np.asarray(fraction[:2]);roi_high=origin+extent*np.asarray(fraction[2:])
+    meta['template_roi_fraction']=fraction
+   anchor=(project(reference[None],msg)[0]-low)/(high-low)
+   meta['template_anchor_normalized_xy']=anchor.tolist()
+   half=PROFILE['parts'][options.target_part].get('template_anchor_half_size')
+   if half is not None:
+    roi_low=np.maximum(roi_low,anchor-half);roi_high=np.minimum(roi_high,anchor+half)
+    meta['template_anchor_half_size']=half
    roi=[float(roi_low[0]),float(roi_low[1]),float(roi_high[0]),float(roi_high[1])]
-   checks['near_rgb']=frames[-1];checks['near_bbox']=np.r_[nose_pixels.min(0)/[msg['width'],msg['height']]*2-1,nose_pixels.max(0)/[msg['width'],msg['height']]*2-1]
+   checks['near_rgb']=rgb;checks['near_bbox']=np.r_[nose_pixels.min(0)/[msg['width'],msg['height']]*2-1,nose_pixels.max(0)/[msg['width'],msg['height']]*2-1]
    annotated=rgb.copy();cv2.rectangle(annotated,tuple(low),tuple(high),(255,0,0),2)
    nose_low=np.rint(low+roi_low*(high-low)).astype(int);nose_high=np.rint(low+roi_high*(high-low)).astype(int);cv2.rectangle(annotated,tuple(nose_low),tuple(nose_high),(0,255,0),2);cv2.imwrite(str(P/'template-location.png'),annotated[:,:,::-1])
    meta.update(crop_xyxy=[*low.tolist(),*high.tolist()],template_roi=roi)
   if distance==8:
-   nose_pixels=project(vertices[near],msg);checks['close_rgb']=frames[-1];checks['close_bbox']=np.r_[nose_pixels.min(0)/[msg['width'],msg['height']]*2-1,nose_pixels.max(0)/[msg['width'],msg['height']]*2-1]
+   nose_pixels=project(vertices[near],msg);checks['close_rgb']=decode_image(msg)[0];checks['close_bbox']=np.r_[nose_pixels.min(0)/[msg['width'],msg['height']]*2-1,nose_pixels.max(0)/[msg['width'],msg['height']]*2-1]
    cv2.imwrite(str(P/'close-validation.png'),decode_image(msg)[0][:,:,::-1])
+  if distance==part_template_distance:
+   part_roi=PROFILE['parts'][options.target_part]['part_template_roi']
+   cv2.imwrite(str(P/'part-template.png'),decode_image(msg)[0][:,:,::-1])
+   meta['part_template']={'image':'part-template.png','roi':part_roi,'distance_m':distance,
+                          'camera_metadata':{k:v for k,v in msg.items() if k!='data'}}
+  if part_template_distance is not None and distance==PROFILE['controller']['close_range_m']:
+   part_pixels=project(vertices[near],msg)
+   checks['fine_rgb']=decode_image(msg)[0]
+   checks['fine_bbox']=np.r_[part_pixels.min(0)/[msg['width'],msg['height']]*2-1,part_pixels.max(0)/[msg['width'],msg['height']]*2-1]
+   meta['fine_preflight_camera_metadata']={k:v for k,v in msg.items() if k!='data'}
+   cv2.imwrite(str(P/'fine-validation.png'),decode_image(msg)[0][:,:,::-1])
   if index==len(distances)-1:
-   checks['far_rgb']=frames[-1];checks['far_bbox']=np.r_[low/[msg['width'],msg['height']]*2-1,high/[msg['width'],msg['height']]*2-1]
+   meta['start_camera_metadata']={k:v for k,v in msg.items() if k!='data'}
+   checks['far_rgb']=decode_image(msg)[0];checks['far_bbox']=np.r_[low/[msg['width'],msg['height']]*2-1,high/[msg['width'],msg['height']]*2-1]
    cv2.imwrite(str(P/'start-front.png'),decode_image(msg)[0][:,:,::-1])
   print('OBLIQUE_CALIBRATION',distance,'m',len(frames),'frames',flush=True)
- with h5py.File(P/'stats-episode.h5','w') as f:f.create_dataset('rgb',data=np.stack(stats),compression='gzip')
+ statistics_source=PROFILE['preparation'].get('statistics_source','all_calibration')
+ selection={'all_calibration':slice(None),'far_start':slice(-6,None)}[statistics_source]
+ with h5py.File(P/'stats-episode.h5','w') as f:
+  frames=np.stack(stats);f.create_dataset('rgb',data=frames[selection],compression='gzip')
+  if statistics_source=='far_start':f.create_dataset('all_calibration_rgb',data=frames,compression='gzip')
+  f.attrs['statistics_source']=statistics_source
+ meta['statistics_source']=statistics_source
  np.savez_compressed(P/'validation-frames.npz',**checks)
  (P/'template.json').write_text(json.dumps(meta,indent=2))
  setup={'profile':PROFILE['name'],'target_actor':PROFILE['target']['actor'],'mode':'oblique','target_part':options.target_part,'start_horizontal_distance_m':options.start_distance,'camera_pitch_deg':options.camera_pitch,'v_forward':options.speed,'v_down':options.speed*math.tan(math.radians(options.camera_pitch)),'slow_dist':35.,'stop_dist':options.stop_distance,'altitude_guard_m':PROFILE['controller']['close_altitude_guard_m'] if options.stop_distance<8 else PROFILE['controller']['altitude_guard_m'],'max_altitude_m':PROFILE['controller']['max_altitude_m'],'template_roi':roi,'roi_switch_dist':PROFILE['controller']['roi_switch_dist_m']}
  if options.stop_distance<8:setup.update(close_range_m=PROFILE['controller']['close_range_m'],close_speed_mps=PROFILE['controller']['close_speed_mps'],depth_guard_m=PROFILE['controller']['depth_guard_m'])
  setup['start_ned_m']=waypoint(options.start_distance).tolist();setup['reference_ned_m']=reference.tolist()
+ setup['statistics_source']=statistics_source
+ if part_template_distance is not None:
+  if 'part_template' not in meta:raise RuntimeError('Part template distance must be included in calibration distances')
+  if 'fine_rgb' not in checks:raise RuntimeError('Near part switch distance must be included in calibration distances')
+  setup.update(part_template='part-template.png',part_template_roi=meta['part_template']['roi'],
+               part_template_distance_m=part_template_distance,
+               part_template_switch_range_m=PROFILE['controller']['close_range_m'])
  (P/'controller-setup.json').write_text(json.dumps(setup,indent=2));print('OBLIQUE_READY',setup,flush=True)
 def common_part_regions(vertices, pose):
  origin=np.array([pose['translation'][k] for k in ('x','y','z')]);q=pose['rotation']
