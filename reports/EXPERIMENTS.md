@@ -707,3 +707,33 @@ K=5时只有137/637帧（21.51%）的全部请求目标都被峰值覆盖。同�
 **异常及验证**：折外产物含NumPy标量，受限权重读取失败；仅对项目自产折外权重使用完整读取并记录SHA256，冻结核验器仍受限读取。首次覆盖率运行误从粗定位训练配置读取裁剪参数，以`KeyError: crop_logit_delta`停止；修正为读取核验配置后重跑成功。失败日志及登记保留在同一执行历史，统计模式未重复运行。21项相关测试在两端通过，修复后的4项针对性测试通过；3191对诊断、1795个目标覆盖和637帧原目标标签经本地复核一致。该覆盖率使用训练图的交叉拟合查询，缓存仍可能含内层留出主体的偶然背景，不是严格独立外观或连续飞行评价。
 
 见[评价配置](../configs/evaluation/template_selection.json)、[诊断登记](../runs/evaluation/20261117-template-selection/diagnose-registration.json)、[连续分数统计](../runs/evaluation/20261117-template-selection/diagnosis.json)、[逐对诊断](../runs/evaluation/20261117-template-selection/diagnosis-records.json)、[分数与RGB内点图](../runs/evaluation/20261117-template-selection/score-diagnosis.png)、[覆盖率登记](../runs/evaluation/20261117-template-selection/coverage-registration.json)、[覆盖率](../runs/evaluation/20261117-template-selection/coverage.json)、[候选及逐目标记录](../runs/evaluation/20261117-template-selection/coverage-candidates.json)、[覆盖率图](../runs/evaluation/20261117-template-selection/candidate-coverage.png)、[本地复算与面积分层](../runs/evaluation/20261117-template-selection/result-audit.json)、[执行历史](../runs/evaluation/20261117-template-selection/execution-history.json)、[统计日志](../runs/evaluation/20261117-template-selection/diagnose.log)、[覆盖率日志（含失败）](../runs/evaluation/20261117-template-selection/coverage.log)、[测试日志](../runs/evaluation/20261117-template-selection/validation.log)。
+
+
+## 2026-11-17：全目标粗定位实例平衡监督对照
+
+**目的**：比较原目标监督与按实例平衡的全目标监督，检验保持编码器、定位器、损失及有效区域不变时，同图其他目标的候选覆盖能否改善，以及原目标是否退化。训练、评价均在237执行；未训练模板核验器、修改阈值、使用测试查询图或执行飞行。
+
+**环境与数据**：`ryh-dinov2`环境，PyTorch 2.11.0+cu128、OpenCV 4.13.0、RTX PRO 6000。冻结DINOv2 448输入及现有特征，64维定位器、64×64输出。沿用1408帧训练数据及三组查询/主体网格划分；验证特征仅由现有加载器读取，不用于拟合统计、选轮数或本轮评价。覆盖率复用637张训练图及1795个目标（原目标637、同图其他目标1158）。使用1731/1732/1733三个配对种子，每折固定18轮，批量32、AdamW学习率0.001、权重衰减0.0001；两组各训练9个模型，共18个。主脚本运行42.22秒，含加载、训练、评价和写盘，不作为在线推理耗时。
+
+**方法与划分**：`original`直接使用原目标标签；`all_balanced`把原目标及该折拟合组中可用的同图其他目标掩码分别归一化，再等权合并。有效区域不变，未知像素不增加监督；同源复制体仍遵守已有标签口径。三折分别使用422/272/616个额外正例，排除397/371/238个不属于该折拟合目标的额外正例。每对模型共享初始化种子、查询顺序、架构、归一化统计和优化预算，采用固定末轮；没有按本轮结果选择超参数。候选沿用局部峰值、裁剪IoU>0.5 NMS及K=1/3/5。标签只用于事后评分，模型不接收目标坐标。
+
+**峰值覆盖结果**（三种子均值±样本标准差，单位%）：
+
+| 请求集合与监督 | K=1 | K=3 | K=5 |
+|---|---:|---:|---:|
+| 原目标，原监督 | 82.16±1.48 | 89.95±1.75 | 91.31±1.51 |
+| 原目标，全目标平衡监督 | 42.39±4.65 | 66.30±1.73 | 75.67±2.68 |
+| 同图其他目标，原监督 | 3.25±0.33 | 18.60±1.45 | 22.34±1.70 |
+| 同图其他目标，全目标平衡监督 | 10.42±1.77 | 31.95±1.06 | 38.23±0.05 |
+
+K=5的配对差值：其他目标提高15.89±1.65个百分点，原目标降低15.65±1.28个百分点，三个种子的方向均一致。裁剪覆盖（包含至少50%目标）对其他目标由50.17±1.21%升至84.34±1.25%，对原目标由93.46±1.19%降至82.26±0.27%；较高裁剪覆盖不能代替准确峰值定位。
+
+**拟合组与留出组**：1158个其他目标中1006个属于该折拟合组，152个属于留出组。拟合组的K=5峰值覆盖由25.68±1.93%升至43.51±0.11%；留出组仅由0.22±0.38%升至3.29±0.66%。留出组的裁剪覆盖可达到约72.59%，但峰值仍很少命中，不能将其解释为可靠定位或跨目标泛化。占画面不足0.1%的711个其他目标，K=5峰值覆盖均值由8.53%升至23.96%，仍有较多遗漏。
+
+**复现检查与限制**：1731原监督组相对历史三折权重的最大参数差异分别为0.16317/0.04341/0.01340，未逐参数复现历史权重。核对来源文件、归一化统计及训练正例配对一致后，额外复跑当前第0折，相同种子仍有0.09172最大参数差异，说明当前训练不满足逐参数确定性；具体算子原因未进一步隔离。此复跑模型未保留，不混入三种子统计。本轮结论使用重新训练的配对原监督组，种子间波动也包含当前运行的数值波动，不把历史权重一致作为依据。各种子重复评价的是同一批图，不能把六组预测池化为独立样本；共享缓存偶然包含内层留出背景的限制仍在。
+
+**结论**：实例平衡监督能增加同图目标候选，但本轮没有实现同时保留原目标覆盖，且提升主要来自拟合组，不适合直接替换原粗定位器。下一步优先做固定候选预算的互补融合离线对照，检查能否保留原目标并补充其他目标；融合策略及任何裁剪内精定位均需单独测量，不能直接由当前裁剪覆盖推断成功。模板身份接受和连续控制未在本轮验证。
+
+**验证与产物**：5项新测试及21项相关回归在两端通过，源码语法和差异检查通过。18份模型哈希、配置、结构、折划分和监督使用计数核对通过；六组预测的10770条目标记录及3822条帧记录用本地原生掩码复算一致，均值、标准差和配对差值一致。未新增依赖，原定位器、核验器和历史实验产物保留。
+
+见[实验配置](../configs/training/airport_scene_proposals.json)、[训练入口](../src/training/train_scene_proposals.py)、[训练前登记](../runs/training/20261117-scene-proposals/pre-registration.json)、[监督使用审计](../runs/training/20261117-scene-proposals/supervision-audit.json)、[完整指标](../runs/training/20261117-scene-proposals/comparison.json)、[对照图](../runs/training/20261117-scene-proposals/comparison.png)、[权重清单](../runs/training/20261117-scene-proposals/manifest.json)、[结果复算与组别统计](../runs/training/20261117-scene-proposals/result-audit.json)、[复现检查](../runs/training/20261117-scene-proposals/reproducibility-audit.json)、[执行状态](../runs/training/20261117-scene-proposals/execution.json)、[训练日志](../runs/training/20261117-scene-proposals/training.log)、[测试日志](../runs/training/20261117-scene-proposals/validation.log)。各种子目录保留两组的候选、逐目标记录和三折模型及训练曲线。
