@@ -1,0 +1,35 @@
+{
+  "catalog": "data/templates/airport_targets_20261116/catalog.json",
+  "capture_directory": "data/captures/airport_targets/20261117-multitarget",
+  "reference_pair_plan": "runs/training/20261117-template-verification-rgb/pair-plan.json",
+  "context_labels": "data/labels/airport_targets/20261117-context",
+  "fusion_directory": "runs/evaluation/20261117-proposal-fusion",
+  "output_directory": "runs/evaluation/20261117-birdseye-matching",
+  "protocol": "appearance",
+  "candidate_counts": [1, 3, 5],
+  "calibration_precision": 0.95,
+  "projection": {
+    "gsd_m": 0.25,
+    "maximum_side": 1536,
+    "horizontal_radius_m": 250,
+    "max_ray_depth_m": 500,
+    "splat_radius_factor": 0.75
+  },
+  "sift": {
+    "maximum_features": 4000,
+    "ratio": 0.8,
+    "minimum_inliers": 4,
+    "reprojection_px": 3,
+    "ransac_iterations": 2000,
+    "seed": 1731
+  },
+  "dino": {
+    "weights": "weights/dinov2_vits14_pretrain.pth",
+    "repository": "third_party/dinov2",
+    "query_size": 518,
+    "template_size": 224,
+    "minimum_patch_support": 0.25,
+    "nms_radius_cells": 2
+  },
+  "scope": "Training-free paired raw/orthographic SIFT and frozen DINOv2 development experiment; train-only threshold calibration; validation and identical historical context denominators reported separately; no test queries, UE connection or control."
+}

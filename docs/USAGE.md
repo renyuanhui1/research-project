@@ -90,6 +90,18 @@ python src/evaluation/eval_part_approach.py --run-dir "$session_dir/$part"
 
 从不同视角分别试验部位时，可在离线检查及正式控制命令中显式追加`--preflight-selected-part-only`。它仍输出三个部位的结果，只要求本次所选部位在参考图和本次起始图上通过；失败部位不启动抵近。使用`--mission <本轮任务JSON>`向准备入口指定独立的共同起点，保留原始任务配置和参考来源。控制报告会记录预检范围，不能将所选部位通过写成三个部位全部通过。
 
+飞机的首帧可见部位勘测可使用`--profile runs/approach/20261118-aircraft-template-e2e/profile.json --mission configs/missions/f35_approach.json --common-start`准备，以`--reference-dir`在本次空目录创建共用参考。该场景档案使用5 Hz前视与追踪相机，前视/追踪分辨率1920×1080、深度640×360。正式控制使用相同目录并指定`--preflight-selected-part-only --max-duration 240 --post-stop-hold-s 15 --post-stop-observe-s 10 --stop-drift-tolerance-m .35`，任务中的停车深度为6米。控制器从首条运动指令开始使用所选部位在RGB裁剪内的匹配结果。控制结束后运行`eval_part_approach.py`，同时核对`arrival_confirmed`、`stable_stop_verified`与独立部位射线核验。完整试次的数据入口为`runs/approach/20261118-aircraft-template-e2e/`。
+
+实际采集间隔读取本次`runtime-scene.json`的相机`capture-interval`。以相同仿真时钟比较图像时间戳和机体状态时间戳，可以检查画面年龄；RGB与深度之间的时间差另行读取。二者都参与判断控制输入是否及时。
+
+新多候选模型参与部位控制时，在共同起点控制入口追加`--active-verifier <本轮冻结清单> --verifier-target-id <目标库ID>`。冻结清单的`configuration.active_control`指定`confirmation_frames`、`max_gap_s`和`max_input_age_s`，并绑定当前推理代码。目标ID必须对应准备档案中的Actor。主动模式与影子模式分别选择入口；`--validate-only`会加载权重并对保存的起始图执行一次核验，输出原始接受结果及确认状态。
+
+```bash
+python src/control/run_approach.py --out-dir runs/approach/20261118-new-model-e2e/attempt-02 --preflight-selected-part-only --active-verifier runs/approach/20261118-new-model-e2e/frozen.json --verifier-target-id 05-f35-intact --max-duration 240 --post-stop-hold-s 15 --post-stop-observe-s 10 --stop-drift-tolerance-m .35
+```
+
+正式试次使用新准备的空目录。查看`active-verifier-manifest.json`核对冻结权重和参考，查看`control-signals.json`中的`new_model`及`command_dispatched`确认模型输出与运动的对应关系；原生输入和逐次预测保存在`active-inputs.h5`与`active-records.jsonl`。`active-evaluation.json`分别报告运动指令数量、几何核验和6米终点是否通过。启动动作接口或保存记录成功时，仍需根据`arrival_confirmed`和独立终点判定实际抵近结果。
+
 为每个起始观察方向准备对应视角的固定模板，三种部位共用该组参考图；参考采集与控制起始帧分别记录。检查预检中的`reference_patch_count`：若为0，该部位在当前模板特征网格上无法建立原型，`failure_reason`为`no_reference_patches`，不会执行抵近。该情况与已经建立原型但起始图匹配错误分别记录。
 
 窄ROI没有覆盖格子中心时，在离线预检和控制两条命令中均追加`--thin-roi-refinement`。该选项自动补一格上下文，按交叠面积生成DINO候选，再以固定原图局部配准精修落点；原始部位框不扩大，预检精修点须落在框内。相关分数低于0.85、竞争峰差低于0.15时停止运动，感知耗时超过0.75秒退出并悬停。默认全部部位预检仍适用，需要单独评价时再追加`--preflight-selected-part-only`。
@@ -747,4 +759,61 @@ python src/evaluation/eval_proposal_fusion.py --stage benchmark
 
 在本地控制端运行`benchmark`，`benchmark.seed`和`fold`指定模型，`warmup`和`frames`指定预热及测量数量；图像按该折既有记录顺序选择，方法顺序轮转。计时含一次共享DINO编码、一或两个定位头和候选融合；RGB解码及按数据协议擦除在计时前完成。
 
+## RGB-D俯视重建与免训练模板匹配
+
+在`airsim`环境、本地RGB-D和DINOv2权重齐全的项目根运行，无需连接UE：
+
+```bash
+python src/evaluation/eval_birdseye_matching.py --stage evaluate
+python src/evaluation/eval_birdseye_matching.py --stage plot
+```
+
+需要分批或恢复中断时，首次执行可添加`--max-frames 128`，随后重复`--stage evaluate --resume --max-frames 128`直至输出`BIRDSEYE_COMPLETE`。该参数只控制单次执行量，不截断实验。续跑核对输入、配置与匹配模块哈希，保留原登记并在`resume-history.json`记录编排代码。逐帧检查点可恢复判分与耗时；只有候选缓存的中断帧保留候选，匹配耗时记为未记录，不补造计时。完成后的评价命令直接报告结果已存在；核对检查点与最终记录一致后可清理检查点，保留最终候选、记录、耗时和审计证据。
+
+配置为`configs/evaluation/birdseye_matching.json`。`projection.gsd_m`指定米/像素，`maximum_side`指定最大图像边长，实际分辨率随观测范围增大；`horizontal_radius_m`及`max_ray_depth_m`指定局部搜索和深度范围，`splat_radius_factor`控制源像素足迹补齐。范围是任务参数，可按任务修改；`projection_target_retention`记录真实可见目标被范围裁掉的情况。SIFT匹配估计模板尺度和旋转，DINO使用四朝向模板，均不读取目标位置或查询标签来定位。
+
+`candidate_counts`指定每个请求模板的候选预算。`sift`指定特征数量、比值筛选、仿射内点及重投影参数；`dino`指定本地模型、输入尺寸、有效像素支持和NMS。四个方法分别报告，不自动按验证分数选方法。训练配对用于接受阈值校准，验证配对及历史同图请求用于开发评价，测试查询图不读入；无可用阈值时`threshold=null`，所有请求均拒绝。
+
+结果写入`runs/evaluation/20261117-birdseye-matching/`：`pre-registration.json`登记输入、参数、代码和评价边界，`candidates.jsonl`记录图像及原图落点，`records.json`保存原生掩码判分，`comparison.json`含K覆盖率、目标/距离分组、校准与接受指标，`timing-records.json`含逐帧计算耗时。`examples.json`列出每个分区/类别/距离档按采集顺序第一张图的对照示例，`comparison.png`为结果图。
+
+俯视投影只恢复斜视已经看到的表面，不能补出被挡区域。SIFT从对应点估计尺度，DINO对整图缩放编码；本入口没有按模板原生地面分辨率进行分块搜索。历史粗定位每图共K个候选，本入口每个模板各K个候选；同分母覆盖率对照不能解释为相同候选或计算预算。这里的验证集已被用于开发，不构成独立测试结果。历史同图请求包含超出主任务距离的目标，应同时查看真实距离和投影保留比例；`range_stratum=3`表示距离≥100米，在同图目标上不代表一定≤150米。
+
 `runs/evaluation/20261117-proposal-fusion/`保存预先登记、单路复现、各种子候选来源及抑制记录、覆盖指标、图表和`latency.json`。这些是已有训练图的开发评价，不提供独立泛化或在线身份接受结论。
+
+## 米制匹配、多候选接受与影子运行
+
+使用`configs/evaluation/airport_completion.json`指定模板库、原始RGB-D、既有粗定位权重、候选预算和接受参数。开发阶段的顺序为：
+
+```bash
+python src/evaluation/run_airport_completion.py --stage register
+python src/evaluation/run_airport_completion.py --stage metric
+python src/evaluation/run_airport_completion.py --stage features --partition train
+python src/evaluation/run_airport_completion.py --stage features --partition validation
+OPENBLAS_NUM_THREADS=1 CUBLAS_WORKSPACE_CONFIG=:4096:8 python runs/evaluation/20261117-opus-completion/fit_acceptance.py
+python src/evaluation/run_airport_completion.py --stage calibrate
+python src/evaluation/run_airport_completion.py --stage features --partition test
+python src/evaluation/run_airport_completion.py --stage test
+python runs/evaluation/20261117-opus-completion/audit_completion.py
+```
+
+`metric`和`features`可加`--max-frames 64`分批追加，完整帧直接复用。米制实验的训练子集由`metric_train_per_target_range`指定，验证图全部处理。`metric-decision.json`记录训练阈值及验证门槛；若米制候选通过门槛，须先实现对应候选导出再校准，不能继续导出融合候选冒充米制方法。接受层脚本只读训练候选，保存固定种子和轮数的线性权重、损失曲线及环境信息；已有拟合产物时拒绝覆盖。`frozen.json`绑定最终推理输入，测试和影子入口发现变化会停止。
+
+本轮产物位于`runs/evaluation/20261117-opus-completion/`。`features-*.h5`保留每帧请求、候选、44维特征和标签，`development-records.json`与`test-records.json`记录完整候选分数和选择，`development.json`与`test.json`保存指标，`audit.json`保存原始掩码及分数的独立复算。测试数据的历史使用边界写在冻结和结果清单中。
+
+UE Airport进入Play后，先准备影子飞行起点并进行匹配预检：
+
+```bash
+python src/capture/prepare_scene.py --profile runs/approach/20261116-coarse-to-fine/03-f14-nose-damage/profile.json --out-dir runs/approach/20261118-shadow-stability --oblique --start-distance 100 --speed 1.5 --camera-pitch 35 --stop-distance 6 --approach-bearing-offset 12 --address 192.168.31.178
+python src/control/run_approach.py --out-dir runs/approach/20261118-shadow-stability --validate-only
+python src/control/run_approach.py --out-dir runs/approach/20261118-shadow-stability --shadow-verifier runs/evaluation/20261118-shadow-stability/frozen.json --max-duration 180 --post-stop-hold-s 15 --post-stop-observe-s 10 --stop-drift-tolerance-m .35
+python src/evaluation/eval_part_approach.py --run-dir runs/approach/20261118-shadow-stability
+python runs/evaluation/20261118-shadow-stability/evaluate_shadow.py
+```
+
+准备命令可先加`--validate-only`检查配置而不连接UE。实际飞行目录必须没有已有控制结果。影子预测不发送运动指令，使用原控制器的停车及保护逻辑。`shadow.h5`保存原生RGB-D，`shadow-records.jsonl`保存每次预测、时延及连续确认，`shadow-manifest.json`绑定冻结权重；控制报告另存工作线程异常和忙时跳过次数。飞行后以保存的深度和相机信息重渲染掩码，只评价时间差不超过50毫秒且落点标签有效的观察，未知项单列。
+
+`eval_part_approach.py`重新取图并检查实际终点，结果保存在飞行目录的`evaluation/`；它不发送运动指令。控制报告的`arrival_confirmed`只表示控制循环满足停车条件，应与独立终点结果分别报告。`shadow-evaluation.json`同时列出观察核验及独立终点状态。通用统计中没有实际计算的“误指其他可见目标”默认字段由审计脚本从开发及测试汇总移除，不能把默认零当作测量结果。
+
+冻结清单中的影子配置须指定`max_sensor_skew_s`和`max_frame_age_s`；示例分别使用0.05秒和0.5秒，RGB与深度帧均不重复计数。代码修改后须另存运行时冻结清单，保留所用权重及其SHA-256，不能覆盖已有实验的清单。准备方向偏转由`--approach-bearing-offset`指定，场景准备仍检查航线净空及模板可见性。
+
+停车参数分别控制持续零速度保持时长、被动观察时长和相对稳定停车点的最大位移。`report.json`中的`stop_hold_records`保留动作结果和完整状态；`stable_stop_verified`与`arrival_confirmed`、独立部位命中结果分别读取。采集和终点读取结束后，停止UE的Play并确认8990服务已关闭，再进行离线标签核验。

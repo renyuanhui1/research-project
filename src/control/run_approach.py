@@ -24,9 +24,18 @@ def initialize(argv=None):
  parser.add_argument('--max-duration',type=float,default=600.,help='Control time limit in seconds; stop and hover on expiry')
  parser.add_argument('--handoff-on-roi',action='store_true',help='Hover at the confirmed full-to-part switch for a specialized part controller')
  parser.add_argument('--roof-handoff',action='store_true',help='Use live RGB-D roof-plane range for the specialized part handoff')
+ parser.add_argument('--shadow-verifier',type=Path,help='Frozen verifier manifest; records predictions without changing control')
+ parser.add_argument('--active-verifier',type=Path,help='Frozen verifier selects the target crop and permits part approach')
+ parser.add_argument('--verifier-target-id',help='Requested target ID in the frozen verifier catalog')
+ parser.add_argument('--post-stop-hold-s',type=float,default=15.,help='Continuous zero-velocity hold after settling')
+ parser.add_argument('--post-stop-observe-s',type=float,default=10.,help='Passive observation after the final hold command')
+ parser.add_argument('--stop-drift-tolerance-m',type=float,default=.35,help='Maximum displacement from the settled stop position')
  options=parser.parse_args(argv);OUT=options.out_dir.expanduser().resolve();VDIR=OUT/'viz_dump'
+ if options.active_verifier and options.shadow_verifier:parser.error('Choose active or shadow verification for this run')
+ if bool(options.active_verifier)!=bool(options.verifier_target_id):parser.error('active-verifier and verifier-target-id are required together')
  options.handoff_on_roi=options.handoff_on_roi or options.roof_handoff
  if not math.isfinite(options.max_duration) or options.max_duration<=0:parser.error('max-duration must be finite and positive')
+ if any(not math.isfinite(v) or v<=0 for v in (options.post_stop_hold_s,options.post_stop_observe_s,options.stop_drift_tolerance_m)):parser.error('Stop hold, observation duration and drift tolerance must be finite and positive')
  snapshot=OUT/'scene-profile.json'
  PROFILE=load_profile(options.profile) if options.profile or not snapshot.exists() else json.loads(snapshot.read_text())
  if any((OUT/name).exists() for name in ('run.h5','report.json','front.mp4','chase.mp4')) and not options.validate_only:
@@ -36,6 +45,7 @@ def initialize(argv=None):
  setup=json.loads((OUT/'controller-setup.json').read_text())
  if setup.get('target_actor',PROFILE['target']['actor'])!=PROFILE['target']['actor']:raise RuntimeError('Run target disagrees with scene profile')
  target_part=setup.get('target_part','nose');oblique=setup.get('mode')=='oblique';common_start='common_start' in setup;assets=Path(setup['shared_reference']) if common_start else (OUT if oblique else BASE)
+ if options.active_verifier and not oblique:parser.error('Active verification requires an oblique controller')
  if options.handoff_on_roi and (not oblique or common_start):parser.error('part handoff requires the staged oblique controller')
  if options.preflight_selected_part_only and not common_start:parser.error('selected-part preflight requires a common-start experiment')
  if options.thin_roi_refinement and not common_start:parser.error('thin ROI refinement requires a common-start experiment')
@@ -123,6 +133,7 @@ def matching_preflight():
   validation=[]
   with np.load(OUT/'validation-frames.npz') as checks:
    phases=[('far',False,None)] if options.handoff_on_roi else [('far',False,None),('near',True,None)]+([('fine',True,'near')] if setup.get('part_template') else [])+([('close',True,'near' if setup.get('part_template') else None)] if 'close_rgb' in checks.files else [])
+   if options.active_verifier:phases=[phase for phase in phases if phase[0]!='far']
    for name,roi,prototype in phases:
     cx,cy,mass,peak,sim=fp.query(checks[name+'_rgb'],use_roi=roi,prototype=prototype);box=checks[name+'_bbox'];tolerance=.02 if roi and target_part!='nose' else .1;inside=bool(box[0]-tolerance<=cx<=box[2]+tolerance and box[1]-tolerance<=cy<=box[3]+tolerance)
     validation.append({'frame':name,'use_roi':roi,'prototype':prototype or ('roi' if roi else 'full'),'cx':cx,'cy':cy,'peak':peak,'expected_bbox':box.tolist(),'bbox_tolerance':tolerance,'inside':inside})
@@ -202,17 +213,27 @@ def cb(tag):
     cache=buffers.setdefault(tag,{});cache[int(m['time_stamp'])]=m
     while len(cache)>20:cache.pop(min(cache))
  return receive
-async def hover():
+async def hover(hold_s=0.,tolerance_m=None,records=None):
  if drone is None:return
- q=drone.get_ground_truth_kinematics()['pose']['orientation']
+ initial=drone.get_ground_truth_kinematics();q=initial['pose']['orientation']
  yaw=math.atan2(2*(q['w']*q['z']+q['x']*q['y']),1-2*(q['y']**2+q['z']**2))
- deadline=time.monotonic()+20;stable=0
+ start=time.monotonic();deadline=start+20+hold_s;stable=0;settled_at=None;anchor=None;maximum=0.
  while time.monotonic()<deadline:
-  await asyncio.wait_for(await drone.move_by_velocity_async(0.,0.,0.,duration=.3,yaw_is_rate=False,yaw=yaw),3)
+  try:result=await asyncio.wait_for(await drone.move_by_velocity_async(0.,0.,0.,duration=.3,yaw_is_rate=False,yaw=yaw),3)
+  except BaseException as error:
+   if records is not None:records.append(dict(phase='command_error',time_s=time.monotonic()-start,error=repr(error)))
+   raise
   kin=drone.get_ground_truth_kinematics();twist=kin['twist']
   speed=math.sqrt(sum(twist['linear'][k]**2 for k in ('x','y','z')))
   stable=stable+1 if speed<.1 and abs(twist['angular']['z'])<.02 else 0
-  if stable>=5:return
+  if settled_at is None and stable>=5:
+   settled_at=time.monotonic();anchor=[kin['pose']['position'][k] for k in 'xyz']
+  drift=0. if anchor is None else math.dist(anchor,[kin['pose']['position'][k] for k in 'xyz']);maximum=max(maximum,drift)
+  if records is not None:records.append(dict(phase='settling' if anchor is None else 'holding',time_s=time.monotonic()-start,command_result=result,kinematics=kin,speed_mps=speed,displacement_m=drift))
+  if tolerance_m is not None and drift>tolerance_m:raise RuntimeError('stop_hold_displacement_exceeded: '+str(drift))
+  if settled_at is not None and stable==0 and hold_s>0:raise RuntimeError('stop_hold_velocity_unstable: '+str(speed))
+  if settled_at is not None and time.monotonic()-settled_at>=hold_s:
+   return dict(initial_state=initial,final_state=kin,anchor_ned_m=anchor,max_displacement_m=maximum,hold_s=time.monotonic()-settled_at)
  raise RuntimeError('zero_velocity_hold_did_not_settle')
 async def velocity(f,r,d,duration=.4,yaw_rate=0.):
  return await drone.move_by_velocity_body_frame_async(f,r,d,duration=duration,yaw=yaw_rate,yaw_is_rate=True)
@@ -266,6 +287,12 @@ async def run_control():
   perception_duration=time.monotonic()-perception_start
   if options.thin_roi_refinement and perception_duration>.75:
    report['perception_overrun_s']=perception_duration;reason='perception_overrun';break
+  kin=drone.get_ground_truth_kinematics()
+  if options.active_verifier:
+   input_age_s=(int(kin['time_stamp'])-last)/1e9
+   fp.last_prediction['input_age_s']=input_age_s
+   if input_age_s>fp.spec['max_input_age_s']:
+    peak=-1.;fp.last_prediction.update(motion_permitted=False,failure_reason='stale_image')
   for k,val in (('cx',cx),('cy',cy)):filtered[k]=sc.ema_update(filtered[k],val,.3)
   xf,yf=filtered['cx'],filtered['cy'];locked=peak>=.2;lost=0 if locked else lost+1
   depth_cx,depth_cy,depth_half=xf,yf,4
@@ -279,7 +306,7 @@ async def run_control():
   if options.roof_handoff:
    roof_vertical,roof_optical=roof_ranges(m,dm)
    filtered['roof_dist']=sc.ema_update(filtered['roof_dist'],roof_optical,.5);phase_dist=filtered['roof_dist']
-  kin=drone.get_ground_truth_kinematics();pos=kin['pose']['position'];alt=-pos['z'];distance=None if ref is None else float(np.linalg.norm(ref-np.array([pos[k] for k in ('x','y','z')])))
+  pos=kin['pose']['position'];alt=-pos['z'];distance=None if ref is None else float(np.linalg.norm(ref-np.array([pos[k] for k in ('x','y','z')])))
   aligned=aligned+1 if locked and math.hypot(xf,yf)<.15 else 0
   f,r,d,yaw_rate,_,_=sc.compute_body_cmd(args,xf,yf,0)
   if args.nadir and aligned<3:d=0
@@ -322,14 +349,24 @@ async def run_control():
   if options.roof_handoff:row.update(roof_vertical_range_m=roof_vertical,phase_range_m=phase_dist)
   if common_start:
    row.update(crop_xyxy=fp.last_diagnostics['crop_xyxy'],whole_peak=fp.last_diagnostics['whole_peak'])
+  if options.active_verifier:
+   row.update(new_model=fp.last_prediction,perception_duration_s=perception_duration,command_dispatched=False)
   if options.thin_roi_refinement:
    row.update(raw_cx=cx,raw_cy=cy,point_source=diagnostic.get('point_source','dino_center'),refinement=diagnostic.get('refinement'),coarse_dino_center=diagnostic.get('coarse_center'),depth_target_cx=depth_cx,depth_target_cy=depth_cy,depth_sample_half=depth_half,perception_duration_s=perception_duration)
   rows.append(row);rgbs.append(cv2.resize(rgb,(448,252)));poses.append(kin['pose']);sims.append(sim)
+  if shadow is not None:
+   with lock:rgb_cache=dict(buffers.get('front',{}));depth_cache=dict(buffers.get('depth',{}))
+   shadow.submit(rgb_cache,depth_cache,kin['pose'],row['time_s'])
   write_viz_step(VDIR,row,kin['pose'],rgb,sim,fp.last_diagnostics if common_start else None)
   if step%20==0 or stop:print('STEP',step,state,'alt',round(alt,2),'depth',None if df is None else round(df,2),'center',[round(xf,3),round(yf,3)],'reference',None if distance is None else round(distance,2),'confirm',contact,flush=True)
   if any(rec.error for rec in recorders.values()):raise RuntimeError('recording thread failed')
-  if stop:reason=stop;break
+  if stop:
+   if options.active_verifier:fp.record(rgb,m,dm,row)
+   reason=stop;break
   pending.append(await velocity(f,r,d,yaw_rate=yaw_rate));step+=1
+  if options.active_verifier:
+   row['command_dispatched']=True
+   fp.record(rgb,m,dm,row)
   if oblique and not roi_active:
    roi_hits=roi_hits+1 if locked and df is not None and phase_dist is not None and phase_dist<=args.roi_switch_dist else 0
    if roi_hits>=3:
@@ -349,22 +386,46 @@ async def run_control():
    contact=aligned=lost=0;previous_cmd[:]=0;previous_tick=time.monotonic()
    print('PROTOTYPE_SWITCH '+target_part.upper()+' -> NEAR_'+target_part.upper(),flush=True)
   await asyncio.sleep(max(0,.2-(time.monotonic()-tick)))
- await asyncio.wait_for(await velocity(0,0,0,.3),3)
- if pending:await asyncio.gather(*pending,return_exceptions=True)
- await hover();await asyncio.sleep(2)
- report['stop_reason']=reason;report['arrival_confirmed']=reason=='range_threshold';report['final_state']=drone.get_ground_truth_kinematics();report['status']='completed'
+ report.update(stop_reason=reason,arrival_confirmed=reason=='range_threshold',stop_state=drone.get_ground_truth_kinematics(),stable_stop_verified=False)
+ report['stop_hold_records']=[]
+ report['stop_command_result']=await asyncio.wait_for(await velocity(0,0,0,.3),3)
+ if pending:
+  command_results=await asyncio.gather(*pending,return_exceptions=True)
+  if options.active_verifier:report['approach_command_results']=[repr(v) if isinstance(v,BaseException) else v for v in command_results]
+ report['stop_hold']=await hover(options.post_stop_hold_s,options.stop_drift_tolerance_m,report['stop_hold_records'])
+ anchor=report['stop_hold']['anchor_ned_m'];start_observation=time.monotonic()
+ while time.monotonic()-start_observation<options.post_stop_observe_s:
+  kin=drone.get_ground_truth_kinematics();drift=math.dist(anchor,[kin['pose']['position'][k] for k in 'xyz'])
+  report['stop_hold_records'].append(dict(phase='passive_observation',time_s=time.monotonic()-start_observation,kinematics=kin,displacement_m=drift,collision=latest.get('collision')))
+  if drift>options.stop_drift_tolerance_m:raise RuntimeError('post_stop_displacement_exceeded: '+str(drift))
+  await asyncio.sleep(.2)
+ report['final_state']=drone.get_ground_truth_kinematics();report['status']='completed';report['stable_stop_verified']=True
  report['handoff_ready']=reason=='part_handoff'
  print('CONTROL_DONE',reason,'steps',len(rows),flush=True)
 def main(argv=None):
- global recorders,c,drone,latest,buffers,lock,rows,rgbs,poses,sims,report
+ global recorders,c,drone,latest,buffers,lock,rows,rgbs,poses,sims,report,shadow,fp
  initialize(argv)
  matching_preflight()
+ if options.active_verifier:
+  from perception.active_verification import ActivePartMatcher
+  fp=ActivePartMatcher(fp,options.active_verifier,options.verifier_target_id,PROFILE['target']['actor'],None if options.validate_only else OUT,staged=not common_start)
  if options.validate_only:
+  if options.active_verifier:
+   with np.load(OUT/'validation-frames.npz') as checks:fp.query(checks['start_rgb'] if common_start else checks['far_rgb'],use_roi=common_start)
+   print('ACTIVE_VERIFIER_PREFLIGHT',json.dumps(fp.last_prediction),flush=True)
   print('VALIDATION_ONLY: no simulator connection or flight commands');return 0
+ shadow=None
+ if options.shadow_verifier:
+  from perception.shadow_verification import ShadowVerifier
+  shadow=ShadowVerifier(options.shadow_verifier,OUT)
  recorders={k:Recorder(k) for k in ('front','chase')}
  c=ProjectAirSimClient(address=args.address);drone=None;latest={};buffers={};lock=threading.Lock();rows=[];rgbs=[];poses=[];sims=[]
  report={'status':'started','output_dir':str(OUT),'live_viz_dump':str(VDIR),'map_used_for_control':False,'max_steps':None,'max_duration_s':None,'camera_capture_interval_s':.0167,'distance_stop_m':args.stop_dist,'stop_confirm_frames':3,'altitude_guard_m':14,'reference_used_for_control':False,'online_segmentation':False,'depth_resolution':[640,360],'source_configuration_modified':False,'transport_address':args.address,'max_sensor_skew_s':.25,'topic_receive_buffer_messages':32}
  report['max_duration_s']=options.max_duration
+ camera=next(s for a in cfg['actors'] if a['name']==PROFILE['simulator']['drone'] for s in a['robot-config']['sensors'] if s['id']==PROFILE['simulator']['camera'])
+ report['camera_capture_interval_s']=camera['capture-interval']
+ if options.active_verifier:report['active_verifier']=fp.manifest
+ report['stop_hold_protocol']=dict(hold_s=options.post_stop_hold_s,passive_observation_s=options.post_stop_observe_s,drift_tolerance_m=options.stop_drift_tolerance_m)
  report['roof_handoff']=options.roof_handoff
  report['matching_preflight_scope']=target_part if options.preflight_selected_part_only else 'all_parts'
  if options.handoff_on_roi:report['matching_preflight_scope']='far_whole_target_for_part_handoff'
@@ -374,8 +435,10 @@ def main(argv=None):
  try:asyncio.run(run_control())
  except BaseException as e:report['status']='failed';report['error']=repr(e);traceback.print_exc()
  finally:
-  try:asyncio.run(hover())
-  except Exception:pass
+  if report['status']!='completed' and drone is not None:
+   report['cleanup_hold_records']=[]
+   try:report['cleanup_hold']=asyncio.run(hover(records=report['cleanup_hold_records']))
+   except Exception as error:report['cleanup_hold_error']=repr(error)
   end=time.monotonic()
   for rec in recorders.values():rec.end=end
   for name,rec in recorders.items():
@@ -383,6 +446,7 @@ def main(argv=None):
     report[name+'_recording']=rec.finish(end)
   try:c.disconnect()
   except Exception:pass
+  if shadow is not None:report['shadow']=shadow.finish()
   if rows:
    with (OUT/'signals.csv').open('w') as f:
     wr=csv.DictWriter(f,fieldnames=list(rows[0]));wr.writeheader();wr.writerows(rows)
@@ -395,7 +459,7 @@ def main(argv=None):
    report['steps']=len(rows);report['initial_reference_distance_m']=rows[0]['reference_distance_m'];report['final_reference_distance_m']=rows[-1]['reference_distance_m'];report['final_depth_m']=rows[-1]['depth_m']
   report['controller_args']={k:str(v) if isinstance(v,Path) else v for k,v in vars(args).items()}
   (OUT/'report.json').write_text(json.dumps(report,indent=2))
-  print('REPORT',json.dumps({k:v for k,v in report.items() if k not in ('controller_args','final_state')}),flush=True)
+  print('REPORT',json.dumps({k:v for k,v in report.items() if k not in ('controller_args','final_state','stop_hold_records','cleanup_hold_records')}),flush=True)
  return 0 if report['status']=='completed' and (report.get('arrival_confirmed') or report.get('handoff_ready')) else 1
 
 if __name__=='__main__':raise SystemExit(main())

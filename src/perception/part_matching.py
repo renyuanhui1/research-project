@@ -160,10 +160,17 @@ class CroppedPartMatcher(Fingerprint):
         return float(center[0]), float(center[1]), float(mass), float(sim.max()), sim.cpu().numpy()
 
     @torch.no_grad()
-    def query_all(self, rgb):
-        coarse = super().query(rgb, use_roi=False)
-        box = response_crop(coarse[-1], rgb.shape)
-        self.last_diagnostics = {'whole_peak': coarse[3], 'crop_xyxy': box}
+    def query_all(self, rgb, *, box=None, whole_peak=None):
+        if box is None:
+            coarse = super().query(rgb, use_roi=False)
+            box = response_crop(coarse[-1], rgb.shape)
+            whole_peak = coarse[3]
+        else:
+            box = list(map(int, box))
+            h, w = rgb.shape[:2]
+            if len(box) != 4 or not (0 <= box[0] < box[2] <= w and 0 <= box[1] < box[3] <= h):
+                raise ValueError('Target crop is outside the image or empty')
+        self.last_diagnostics = {'whole_peak': whole_peak, 'crop_xyxy': box}
         if box is None:
             return {name: (0., 0., 0., -1., np.full(self.grid**2, -1., np.float32)) for name in self.part_protos}
         x0, y0, x1, y1 = box

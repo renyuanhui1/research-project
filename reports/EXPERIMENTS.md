@@ -1,6 +1,8 @@
 # 机场视觉抵近实验记录
 
-运行命令与参数见[使用手册](../docs/USAGE.md)，模块、控制律与保护条件见[架构说明](../docs/ARCHITECTURE.md)，配置与回放检查见[项目入口与数据验证](VALIDATION.md)。保留的逐帧数据和完整诊断位于各实验目录，本文记录目的、关键参数、结果、失败与限制、数据入口及清理情况。
+本文记录各试验的关键配置、结果和限制。完整逐帧数据、日志、权重与配置快照保留在对应实验目录。运行方式见[使用手册](../docs/USAGE.md)，控制与数据流见[架构说明](../docs/ARCHITECTURE.md)。
+
+11 月 16 日的 19 项分阶段验收和 11 月 17 日的 1,920 组 RGB-D 采集均使用 WSL 网关。11 月 18 日的收帧和飞行结果按实际连接地址分别统计，见[当日汇总](#2026-11-18-相机链路与巡检验证)。[分阶段结果](../runs/approach/20261116-coarse-to-fine/summary.json) · [采集报告](../data/captures/airport_targets/20261117-multitarget/report.json)
 
 ## 通用口径
 
@@ -537,232 +539,108 @@ RGB与深度最大时差为84—110毫秒，39项测试通过。离线复核命�
 
 ## 2026-11-16—17：远端粗定位、近端部位精对准与屋顶入室
 
-**目的**：按清单逐项完成视觉抵近和独立终点核验，通过后再执行下一目标。实验从16日22:29至17日08:07，含准备、修复重跑及收尾。
+178 WSL 经网关 `172.21.192.1` 连接 UE Airport。冻结 DINOv2 用整目标远端定位，进入 45 米后切到部位 ROI。飞机和塔台按 6 米滤波深度停车，机库交接给独立的洞口对准与入室控制。19 个目标经逐目标准备、调整及重跑后通过独立终点验收。
 
-**环境与方法**：UE Airport、ProjectAirSim、本地WSL `airsim`，RGB 1920×1080、深度640×360。冻结DINOv2指纹匹配提供定位，深度参与速度与停车控制。飞机水平远端100米、模板35米，实际起点高度71.67—75.52米；塔台远端150米、模板100米、高度121.49—124.87米；机库距离随尺寸选择，实际远端高度125.96—199.72米。目标坐标仅用于准备和评价。
-
-整目标连续3帧进入45米后切部位；滤波深度≤6米需3张独立深度帧确认停车，12米近端限速0.35米/秒，中央深度保护2米。机库按RGB-D屋面光轴距离45米交接，由屋面身份与破口几何完成对准，转垂直视角后核验完整通道，再由RGB-D相对跟踪控制入室至观测屋面下约8米。重损塔台另在12米切到8米精细参考。具体参数见各次配置快照。
-
-**最终结果**：19个目标均有完整飞行与独立新观测验收通过记录。
-
-| 类别 | 最终通过 | 关键结果 |
+| 类别 | 通过 | 终点 |
 |---|---:|---|
-| 飞机 | 8/8 | 新图射线命中指定部位，末帧滤波深度5.67—5.92米，机体到部位表面4.41—5.87米 |
-| 机库 | 9/9 | 均完成屋顶入室及内部拍照，最终位于观测屋面下7.92—8.11米 |
-| 塔台 | 2/2 | 射线命中原定柱体区域；轻损/重损末帧深度5.31/5.88米，到主体表面2.90/2.14米 |
+| 飞机 | 8/8 | 指定部位命中，末帧滤波深度 5.67–5.92 米 |
+| 机库 | 9/9 | 入室并拍照，位于观测屋面下 7.92–8.11 米 |
+| 塔台 | 2/2 | 柱体命中，末帧滤波深度 5.31/5.88 米 |
 
-**失败与处理**：
-
-- 飞机：第4项远端预检失败，改用未标注远端帧标定统计；第6项后方接近主翼时靠近垂尾，改从主翼外侧接近；第7、8项错部位或预检失败，通过局部ROI、相机俯仰锁定和原生校验图修正。评价区域未扩大。见[第4项诊断](../runs/approach/20261116-coarse-to-fine/04-f14-horizontal-tail/matching-diagnosis.json)、[第6项保护停止](../runs/approach/20261116-coarse-to-fine/06-f35-folded-wing/control/report.json)、[第7项失败评价](../runs/approach/20261116-coarse-to-fine/07-f35-collapsed-cockpit/interior-control/evaluation/part-surface-validation.json)、[第8项输入诊断](../runs/approach/20261116-coarse-to-fine/08-f35-tail-back/native-validation-diagnosis.json)。
-- 机库：多次因交接未停稳、身份误关联、梁间空隙跳变、触边区域丢失或通道受阻停止，第9项另有一次主动中断；修复实测停车与身份连续性，采用破损组上方对准→垂直视角梁间精对准→完整通道核验。第16、17项用固定RGB-D组锚点处理质心变化和组框分裂。各次停止及中途恢复均不拼接为完整成功。见[第9项停车诊断](../runs/approach/20261116-coarse-to-fine/09-hangar-910/stop-diagnosis.json)、[第12项触边诊断](../runs/approach/20261116-coarse-to-fine/12-hangar-3955/boundary-gap-diagnosis.json)、[第16项锚点诊断](../runs/approach/20261116-coarse-to-fine/16-hangar-7920/visual-group-anchor-diagnosis.json)、[第17项组框诊断](../runs/approach/20261116-coarse-to-fine/17-hangar-7933/anchor-group-split-diagnosis.json)。
-- 重损塔台：背景深度跳变导致近端重新加速，改为锁存近端限速；远端部位原型误匹配，增加分段精细参考。一次部位核验虽通过，但主体距离仅1.75米，未接受为最终结果；改从正面90度重新完整飞行后通过。最终到指定部位6.01米、主体2.14米，2米事后复核余量仅0.14米。见[首次保护停止](../runs/approach/20261116-coarse-to-fine/19-tower-7892/control/report.json)、[距离不足的评价](../runs/approach/20261116-coarse-to-fine/19-tower-7892/near-template-control/evaluation/part-surface-validation.json)、[最终评价](../runs/approach/20261116-coarse-to-fine/19-tower-7892/staged-frontal-control/evaluation/part-surface-validation.json)。
-
-**验证与限制**：63项测试、14个Python文件编译及差异格式检查通过。19项是同场景逐目标准备、调整及重跑后的最终验收，未冻结最终方法重跑全部目标，不能作为无重试成功率或留出泛化结论；统一模板条件化模型尚未训练。6米停车为滤波光轴深度，网格距离为机体参考点距离，中央深度保护不代表完整机身净空；机库内部核验采用整组凸包占地、高度、观测屋面及照片。
-
-见[逐目标结果与数据路径](../runs/approach/20261116-coarse-to-fine/summary.json)、[协议](../runs/approach/20261116-coarse-to-fine/protocol.json)、[独立验收与产物审计](../runs/approach/20261116-coarse-to-fine/completed-result-audit.json)、[照片总览](../runs/approach/20261116-coarse-to-fine/endpoint-overview.png)、[测试日志](../runs/approach/20261116-coarse-to-fine/final-checks.log)。各目标目录保留准备、控制和评价日志。
+飞机曾出现预检失败和错部位。机库曾因交接未停稳、身份误关联或通道受阻中止。重损塔台有一次因机体距主体仅 1.75 米被排除，换方向完整重飞后通过。该批结果适用于同场景逐目标验收，重复成功率与留出泛化待测。见[逐目标结果](../runs/approach/20261116-coarse-to-fine/summary.json)、[独立审计](../runs/approach/20261116-coarse-to-fine/completed-result-audit.json)、[控制报告示例](../runs/approach/20261116-coarse-to-fine/05-f35-intact/control/report.json)和[测试日志](../runs/approach/20261116-coarse-to-fine/final-checks.log)。
 
 ## 2026-11-17：失败与重复试次数据清理
 
-按用户要求删除未被最终验收采用的41个失败、重跑及诊断轮次的大体积数据：14,625个文件、18.91 GiB，实验目录由49.67降至30.76 GiB。每轮保留首尾关键帧、模板、配置、报告和日志；其余连续帧、视频及`run.h5`已删除，不能再完整回放这些轮次。28个最终控制目录（19项含9次机库粗定位）的21,960个文件校验未变，成功实验及其RViz回放数据完整保留。
-
-见[清理清单与保留关键帧](../runs/approach/20261116-coarse-to-fine/failed-data-cleanup.json)。
+按用户要求清理 41 个失败、重跑和诊断轮次的大体积数据，共 18.91 GiB。保留关键帧、配置、报告和日志，这些轮次已无法完整回放。最终验收的 28 个控制目录校验一致。见[清理清单](../runs/approach/20261116-coarse-to-fine/failed-data-cleanup.json)。
 
 ## 2026-11-17：俯视模板库与目标级数据划分
 
-**目的与方法**：建立统一模板输入，先确定后续采集的训练/验证/测试目标。离线复用19张1280×960、90度水平视场的真实俯视图，按35个组成Actor的完整网格投影外扩1.15倍裁片；最近表面射线生成整组及所选部位几何掩码。飞机参考高度30.51—37.25米、机库105.77—192.06米、塔台100.14米，均完整入画。组成按已核对主体和同原点导出Actor建立，排除飞机档案中无关的地图显示Actor，纳入机库配套及塔台雷达。
-
-**结果**：19张模板、38张掩码和相机/部位元数据约9.4 MiB，主体网格共14组。总览检查通过；输入及输出哈希、跨目录CLI、8项针对性测试和两个Python文件编译通过。未连接UE或发送飞行命令。
-
-| 协议 | 训练/验证/测试目标数 | 用途 |
-|---|---|---|
-| 主体外观（主实验） | 11/3/5 | 主体同源网格不跨分区，训练覆盖机鼻、主翼、尾翼及座舱 |
-| 塔台类别留出 | 10/3/6 | 塔台不进入训练或验证，分别报告类别留出与已见类别的新外观 |
-| 同网格机库实例 | 14/1/4 | 仅验证同源机库换位置及组装背景，不计外观泛化 |
-
-**限制**：两座塔台的指定柱体在正俯视下均为0可见像素，模板可提供整塔身份，不能提供被遮挡柱体的损伤纹理，精对准仍需后续侧视观测。座舱仅有一个资产、主外观划分缺少塔台验证样本，不作对应独立泛化结论。几何掩码未用实测深度核验外部遮挡，屋面区域不是可通行开口标签。19个资产都参与过既有DINO/RGB-D开发，本划分约束后续模型训练，不是未经查看的新资产测试；统一模型尚未训练。
-
-见[目标库](../data/templates/airport_targets_20261116/catalog.json)、[划分配置](../configs/datasets/airport_targets.json)、[模板总览](../runs/catalog/20261117-airport-targets/template-overview.png)、[构建报告](../runs/catalog/20261117-airport-targets/report.json)、[构建日志](../runs/catalog/20261117-airport-targets/build.log)、[验证日志](../runs/catalog/20261117-airport-targets/validation.log)。
+离线建立 19 个目标、14 组主体网格的俯视模板库，生成整目标和部位掩码。主外观划分为 11/3/5，另有塔台类别留出及同网格机库实例协议。正俯视图遮挡两座塔台柱体，柱体精对准仍需侧视。见[目标库](../data/templates/airport_targets_20261116/catalog.json)、[划分配置](../configs/datasets/airport_targets.json)和[构建日志](../runs/catalog/20261117-airport-targets/build.log)。
 
 ## 2026-11-17：多目标斜视RGB-D小样本采集
 
-**目的与方法**：用主协议训练目标中的F-35座舱、机库910、轻损塔台检查采样和遮挡标签。UE Play后加载无物理观察相机，35度俯角，12/35/75/125米水平距离；飞机方位−45/0/+45度，机库及塔台0/90/180/270度。RGB 1280×720，深度及标签640×360；网格射线与实测透视距离按0.15米加一个float16量化步长比较，前景遮挡去除目标标签，无效深度及实测更远的几何不一致区域不作监督。
-
-**结果**：44组全部采完，RGB与深度时差均为0，HDF5回读通过；约67.8 MiB，原生RGB无损PNG编码、原生float16深度gzip压缩，不保存逐帧诊断图。飞机12/12、机库16/16、塔台8/16组有所选部位可见像素；塔台另8个方向的部位标签为空。通过容差筛选的目标像素，各帧距离残差中位数约0.003—0.067米，此数值不是独立标签精度。观察相机已移除，未发送飞行命令。
-
-**验证与限制**：4项采集/遮挡/存储测试、8项目标库测试及2项既有存储测试共14项通过，两个Python文件编译通过。总览按每目标每距离的最多可见部位像素选择示例，44组原始观测均保留。这是固定场景的采集链路验证，尚未训练模型或验证留出目标；瞬时相机采样不代表连续飞行，屋面标签不代表可通行破口，俯视模板本身仍不包含被遮挡塔柱纹理。
-
-见[采集协议](../configs/datasets/airport_pilot.json)、[样本与标签](../data/captures/airport_targets/20261117-pilot/samples.h5)、[报告](../data/captures/airport_targets/20261117-pilot/report.json)、[标签总览](../data/captures/airport_targets/20261117-pilot/overview.png)、[采集日志](../runs/capture/20261117-airport-pilot/capture.log)、[验证日志](../runs/capture/20261117-airport-pilot/validation.log)。
+UE Airport 用无物理观察相机在 35° 俯角、12/35/75/125 米采集飞机、机库和塔台。44 组 RGB-D 时间戳一致，HDF5 回读通过。深度一致性用于遮挡过滤，塔台 8/16 个视图看到指定部位。见[采集报告](../data/captures/airport_targets/20261117-pilot/report.json)、[样本](../data/captures/airport_targets/20261117-pilot/samples.h5)和[采集日志](../runs/capture/20261117-airport-pilot/capture.log)。
 
 ## 2026-11-17：多目标扩量与模板条件化整目标模型
 
-**目的与数据**：检验俯视模板到留出主体网格的整目标定位及接受能力。UE Airport无物理相机采集19个目标共1920组，训练/验证/测试1408/192/320组，按目标及主体网格划分。35度俯角，12—150米四档，随机方位、航向±25度和高度扰动；RGB 896×504、深度及标签640×360。原始数据1.58 GiB，237特征缓存1.62 GiB；未发送飞行指令，观察相机已移除。
+178 WSL 经网关采集 19 个目标的 1,920 组斜视 RGB-D，训练/验证/测试为 1408/192/320。相机下俯 35°，覆盖 12–150 米。帧对时差为 0，数据哈希、位姿和标签审计通过。237 用冻结 DINOv2 和交叉注意力训练整目标定位及接受头。
 
-实测深度过滤遮挡；训练图擦除留出主体及同源复制体、验证图擦除测试主体，并忽略对应监督，原始RGB保留、测试图不擦除。24个训练帧和2个验证帧过滤后完全未知，不参与定位损失；测试320帧均有可见目标标签。全量哈希、标签关系、位姿及时间戳审计通过，RGB-D时差均为0。
-
-**方法**：237 RTX PRO 6000、PyTorch 2.11，冻结DINOv2 ViT-S/14，448×448输入，共享64维投影、模板交叉注意力及64×64定位图；24种模板旋转/亮度/留白增强。40轮、批量32、学习率0.001、种子1731；统计量仅用训练搜索图。独立置信度头拟合训练落点正确性，验证集按经验精度≥95%校准，不能拆分同分组。两定位器分别选第24/10轮，全部方法及阈值冻结后统一测试；测试为320个正确模板对和320个确认视野外的错误模板对。代码快照`cd00acc`，训练前登记及权重/数据哈希保留。
-
-| 方法 | 测试整目标命中 /320 | 验证接受 /383 | 测试接受 /640 |
-|---|---:|---:|---:|
-| DINO单朝向指纹 | 176（55.00%） | 1 | 0 |
-| DINO四朝向指纹 | 180（56.25%） | 1 | 0 |
-| 不输入模板的定位器 | 310（96.88%） | 0 | 0 |
-| 模板条件化定位器 | 306（95.63%） | 0 | 0 |
-
-**结论**：条件化模型飞机/机库/塔台命中率为96.88/97.66/89.06%，但未超过无模板对照，尚不能证明模板收益。错误模板下269/320（84.06%）仍落在查询目标上；置信度正负分数重叠，未找到满足95%验证精度的非空阈值。四组测试均零接受，接受精度未定义，不能解释为高精度或在线可用。先解决模板身份判别与接受判据，再决定扩量及连续飞行验证。本轮仅验证同场景整目标，未训练部位精定位；主协议仍无独立塔台验证样本。
-
-**异常与验证**：准备时严格排除视野内留出资产使第7项远档无法采样，改用投影框擦除及忽略监督，可能同时覆盖有效区域；UE初次连接超时未采到新帧，237曾重启、原因未确认，恢复后以特征批量4完成。23项测试、6个文件编译通过，导出权重在本地加载及前向通过，测试后权重哈希与冻结记录一致。未按测试结果调整权重或阈值。
-
-见[采集报告](../data/captures/airport_targets/20261117-multitarget/report.json)、[数据审计](../runs/capture/20261117-multitarget/data-audit.json)、[采集日志](../runs/capture/20261117-multitarget/capture.log)、[验证日志](../runs/capture/20261117-multitarget/validation.log)、[训练前登记](../runs/training/20261117-template-conditioned/pre-registration.json)、[完整指标](../runs/training/20261117-template-conditioned/comparison.json)、[训练曲线](../runs/training/20261117-template-conditioned/comparison.png)、[固定示例](../runs/training/20261117-template-conditioned/prediction-examples.png)、[身份诊断](../runs/training/20261117-template-conditioned/template-identity-diagnosis.json)、[条件化权重](../runs/training/20261117-template-conditioned/conditioned/model.pt)、[训练日志](../runs/training/20261117-template-conditioned/training.log)、[产物清单](../runs/training/20261117-template-conditioned/manifest.json)、[远端缓存位置](../runs/training/20261117-template-conditioned/remote-artifacts.json)。
+模板条件化模型命中 306/320，无模板对照 310/320，四朝向冻结 DINO 指纹 180/320。错误模板仍命中 269/320，测试无有效接受。模板身份判别仍需独立验证。见[采集报告](../data/captures/airport_targets/20261117-multitarget/report.json)、[数据审计](../runs/capture/20261117-multitarget/data-audit.json)、[完整指标](../runs/training/20261117-template-conditioned/comparison.json)和[训练日志](../runs/training/20261117-template-conditioned/training.log)。
 
 ## 2026-11-17：模板身份判别与候选接受层开发
 
-**目的与环境**：解决错误模板仍定位到查询目标、接受层无法泛化的问题。237 RTX PRO 6000、PyTorch 2.11，复用上述RGB-D及冻结DINO特征；只读取训练和验证分片，未再使用既有测试查询图或连接UE。验证含3个目标、2组主体网格、192张图，构成192个正确模板对及191个视野外错误模板对，其中190个正例有可见标签。该验证集反复用于开发、选模及校准。
-
-**方法**：原条件化置信度训练/验证AUC为0.980/0.670。先增加同图正负模板响应差异损失、按接受召回选模和3折主体网格交叉拟合；再离线为637张训练图补1158个同图其他目标正例，增加标签约8.43 MiB，未复制RGB-D。两轮均未达到开发门槛，转为无模板粗定位生成单个候选，再用俯视模板核验：四朝向DINO裁剪对应、RGB SIFT唯一匹配及二维仿射一致性，44项统计输入接受层。编码448×448、批量4，粗定位批量32；接受层300轮、学习率0.01、权重衰减0.01，比较线性/小网络及1731/1732/1733三个种子。
-
-| 开发阶段最优方法 | 正确接受 / 全部接受 | 接受精度 | 有效正例召回 |
-|---|---:|---:|---:|
-| [模板响应差异与交叉拟合](../runs/training/20261117-template-identity/comparison.json) | 10/10 | 100% | 5.26% |
-| [加入同图其他目标监督](../runs/training/20261117-template-identity-context/comparison.json) | 6/6 | 100% | 3.16% |
-| [候选DINO对应核验](../runs/training/20261117-template-verification/comparison.json) | 19/20 | 95% | 10% |
-| [候选DINO与RGB对应核验](../runs/training/20261117-template-verification-rgb/comparison.json) | 38/40 | 95% | 20% |
-
-**结果与限制**：最终选线性接受层1732，粗定位186/190（97.89%）；配对接受率10.44%，错误模板误接受2/191（1.05%）。三个线性种子中两个达到95%精度、20%召回的开发门槛，另一个召回17.89%；小网络更差。飞机正确接受16/18，精度仅88.89%；机库3955、7920分别19/19、3/3，召回29.69%、4.84%。两个误接受都是折翼F-35被当成其他损伤状态：22.70米时请求完整F-35、89.39米时请求塌陷座舱F-35。当前只核验一个候选，尚未证明能按模板在整图切换目标；部位定位、塔台接受能力、独立新视角和连续控制均未验证，不能接管飞行。
-
-**异常与验证**：修复float16最大深度量化步长溢出，审计中原目标及补充标签受影响像素均为0；固定单帧/批量推理算术路径，阈值置于相邻接受/拒绝分数组之间，模型参数及缓存接受集合未变。完整383对RGB重放的点、框、特征和接受集合一致，CPU单帧导出核验通过；37项测试、8个文件编译及差异格式检查通过。内层交叉拟合缓存可能含留出主体的偶然背景，不能作为严格内层外观留出。
-
-见[训练前登记](../runs/training/20261117-template-verification-rgb/pre-registration.json)、[同图标签及来源](../data/labels/airport_targets/20261117-context/report.json)、[全部40个接受配对（含2个误接受）](../runs/training/20261117-template-verification-rgb/accepted-overview.png)、[最终权重](../runs/training/20261117-template-verification-rgb/verifier.pt)、[训练日志](../runs/training/20261117-template-verification-rgb/training.log)、[RGB重放](../runs/training/20261117-template-verification-rgb/runtime-replay.json)、[结果复算与来源核验](../runs/training/20261117-template-verification-rgb/result-audit.json)、[测试日志](../runs/training/20261117-template-verification-rgb/validation.log)、[权重与代码清单](../runs/training/20261117-template-verification-rgb/manifest.json)、[服务器数据位置](../runs/training/20261117-template-verification-rgb/remote-artifacts.json)。各阶段目录保留完整权重、配置、逐对结果和日志。
+237 离线比较同图模板监督、交叉拟合和候选后核验。单候选 DINO＋RGB 对应核验在 383 个开发验证配对中接受 40 个，38 个正确，召回 20%。两次错模板接受均为 F-35 不同损伤外观。验证集同时用于开发与校准，独立外观泛化、整图候选选择及闭环待验证。见[开发对照](../runs/training/20261117-template-verification-rgb/comparison.json)、[同图标签](../data/labels/airport_targets/20261117-context/report.json)和[训练日志](../runs/training/20261117-template-verification-rgb/training.log)。
 
 ## 2026-11-17：DINOv2与DINOv3冻结模板匹配对照
 
-**目的与环境**：检验替换编码器能否改善俯视模板到斜视图的整目标、指定部位匹配。精度在237 RTX PRO 6000、PyTorch 2.11计算，耗时在本机RTX 4060 Ti、PyTorch 2.6测量。复用1408张训练图拟合各自的标准化统计；验证为3个目标、2组主体网格、192张图及固定383个配对，整目标/部位可见正例190/188个。未读取既有测试查询图、采集新数据或连接UE，未训练网络或接受层。
-
-**方法**：DINOv2 ViT-S/14输入448，DINOv3 ViT-S/16输入448及512，对应32×32、28×28、32×32特征格。统一使用冻结FP16特征、均值模板原型、余弦相似度及温度0.005的softmax中心；分别比较单朝向和按最高响应选取四朝向。整目标使用全模板，部位使用目标库固定ROI；直接匹配完整斜视图。主指标为中心命中原生可见掩码，峰值及面积归一化误差另存。代码登记`66012e8`，正式评价耗时65.6秒。
-
-| 编码器 / 输入 | 单朝向整目标 | 四朝向整目标 | 单朝向部位 | 四朝向部位 | 本机中位/P95耗时 |
-|---|---:|---:|---:|---:|---:|
-| DINOv2 / 448 | 53.68% | 44.74% | 17.55% | 20.21% | 21.48/24.48 ms |
-| DINOv3 / 448 | 46.84% | 43.16% | 10.64% | 11.17% | 21.29/32.05 ms |
-| DINOv3 / 512 | 42.63% | 49.47% | 3.72% | 8.51% | 23.36/31.04 ms |
-
-单帧计时预热8次、测量48帧，模板已编码；包含缩放、传输、编码及四朝向整目标/ROI匹配，不含文件读取。实际输入1帧，重复填充至编码批量4以复现评价算术路径。
-
-**结果与结论**：DINOv3/512的四朝向整目标较DINOv2提高4.74个百分点，但仍低于DINOv2单朝向；两组DINOv3的总体部位定位均下降。折翼F-35的四朝向部位命中由4/64升至8/64，但机库3955、7920分别由15/62、19/62降至DINOv3/448的3/62、10/62，DINOv3/512的3/62、5/62。95%开发接受精度下，所有部位方法均零接受；整目标方法至多接受1对，未改善可靠接受能力，空接受集精度未定义。当前均值原型匹配不支持直接替换为DINOv3；不能外推为所有DINOv3模型或空间对应方法均无收益。
-
-**异常、核验与限制**：官方hub入口导入分割模块时缺`torchmetrics`，改为直接加载骨干，无新增依赖。服务器DINOv2源码没有独立Git元数据，首次来源记录读到了上级项目提交号；已以逐文件哈希更正清单，两端157个DINOv2、173个DINOv3源码文件一致，数值结果未变。12个设置的全部383对结果经原生标签复算一致，DINOv2整目标复现此前基线，22项测试、两个文件编译及格式检查通过。本轮仅为同场景开发对照，无独立塔台、未知场景或飞行结论；耗时不包含深度处理和控制通信。
-
-见[实验登记](../runs/evaluation/20261117-dino-backbones/pre-registration.json)、[完整指标](../runs/evaluation/20261117-dino-backbones/comparison.json)、[指标图](../runs/evaluation/20261117-dino-backbones/comparison.png)、[固定示例](../runs/evaluation/20261117-dino-backbones/prediction-examples.png)、[本机耗时](../runs/evaluation/20261117-dino-backbones/latency.json)、[评价日志](../runs/evaluation/20261117-dino-backbones/evaluation.log)、[原生标签复算](../runs/evaluation/20261117-dino-backbones/result-audit.json)、[源码来源核验](../runs/evaluation/20261117-dino-backbones/source-provenance-audit.json)、[来源清单](../runs/evaluation/20261117-dino-backbones/manifest.json)、[测试日志](../runs/evaluation/20261117-dino-backbones/validation.log)。各编码器目录保留逐对预测与参考原型。
+在 237 复用同一验证集比较冻结骨干及单/四朝向均值原型。DINOv2/448 单朝向整目标命中 53.68%，DINOv3/512 四朝向 49.47%。两组 DINOv3 的总体部位命中下降，可靠接受仍未达标。该结果适用于均值原型匹配。见[对照结果](../runs/evaluation/20261117-dino-backbones/comparison.json)和[评价日志](../runs/evaluation/20261117-dino-backbones/evaluation.log)。
 
 ## 2026-11-17：特征归一化、落点与逐块对应消融
 
-**目的与方法**：解释骨干替换后的定位差异。沿用上述3组编码器、192张开发验证图及383个固定配对，复用训练统计；比较通道标准化后L2与仅L2、边界/格心坐标加权中心、峰值、温度0.02的格心加权中心、3×3峰值邻域中心，以及互近邻与仿射一致性逐块对应。统一四朝向，共84个设置。逐块方法在整图匹配，不读取查询目标框；部位点从任务ROI对应中选取。仿射阈值0.04、最多1000个互近邻对应、2000次RANSAC；无网络训练。精度在237计算，正式评价72.4秒。
-
-| 编码器 / 输入 | 整目标：原方法→命中最优 | 部位：原方法→命中最优 |
-|---|---|---|
-| DINOv2 / 448 | 44.74%→48.95%（局部中心） | 20.21%→25.00%（局部中心） |
-| DINOv3 / 448 | 43.16%→56.32%（局部中心） | 11.17%→11.70%（峰值） |
-| DINOv3 / 512 | 49.47%→60.53%（互近邻） | 8.51%→10.11%（峰值） |
-
-**因素结果**：以上最优均保留通道标准化。DINOv3/512仅L2加原落点为18.42%/6.91%（整目标/部位）；仅改格心坐标46.32%/7.45%，温度0.02为26.84%/4.79%，均未改善。局部中心58.95%/10.11%，互近邻60.53%/5.32%；仿射筛选23.16%/4.79%，未体现收益。追加的恒定画面中心诊断为28.42%/4.79%。这些结果支持保留标准化、改善整目标落点，未解决指定部位匹配。
-
-**接受与耗时**：95%开发接受精度下，各整目标设置至多正确接受1对，有效召回至多0.53%；所有部位设置零接受，精度未定义。DINOv3/512命中最优方法在错误模板下仍有139/191（72.77%）落到实际查询资产上，不能将60.53%命中率解释为可靠身份识别。本机RTX 4060 Ti上，该互近邻整目标方法单帧中位/P95为54.53/72.25 ms，同模型原方法23.57/36.23 ms；预热8帧、计时48帧，实际输入1帧、编码填充至4帧，包含缩放、传输及匹配，不含文件读取、深度和控制通信。
-
-**核验与限制**：84个设置共32172对预测按原生标签复算一致，六项整目标/部位基线复现，原型各落点方法的分数与朝向选择相同；26项测试、两个文件编译及格式检查通过。首次运行因缺少共享数据链接在读取阶段失败，补齐后重跑，日志保留。最优方法及阈值均在同一开发验证集选择，只有3个目标、2组主体网格；未读既有测试查询图、未连接UE、未改控制器。当前结果可用于后续方法选择，尚不足以接管抵近控制。
-
-见[实验登记](../runs/evaluation/20261117-dino-matching-ablation/pre-registration.json)、[全部指标](../runs/evaluation/20261117-dino-matching-ablation/comparison.json)、[消融图](../runs/evaluation/20261117-dino-matching-ablation/comparison.png)、[开发方法选择](../runs/evaluation/20261117-dino-matching-ablation/selection.json)、[身份诊断](../runs/evaluation/20261117-dino-matching-ablation/identity-diagnostic.json)、[中心位置对照](../runs/evaluation/20261117-dino-matching-ablation/center-prior-diagnostic.json)、[本机耗时](../runs/evaluation/20261117-dino-matching-ablation/latency.json)、[评价日志](../runs/evaluation/20261117-dino-matching-ablation/evaluation.log)、[原生标签复算](../runs/evaluation/20261117-dino-matching-ablation/result-audit.json)、[测试日志](../runs/evaluation/20261117-dino-matching-ablation/validation.log)。各编码器目录保留全部逐对结果。
-
+在固定开发配对上比较标准化、落点和逐块对应。保留通道标准化时，DINOv2/448 用局部中心的部位命中为 25.00%，DINOv3/512 用互近邻的整目标命中为 60.53%。落点收益尚未转化为可靠身份接受。见[消融结果](../runs/evaluation/20261117-dino-matching-ablation/comparison.json)、[身份诊断](../runs/evaluation/20261117-dino-matching-ablation/identity-diagnostic.json)和[日志](../runs/evaluation/20261117-dino-matching-ablation/evaluation.log)。
 
 ## 2026-11-17：模板分数诊断与折外候选覆盖率
 
-**目的**：检查冻结核验器的连续分数及RGB对应特征，量化多目标粗定位候选是否足以支撑模板选择。代码已证明现有单候选位置不随模板改变，不重复进行单候选模板切换推理。本轮不训练模型、不调整阈值、不读取测试查询图、不连接UE。
-
-**服务器准备与环境**：237主项目通过Git快进同步；原有工作区文件保存在`pre-sync-main-e50f14a-20261117` stash中，原stash也保留。数据、模板、特征和模型以软链接引用已有实验目录。使用`/home/ryh2025/miniconda3/envs/ryh-dinov2/bin/python`，PyTorch 2.11.0+cu128、OpenCV 4.13.0、NumPy 2.2.6、h5py 3.16.0、RTX PRO 6000。准备自检核对训练/验证14个分片共1600帧、19张模板、同图标签及模型哈希；已有验证帧的点、框、分数和接受结果完全复现，三个CLI入口通过。准备时发现`ryh-project`缺少h5py、`airsim`的OpenCV为5.0，未安装或修改环境。见[服务器准备报告](../runs/validation/20261117-server-ready/report.json)。
-
-**连续分数诊断方法**：复用冻结`linear-s1732`核验器及阈值0.9188354332252644。验证383对、190个可见正例；训练2808对、1384个可见正例。训练的粗定位候选来自交叉拟合，但接受层拟合过这些特征，训练分数不能记作接受层留出结果。按目标、距离、可见面积和遮挡报告分位数、AUC及20箱直方图重叠；接受精度另给Wilson区间。SIFT内点数由保存的内点/描述子比例及重提的描述子数恢复，不运行DINO编码。
-
-**分数结果**：验证38/40正确接受，95% Wilson区间83.50%—98.62%；飞机16/18对应67.20%—96.90%；7920的3/3对应43.85%—100%。区间为当前配对样本的二项描述，不是连续飞行可靠性保证。验证落点正确性AUC为0.841；训练分数为0.904，但两者用途及分布不同，不能单凭差异确定原因。
-
-| 验证目标 | 正例分数中位数 | 负例分数中位数 | RGB内点数中位数（正例） | 落点正确性AUC |
-|---|---:|---:|---:|---:|
-| 折翼F-35 | 0.828 | 0.415 | 3 | 0.779 |
-| 机库3955 | 0.796 | 0.201 | 9 | 0.908 |
-| 机库7920 | 0.607 | 0.137 | 6 | 0.851 |
-
-7920正例裁剪的目标覆盖率第10/50/90百分位均为100%，正例RGB内点数第10/50/90百分位为4/6/15。它的分数整体偏低且与负例重叠，不能据此直接降低阈值，也不能把低召回单独归因为没有内点或重复纹理。
-
-**F-35面积与限制**：指定主翼部位在640×360标签上的面积中位数，按12—30/30—60/60—100/100—150米为1223.5/149.5/50/29像素。两个误接受位于22.70与89.39米，对应部位面积209与13像素。现有标签是任务部位，不是同机型不同损伤状态的差异区域；报告中的`part_equivalent_input_pixels`是整图448输入上的等效面积，不是核验裁剪缩放后的面积。该统计不能证明损伤不可辨，精细损伤区域标注与可辨性结论仍未验证，也未引入按距离放宽身份的判据。
-
-**候选覆盖率方法**：重放三组按主体网格分组的折外粗定位器；使用637张有额外实例标签的训练图，共1795个可见目标（原目标637、同图额外目标1158）。响应局部峰值按分数排序，平台取固定首点，以候选裁剪框IoU>0.5执行NMS，比较K=1/3/5。裁剪沿用1.5倍余量、最小边长比例0.12、响应差2.0。标签不参与候选生成，只事后判定峰值是否落入原生可见掩码、候选裁剪是否包含至少50%目标。所有637帧K=1的点和框与保存结果一致。
-
-| 目标集合 | K=1峰值覆盖 | K=3峰值覆盖 | K=5峰值覆盖 | K=5裁剪覆盖 |
-|---|---:|---:|---:|---:|
-| 全部1795个目标 | 30.97% | 43.73% | 46.69% | 65.74% |
-| 原目标637个 | 81.32% | 87.76% | 89.80% | 92.46% |
-| 同图其他目标1158个 | 3.28% | 19.52% | 22.97% | 51.04% |
-
-K=5时只有137/637帧（21.51%）的全部请求目标都被峰值覆盖。同图额外目标中711个占画面不足0.1%；面积分档后仍有差距：占0.1%—1%时，原目标/额外目标的K=5峰值覆盖为175/192（91.15%）和70/214（32.71%）；占1%—10%时为189/222（85.14%）和108/211（51.18%）。因此尺寸构成不能完全解释差距，但位置、类别及采样分布仍可能影响结果，不能仅凭此认定唯一机制。
-
-**结论与下一步**：当前粗定位器及上述top-K配置不足以提供多目标候选，不能仅增加逐候选核验就宣称模板选择问题解决。下一项受控实验应优先比较全目标、按实例平衡的粗定位监督，保留同样的编码器、定位器、数据和折划分，分别检查小目标及同图其他目标的覆盖；之后再决定多候选接受层。部位精定位、距离分级接受、多帧接受与独立序列均未在本轮实施。
-
-**异常及验证**：折外产物含NumPy标量，受限权重读取失败；仅对项目自产折外权重使用完整读取并记录SHA256，冻结核验器仍受限读取。首次覆盖率运行误从粗定位训练配置读取裁剪参数，以`KeyError: crop_logit_delta`停止；修正为读取核验配置后重跑成功。失败日志及登记保留在同一执行历史，统计模式未重复运行。21项相关测试在两端通过，修复后的4项针对性测试通过；3191对诊断、1795个目标覆盖和637帧原目标标签经本地复核一致。该覆盖率使用训练图的交叉拟合查询，缓存仍可能含内层留出主体的偶然背景，不是严格独立外观或连续飞行评价。
-
-见[评价配置](../configs/evaluation/template_selection.json)、[诊断登记](../runs/evaluation/20261117-template-selection/diagnose-registration.json)、[连续分数统计](../runs/evaluation/20261117-template-selection/diagnosis.json)、[逐对诊断](../runs/evaluation/20261117-template-selection/diagnosis-records.json)、[分数与RGB内点图](../runs/evaluation/20261117-template-selection/score-diagnosis.png)、[覆盖率登记](../runs/evaluation/20261117-template-selection/coverage-registration.json)、[覆盖率](../runs/evaluation/20261117-template-selection/coverage.json)、[候选及逐目标记录](../runs/evaluation/20261117-template-selection/coverage-candidates.json)、[覆盖率图](../runs/evaluation/20261117-template-selection/candidate-coverage.png)、[本地复算与面积分层](../runs/evaluation/20261117-template-selection/result-audit.json)、[执行历史](../runs/evaluation/20261117-template-selection/execution-history.json)、[统计日志](../runs/evaluation/20261117-template-selection/diagnose.log)、[覆盖率日志（含失败）](../runs/evaluation/20261117-template-selection/coverage.log)、[测试日志](../runs/evaluation/20261117-template-selection/validation.log)。
-
+在已保存的训练折外和开发验证结果上检查分数重叠与候选缺失。637 张训练图的 K=5 峰值覆盖为原目标 89.80%、同图其他目标 22.97%，后者的裁剪覆盖 51.04%。候选覆盖仍限制了同图指定目标选择。见[分数诊断](../runs/evaluation/20261117-template-selection/diagnosis.json)、[覆盖率](../runs/evaluation/20261117-template-selection/coverage.json)和[覆盖日志](../runs/evaluation/20261117-template-selection/coverage.log)。
 
 ## 2026-11-17：全目标粗定位实例平衡监督对照
 
-**目的**：比较原目标监督与按实例平衡的全目标监督，检验保持编码器、定位器、损失及有效区域不变时，同图其他目标的候选覆盖能否改善，以及原目标是否退化。训练、评价均在237执行；未训练模板核验器、修改阈值、使用测试查询图或执行飞行。
-
-**环境与数据**：`ryh-dinov2`环境，PyTorch 2.11.0+cu128、OpenCV 4.13.0、RTX PRO 6000。冻结DINOv2 448输入及现有特征，64维定位器、64×64输出。沿用1408帧训练数据及三组查询/主体网格划分；验证特征仅由现有加载器读取，不用于拟合统计、选轮数或本轮评价。覆盖率复用637张训练图及1795个目标（原目标637、同图其他目标1158）。使用1731/1732/1733三个配对种子，每折固定18轮，批量32、AdamW学习率0.001、权重衰减0.0001；两组各训练9个模型，共18个。主脚本运行42.22秒，含加载、训练、评价和写盘，不作为在线推理耗时。
-
-**方法与划分**：`original`直接使用原目标标签；`all_balanced`把原目标及该折拟合组中可用的同图其他目标掩码分别归一化，再等权合并。有效区域不变，未知像素不增加监督；同源复制体仍遵守已有标签口径。三折分别使用422/272/616个额外正例，排除397/371/238个不属于该折拟合目标的额外正例。每对模型共享初始化种子、查询顺序、架构、归一化统计和优化预算，采用固定末轮；没有按本轮结果选择超参数。候选沿用局部峰值、裁剪IoU>0.5 NMS及K=1/3/5。标签只用于事后评分，模型不接收目标坐标。
-
-**峰值覆盖结果**（三种子均值±样本标准差，单位%）：
-
-| 请求集合与监督 | K=1 | K=3 | K=5 |
-|---|---:|---:|---:|
-| 原目标，原监督 | 82.16±1.48 | 89.95±1.75 | 91.31±1.51 |
-| 原目标，全目标平衡监督 | 42.39±4.65 | 66.30±1.73 | 75.67±2.68 |
-| 同图其他目标，原监督 | 3.25±0.33 | 18.60±1.45 | 22.34±1.70 |
-| 同图其他目标，全目标平衡监督 | 10.42±1.77 | 31.95±1.06 | 38.23±0.05 |
-
-K=5的配对差值：其他目标提高15.89±1.65个百分点，原目标降低15.65±1.28个百分点，三个种子的方向均一致。裁剪覆盖（包含至少50%目标）对其他目标由50.17±1.21%升至84.34±1.25%，对原目标由93.46±1.19%降至82.26±0.27%；较高裁剪覆盖不能代替准确峰值定位。
-
-**拟合组与留出组**：1158个其他目标中1006个属于该折拟合组，152个属于留出组。拟合组的K=5峰值覆盖由25.68±1.93%升至43.51±0.11%；留出组仅由0.22±0.38%升至3.29±0.66%。留出组的裁剪覆盖可达到约72.59%，但峰值仍很少命中，不能将其解释为可靠定位或跨目标泛化。占画面不足0.1%的711个其他目标，K=5峰值覆盖均值由8.53%升至23.96%，仍有较多遗漏。
-
-**复现检查与限制**：1731原监督组相对历史三折权重的最大参数差异分别为0.16317/0.04341/0.01340，未逐参数复现历史权重。核对来源文件、归一化统计及训练正例配对一致后，额外复跑当前第0折，相同种子仍有0.09172最大参数差异，说明当前训练不满足逐参数确定性；具体算子原因未进一步隔离。此复跑模型未保留，不混入三种子统计。本轮结论使用重新训练的配对原监督组，种子间波动也包含当前运行的数值波动，不把历史权重一致作为依据。各种子重复评价的是同一批图，不能把六组预测池化为独立样本；共享缓存偶然包含内层留出背景的限制仍在。
-
-**结论**：实例平衡监督能增加同图目标候选，但本轮没有实现同时保留原目标覆盖，且提升主要来自拟合组，不适合直接替换原粗定位器。下一步优先做固定候选预算的互补融合离线对照，检查能否保留原目标并补充其他目标；融合策略及任何裁剪内精定位均需单独测量，不能直接由当前裁剪覆盖推断成功。模板身份接受和连续控制未在本轮验证。
-
-**验证与产物**：5项新测试及21项相关回归在两端通过，源码语法和差异检查通过。18份模型哈希、配置、结构、折划分和监督使用计数核对通过；六组预测的10770条目标记录及3822条帧记录用本地原生掩码复算一致，均值、标准差和配对差值一致。未新增依赖，原定位器、核验器和历史实验产物保留。
-
-见[实验配置](../configs/training/airport_scene_proposals.json)、[训练入口](../src/training/train_scene_proposals.py)、[训练前登记](../runs/training/20261117-scene-proposals/pre-registration.json)、[监督使用审计](../runs/training/20261117-scene-proposals/supervision-audit.json)、[完整指标](../runs/training/20261117-scene-proposals/comparison.json)、[对照图](../runs/training/20261117-scene-proposals/comparison.png)、[权重清单](../runs/training/20261117-scene-proposals/manifest.json)、[结果复算与组别统计](../runs/training/20261117-scene-proposals/result-audit.json)、[复现检查](../runs/training/20261117-scene-proposals/reproducibility-audit.json)、[执行状态](../runs/training/20261117-scene-proposals/execution.json)、[训练日志](../runs/training/20261117-scene-proposals/training.log)、[测试日志](../runs/training/20261117-scene-proposals/validation.log)。各种子目录保留两组的候选、逐目标记录和三折模型及训练曲线。
-
+237 固定数据、三折和训练预算，用三个种子比较只监督原目标与按实例平衡监督。K=5 原目标覆盖由 91.31% 降到 75.67%，同图其他目标由 22.34% 升到 38.23%。收益主要来自拟合组。同种子复跑的权重有数值差异，统计按种子分开保留。见[指标](../runs/training/20261117-scene-proposals/comparison.json)、[复现检查](../runs/training/20261117-scene-proposals/reproducibility-audit.json)和[训练日志](../runs/training/20261117-scene-proposals/training.log)。
 
 ## 2026-11-17：固定候选预算的双路融合与共享编码耗时
 
-**目的与输入**：在相同最大保留预算下比较两路候选融合，检查原目标、其他目标、留出目标及耗时。复用1731/1732/1733三个配对种子的缓存，每种子637帧、1795个目标（原目标637、其他目标1158，其中拟合组1006、留出组152）。不重训、不调整身份阈值、不读取测试查询图、不连接UE；训练缓存及内层偶然背景的限制保留。
+用已保存候选比较同为 K=5、框 IoU 去重阈值 0.5 的双路融合。原模型优先交替保留 90.06% 原目标和 36.15% 同图其他目标峰值覆盖，选作开发候选协议。本机共享一次 DINO 编码时，候选生成耗时中位/P95 为 24.99/25.98 毫秒，范围到候选框生成。见[融合指标](../runs/evaluation/20261117-proposal-fusion/comparison.json)、[本机计时](../runs/evaluation/20261117-proposal-fusion/latency.json)和[日志](../runs/evaluation/20261117-proposal-fusion/evaluate.log)。
 
-**预先固定的方法**：两路单独输出作对照；融合采用原模型优先交替（O1/B1/O2/B2…）、全目标模型优先交替（B1/O1/B2/O2…），以及原模型首候选后全目标补充（O1/B1/B2…，耗尽后补原模型余项）。不比较两路未校准的原始分数。以框IoU>0.5跨路NMS去重，被抑制项不占保留预算，比较K=1/3/5。缓存每路最多5个候选，不读取标签补位、不补造候选；全部取序均报告，未按结果调整规则。
+## 2026-11-17：RGB-D俯视重建、免训练匹配与距离口径审计
 
-**环境与计时**：缓存评价在237的ryh-dinov2环境执行（PyTorch 2.11、OpenCV 4.13）；候选生成耗时在本地RTX 4060 Ti、PyTorch 2.6.0+cu124、OpenCV 4.13测量。固定1731种子第0折，选择该折按记录顺序前48张图，每种方法预热8次，测量时轮转方法顺序。每张RGB只进行一次冻结DINOv2 448编码，一或两个定位头共享特征及归一化统计。实际输入1张，编码填充至4张、定位头填充至32张。计时含缩放、传输、定位头、CPU峰值生成及融合；不含文件读取、离线擦除、模型加载、模板核验、深度及控制。
+本机离线比较 1,600 张训练和验证图的斜视/俯视 SIFT、DINO。验证中俯视 SIFT 首候选命中 60/190，原斜视 SIFT 为 25/190，四组验证接受均为 0。任务范围内的既有粗定位首候选命中 186/190。历史 152 个同图留出请求全部在 432–1,070 米，超出主任务 12–150 米，近距同图外观泛化仍待独立评价。首次运行中断后从检查点续完。见[指标](../runs/evaluation/20261117-birdseye-matching/comparison.json)、[距离审计](../runs/evaluation/20261117-birdseye-matching/protocol-audit.json)和[执行日志](../runs/evaluation/20261117-birdseye-matching/execution.log)。
 
-**K=5结果**（覆盖为三种子均值±样本标准差；耗时为中位/P95，ms）：
+## 2026-11-17：米制匹配、多候选冻结测试与影子运行
 
-| 方法 | 原目标峰值覆盖 | 其他目标峰值覆盖 | 其中留出组峰值覆盖 | 本地耗时 |
-|---|---:|---:|---:|---:|
-| 原监督单路 | 91.31±1.51% | 22.34±1.70% | 0.22±0.38% | 20.65/21.65 |
-| 全目标监督单路 | 75.67±2.68% | 38.23±0.05% | 3.29±0.66% | 20.88/21.65 |
-| 原模型优先交替 | 90.06±1.68% | 36.15±1.56% | 2.63±0.66% | 24.99/25.98 |
-| 全目标模型优先交替 | 88.75±1.76% | 37.77±1.31% | 2.85±0.76% | 24.80/26.23 |
-| 原首候选后全目标补充 | 85.98±1.19% | 38.26±0.46% | 3.29±0.66% | 24.74/25.70 |
+本机与 237 离线完成 236 帧米制对齐对照，验证首候选命中 60/190，接受 11/22 正确，未达到替换候选生成器的门槛。固定原模型优先融合 K=5，按折外候选训练 44 维线性接受层，冻结阈值 0.913073。开发验证正确接受 6/190。历史五目标复评正确接受 15/18，召回 15/320，核验重排使首候选命中从 283 降到 259/320。历史测试集已有使用，结论限于复评。见[米制判定](../runs/evaluation/20261117-opus-completion/metric-decision.json)、[冻结清单](../runs/evaluation/20261117-opus-completion/frozen.json)、[复评指标](../runs/evaluation/20261117-opus-completion/test.json)和[复算审计](../runs/evaluation/20261117-opus-completion/audit.json)。
 
-**取舍**：原模型优先交替相对原单路，其他目标提高13.82±0.82个百分点，原目标降低1.26±0.57个百分点；全部可见请求均被峰值覆盖的帧比例由21.40%升至30.93%。候选生成中位耗时增加约4.34 ms。K=1时该取序与原单路相同；K=3时原目标/其他目标为88.70%/28.21%。收益主要来自拟合组；留出组约2.63%的峰值覆盖没有解决未知外观定位。裁剪覆盖不等于准确峰值或身份接受。
+影子飞行在 178 WSL 经宿主地址 `192.168.31.178` 执行，目标 03，100 米水平起点，6 米停车门槛。122 组输入接受 25 组，其中 13 组核验正确、12 组未知。原控制器触发深度停车后，独立终点距参考点约 100 米，稳定到达未通过，偏移根因未定位。影子输出未参与运动。见[影子核验](../runs/approach/20261117-opus-shadow/shadow-evaluation.json)、[控制报告](../runs/approach/20261117-opus-shadow/report.json)和[控制日志](../runs/approach/20261117-opus-shadow/control.log)。
 
-**实际预算**：原单路K=5不足预算的帧数按种子为14/9/11，原模型优先交替为5/3/4；后者平均实际返回约4.99个候选，均未超过预算。对齐的是最大保留预算，每帧实际数量不完全相同；缓存深度及NMS导致的不足逐项保存。两路计算量未与单路对齐，通过共享编码计时另行报告。
+## 2026-11-18 相机链路与巡检验证
 
-**结论与后续**：原模型优先交替在这批开发数据上提供较均衡的取舍，作为下一阶段冻结候选协议；不是独立验证选出的最优方法。后续评价多候选模板核验的整图选择、误接受及不存在目标拒绝，接受阈值按新候选集合协议校准，不能沿用单候选阈值宣称95%精度。融合未接入控制，未知目标泛化和连续序列仍未验证。
+实验在 178 的 WSL `airsim` 环境连接 Windows UE。上午部分试次使用宿主局域网地址，随后在 WSL 网关上复验。各条件以单轮为主，帧率均按墙钟时间内收到的独立源帧计算。
 
-**验证与保存**：6项新测试及26项相关回归在两端通过，语法、CLI及差异检查通过；六组单路基线逐指标复现。26925条目标、9555条帧及6167条抑制记录经本地复核，候选来源、排名、NMS、预算、拟合/留出组、统计及计时样本一致。单路候选以相对路径引用既有产物，仅保存融合新增记录；权重和原始数据未修改。
+| 验证项 | 当日结果 | 证据 |
+|---|---|---|
+| 单相机链路 | 同一静止前视 1080p 场景，采集间隔 0.0167 秒，WSL 网关 27.71 FPS，局域网 16.05 FPS。网关前视 720p 为 30.12 FPS，局域网单 Chase 720p 为 27.67 FPS。 | [同场景地址对照](../debug/camera/20261118-front-single-resolution/address-recheck/results.json) · [前视 720p](../debug/camera/20261118-front-single-resolution/wsl-720p/results.json) · [Chase 720p](../debug/camera/20261118-chase-single-720p/results.json) |
+| 双路录像与同步 | 局域网双路 720p 首轮前视／Chase 为 13.06／13.34 FPS，窗口未最小化且不在前台的复测为 9.26／10.37 FPS。单轮窗口对照不足以解释飞行卡顿。网关双路 1080p 按 5 Hz 请求，35 秒实收三路各 161 帧，全部前视帧能在 50 毫秒内配到深度。 | [双路录制](../debug/camera/20261118-camera-720p/results.json) · [窗口复测](../debug/camera/20261118-camera-720p/windowed-unfocused/results.json) · [网关收帧与配对](../runs/approach/20261118-wsl-gateway-retest/transport/results.json) |
+| 到达与停车 | 原控制器在局域网和网关均有通过记录。冻结新模型在局域网两次失锁，终点距部位表面 22.45、13.84 米；网关复测同样失锁，距表面 18.47 米，停稳通过，6 米到达失败。更换链路改善了 Chase 录像连续性，未消除失锁。 | 本地原始记录 `runs/approach/20261118-{aircraft-template-e2e,new-model-e2e,new-model-e2e-repeat,wsl-gateway-retest}/` |
+| 同步、身份与交接 | 早期同步试次因 RGB-D 配对超时中断。影子试验中原控制器两轮到达，错模板回放仍有 15 个误确认帧。后续在线影子试次连续 32 个结果身份正确。三轮实际近端接管均命中指定部位并停稳，均先触发高度保护，未达到 6 米。调整后另一次达到停车条件，末帧滤波距离 5.918 米、保持最大漂移 0.087 米，仅验证一次。 | 本地审计 `runs/evaluation/20261118-online-identity-shadow/audit.json`、`20261118-active-part-handoff/` 各轮接管审计及 `20261118-adaptive-height-handoff/flight/adaptive-audit.json`（后两项也位于 `runs/evaluation/`） |
 
-见[配置](../configs/evaluation/proposal_fusion.json)、[评价入口](../src/evaluation/eval_proposal_fusion.py)、[预先登记](../runs/evaluation/20261117-proposal-fusion/pre-registration.json)、[全部指标](../runs/evaluation/20261117-proposal-fusion/comparison.json)、[对照图](../runs/evaluation/20261117-proposal-fusion/comparison.png)、[本地耗时](../runs/evaluation/20261117-proposal-fusion/latency.json)、[结果审计](../runs/evaluation/20261117-proposal-fusion/result-audit.json)、[执行状态](../runs/evaluation/20261117-proposal-fusion/execution.json)、[评价日志](../runs/evaluation/20261117-proposal-fusion/evaluate.log)、[计时日志](../runs/evaluation/20261117-proposal-fusion/benchmark.log)、[测试日志](../runs/evaluation/20261117-proposal-fusion/validation.log)。各种子目录保存融合候选的来源、抑制及逐目标评价，单路目录保存来源引用和指标。
+[静止收帧脚本](../runs/approach/20261118-wsl-gateway-retest/probe_transport.py)读取相机、深度和时钟，在指定的新输出目录保存结果。可用归档的[到达时间戳](../runs/approach/20261118-wsl-gateway-retest/transport/sensor-arrivals.csv)、[时钟](../runs/approach/20261118-wsl-gateway-retest/transport/clock.csv)和[运行日志](../runs/approach/20261118-wsl-gateway-retest/transport/projectairsim_client.log)复核本轮采集。
+
+当天尚未验证新模型独立完成远端定位、近端接管及到达。影子结果只评价识别，近端单次通过也不能给出重复成功率。目录 `20261118-airport-handoff-revalidation` 的全场景批次于 11 月 19 日完成，按完成日另计。
+
+## 2026-11-19 Airport 全场景交接复验
+
+通过 178 WSL 网关 `172.21.192.1` 串行运行 19 个目标的斜视巡检。各目标沿用它的历史进场和距离判据。飞机模型和塔台使用原有部位 ROI 交接，机库在确认屋面交接后切换俯视，尝试定高外部水平对准。7889 以基准方向及偏转 30 度各做三轮，同一模板、归一化样本和 ROI。原始匹配图与录制由试验入口保存在各轮目录。
+
+19 项基准复验中，7 项完整通过、4 项止于远端预检、1 项近端命中并停稳但先触发高度保护。7 座机库确认屋面交接，切成俯视后 7/7 的屋面参考点出画，均未发出近端运动指令，退出原因为 5 项匹配失败、2 项高度保护。第 4 项恢复已登记的起点帧归一化后通过。7889 两个方位各通过 1/3，6 轮均停稳。19 项历史证据的报告、终点核验与图像哈希一致。UE Play 已关闭，Windows 无监听，WSL 的 8989 和 8990 均不可达。逐目标日志和失败原因见[结果汇总](../runs/evaluation/20261118-airport-handoff-revalidation/summary.json)、[目标表](../runs/evaluation/20261118-airport-handoff-revalidation/targets.csv)和[关停验证](../runs/evaluation/20261118-airport-handoff-revalidation/shutdown.json)。
+
+
+## 2026-11-19 新模型远端定位与分阶段接管验证
+
+目的为验证冻结新模型直接提供远段控制点，并在连续确认后交给近端部位 ROI。178 WSL 经网关 `172.21.192.1` 连接 UE，首轮选择完整型目标 `05-f35-intact` 的机头任务，水平起点 100 米，相机下俯 35 度，45 米切换、6 米连续三张深度确认停车。RGB 双路 1920×1080，深度 640×360，采集间隔 0.0167 秒。采用原冻结权重 `6fe119c4f32056021f0877de4b3554a494235674d2f4de7490a50cddbf0bb629`、阈值 0.9130731477441585 和连续三次确认规则。两阶段接入代码及全部输入另行登记哈希。
+
+首次控制启动止于旧整目标模板预检，近端参考已通过。随后按实际定位来源调整主动分阶段预检，远段由新模型运行时确认放行。此启动未发送抵近指令，日志保存在 `startup-preflight/`。两阶段接入及既有共同起点路径的 9 项回归检查通过。
+
+正式在线共记录 15 次新模型推理。事后 RGB-D 与目标网格核验显示，候选点 15 次均命中请求实例，无未知。模型分数为 0.2803–0.8813，全部低于冻结阈值，连续确认计数始终为零。输入年龄最大 1.686 秒，未触发 2 秒时效限制。远端运动指令为零，未进入近端，最终以失锁保持退出，持续停稳通过，最大漂移 0.0547 米。6 米到达和独立机头终点验收未通过。事后仅按分数改用 0.84 计数，15 次中有 4 次达标，最长连续 2 次；该诊断未执行同框身份排名，不能作为在线规则验收。
+
+结论为本轮候选位置正确，接受分数在当前远距画面中未形成运动放行。新模型驱动的远端运动、近端接管和抵近到达仍待验证。UE Play 在终点取证完成后停止，Windows 已无监听，WSL 8989/8990 均不可达。
+
+同日离线阈值诊断使用原开发验证集的 383 个请求、此次 15 条在线记录和既有同型身份回放。仅按分数筛选时，0.84 在开发集正确接受 15/19，0.82 为 16/20。原生图重新推理与在线分数完全一致；此次序列在 0.84 加同框比较下最长连续 2 次，0.82 下最长 3 次，仅形成一次连续确认。对完整型、折翼侧向、折翼偏转及库外存档回放，0.82 加同框比较未出现错误或未知的三帧确认，但有 3 次错误单帧接受。这些序列已用于开发，0.82 仅列为新一轮验证的候选值。数据见[阈值回放](../runs/evaluation/20261119-new-model-staged-active/threshold-sweep.json)与[同框逐帧判分](../runs/evaluation/20261119-new-model-staged-active/threshold-identity-replay.json)。
+
+见[协议与输入登记](../runs/evaluation/20261119-new-model-staged-active/protocol.json)、[汇总](../runs/evaluation/20261119-new-model-staged-active/summary.json)、[模型及控制逐帧记录](../runs/evaluation/20261119-new-model-staged-active/flight/active-records.jsonl)、[独立逐帧判分](../runs/evaluation/20261119-new-model-staged-active/flight/active-evaluation-records.json)、[控制日志](../runs/evaluation/20261119-new-model-staged-active/control.log)、[原生 RGB-D](../runs/evaluation/20261119-new-model-staged-active/flight/active-inputs.h5)和[关停核验](../runs/evaluation/20261119-new-model-staged-active/shutdown.json)。
+
+同日用 WSL 本地 Python 对 0.82 做单帧历史测试集复评。使用 320 张图的 640 个请求，目标可见与目标缺席各 320 个，图像样本名与选阈值用的开发验证集无交集。按已保存的冻结模型分数分别应用 0.913073 和 0.82，先逐条复现原接受标记。正确接受由 15 增至 40，错误接受由 3 增至 6，目标缺席时的误接受由 2 增至 5。可见正例召回由 4.69% 升至 12.50%。该历史测试集此前已用于模型复评，本轮仅验证单帧分数，三连确认与在线闭环仍待验证。[逐请求输入](../runs/evaluation/20261117-opus-completion/test-records.json) · [复算结果与输入哈希](../runs/evaluation/20261119-new-model-staged-active/threshold-test-reevaluation.json)
+
+## 2026-11-19 塔台固定相机在线阈值验证
+
+WSL 经网关 `172.21.192.1` 连接 UE。非物理观察相机分别朝向 19 号和 18 号塔台，水平距离各 100 米、下俯 35°，RGB 1920×1080、深度 640×360、采集间隔 0.0167 秒。每个视角实时读取 12 张新帧并查询 19 号塔台。以冻结模型分数 ≥0.82、同框严格胜出、连续三次且相邻结果间隔 ≤2 秒判定确认，分别在两段开始时清零计数。
+
+朝向 19 号时目标深度掩膜每帧 3502 像素，所选点命中 0/12，最高分 0.459。朝向 18 号时 19 号仍有 677 像素，所选点命中 0/12，最高分 0.475。因此两段均不能提供目标缺席样本。全程 0 次单帧接受、0 次连续确认。结论限于这两个固定视角的在线识别，未执行飞行或近端交接。观察相机已移除，UE Play 已关闭，双端口核验通过。[试验配置](../runs/evaluation/20261119-tower-live-threshold/protocol.json) · [逐帧记录](../runs/evaluation/20261119-tower-live-threshold/observations.jsonl) · [统计](../runs/evaluation/20261119-tower-live-threshold/summary.json) · [运行日志](../runs/evaluation/20261119-tower-live-threshold/live.log) · [关停记录](../runs/evaluation/20261119-tower-live-threshold/shutdown.json)

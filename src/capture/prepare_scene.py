@@ -27,10 +27,13 @@ def initialize(argv=None):
  for flag,key in [('start-distance','start_distance'),('speed','speed'),('camera-pitch','camera_pitch'),('stop-distance','stop_distance')]:
   parser.add_argument('--'+flag,type=float,default=mission[key])
  parser.add_argument('--target-part',choices=tuple(PROFILE['parts']),default=mission['target_part'])
+ parser.add_argument('--approach-bearing-offset',type=float,default=0.,help='Rotate the approach direction in degrees without changing physical part coordinates')
  parser.add_argument('--common-start',action='store_true',help='Use the shared mission pose and RGB reference for every part')
  parser.add_argument('--reference-dir',type=Path,help='Shared reference directory; created once, then reused without modification')
  parser.add_argument('--validate-only',action='store_true',help="Validate configuration without connecting or writing a run")
  options=parser.parse_args(argv);P=options.out_dir.expanduser().resolve()
+ if not math.isfinite(options.approach_bearing_offset):parser.error('Approach bearing offset must be finite')
+ if options.approach_bearing_offset and (not options.oblique or options.common_start):parser.error('Approach bearing offset requires staged oblique preparation')
  if options.common_start:
   if not options.oblique or 'common_start' not in mission or options.reference_dir is None:parser.error('common-start requires oblique mode, mission common_start and reference-dir')
   options.reference_dir=options.reference_dir.expanduser().resolve()
@@ -113,6 +116,8 @@ async def prepare_oblique(world):
    angle=math.radians(bearing);direction=math.cos(angle)*direction+math.sin(angle)*lateral
   heading=math.atan2(-direction[1],-direction[0])
  else:near=np.linalg.norm(vertices-reference,axis=1)<=PROFILE['parts']['nose']['radius_m']
+ angle=math.radians(options.approach_bearing_offset);cs,sn=math.cos(angle),math.sin(angle)
+ direction=np.array([[cs,-sn],[sn,cs]])@direction;heading=math.atan2(-direction[1],-direction[0])
  if near.sum()<10:raise RuntimeError('Target-part reference missing from mesh')
  with np.load(map_root/'grids/context_voxels.npz') as data:obstacles=data['centers_enu_m']
  part_template_distance=PROFILE['parts'][options.target_part].get('part_template_distance_m')
@@ -190,6 +195,7 @@ async def prepare_oblique(world):
  setup={'profile':PROFILE['name'],'target_actor':PROFILE['target']['actor'],'mode':'oblique','target_part':options.target_part,'start_horizontal_distance_m':options.start_distance,'camera_pitch_deg':options.camera_pitch,'v_forward':options.speed,'v_down':options.speed*math.tan(math.radians(options.camera_pitch)),'slow_dist':35.,'stop_dist':options.stop_distance,'altitude_guard_m':PROFILE['controller']['close_altitude_guard_m'] if options.stop_distance<8 else PROFILE['controller']['altitude_guard_m'],'max_altitude_m':PROFILE['controller']['max_altitude_m'],'template_roi':roi,'roi_switch_dist':PROFILE['controller']['roi_switch_dist_m']}
  if options.stop_distance<8:setup.update(close_range_m=PROFILE['controller']['close_range_m'],close_speed_mps=PROFILE['controller']['close_speed_mps'],depth_guard_m=PROFILE['controller']['depth_guard_m'])
  setup['start_ned_m']=waypoint(options.start_distance).tolist();setup['reference_ned_m']=reference.tolist()
+ setup['approach_bearing_offset_deg']=options.approach_bearing_offset
  setup['statistics_source']=statistics_source
  if part_template_distance is not None:
   if 'part_template' not in meta:raise RuntimeError('Part template distance must be included in calibration distances')
