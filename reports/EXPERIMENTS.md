@@ -779,3 +779,19 @@ WSL 经网关 `172.21.192.1` 连接 UE。非物理观察相机分别朝向 19 �
 
 [P0 登记](../runs/evaluation/20261119-dev-registry/registry.json) · [P2.1 序列诊断](../runs/evaluation/20261119-p21-diagnostics/sequence-diagnostics.json) · [P2.1 耗时拆分](../runs/evaluation/20261119-p21-diagnostics/latency-breakdown.json) · [P2.3 校准器](../runs/evaluation/20261119-p2-gating-offline/calibrator-train.json) · [P2.4/P4.2 全量回放](../runs/evaluation/20261119-p2-gating-offline/multitemplate-replay-summary.json) · [P4.1 预算对照](../runs/evaluation/20261119-p41-k-budget/summary.json) · [P4.3 同网格对照](../runs/evaluation/20261119-p43-same-mesh-context/summary.json) · [分级门控模块](../src/perception/graded_gating.py) · [离线回放入口](../src/evaluation/eval_graded_gating.py) · [单元测试](../tests/test_graded_gating.py)
 
+## 2026-11-20 P1.2—P1.3 原控制器修正复验与全场景影子飞行采集（第 1 轮 19×1）
+
+在 178 本机 WSL（`airsim`，RTX 4060 Ti 8 GB）经 `172.21.192.1:8989/8990` 联机 UE，使用复用 11.16 核验模板的批跑脚本执行全 19 目标第 1 轮复验，并全程挂载 `--shadow-verifier`（权重与阈值不变，仅更新 3 个已改源码哈希）同步录制连续飞行 RGB-D 与新模型影子预测供 P3 使用。修正项：04 号机恢复 `far_start` 统计、06 号机 `close_altitude_guard_m` 调为 `4.0 m`、9 座机库改为复用粗接近结束的 35° `runtime-scene.json` 并调用 `run_opening_alignment.py --execute --enter --vertical-entry --alignment-pulse 0.8 --entry-pulse 0.8 --min-roof-range 15.0 --max-duration 1200` 及 `eval_opening_entry.py`。
+
+**执行过程异常与说明**：先在 `06-f35-folded-wing` 单测联调（`runs/evaluation/20261119-p1-smoke/06-f35-folded-wing/`），停稳于 `5.26 m`、影子 123 帧零报错，但终态高度 `3.89 m` 处冻结 DINO 射线偏离机翼判 `part_not_verified`。正式批跑早期因平台 29 分钟后台命令超时中断两次（保留已完成的 `01–08`），且首版脚本漏传 `--alignment-pulse 0.8` 导致 `09` 号机库在垂直下降至 `11.04 m` 时触发 `900 s` 超时；补齐脉冲参数并改用 `IsDaemon=true` 常驻运行后从 `09` 重跑至 `19` 顺利完成。挂影子推理使实测 `input_fps` 较 11.18 无影子基线低约 1.5–3 FPS（飞机 10.7–17.0 FPS、机库 10.6–11.0 FPS），仍高于 5 Hz 控制周期且所有影子帧 `skipped_without_fresh_pair=0`。
+
+**第 1 轮开发集单轮结果（14/19 通过，73.7%，Wilson 95% CI 51.2%–88.2%）**：该数字基于在这 19 个目标上排查后修正的配置，且机库验收口径已由 11.19 的屋顶外部对准恢复为完整入室，仅作修正配置后的开发集单轮基线参考，不能直接视为相对 11.19 `7/19` 的泛化提升幅度。
+- **飞机（7/8 通过）**：`01, 02, 04, 05, 06, 07, 08` 全部 `range_threshold` 稳停（终距 `5.69–5.90 m`）且独立部位核验 `passed`；`03-f14-nose-damage` 远端预检失败（`inside=true`，`peak=0.167 < 0.20`；结合 11.18 `0.186`，两次均低于 `0.20`，属可复现的远端预检失败，非随机抖动）。
+- **机库（5/9 完整入室通过，7/9 粗交接通过）**：`10, 12, 15, 16, 17` 全部 `entered_and_stable_visual_hover` 且独立入室核验 `passed`；`09, 14` 完成粗交接与影子录制，但在近端斜视对准第 377/320 步触发 `opening_or_aperture_jump` 安全悬停；`11, 13` 远端预检失败（峰值稳定落在画面下缘 `cy=0.612 / 0.930`，超出目标框下界 `inside=false`）。
+- **塔台（2/2 通过）**：`18-tower-7889`（终距 `5.67 m`）、`19-tower-7892`（终距 `5.76 m`）均完整通过。
+- **在线并发负载下的影子推理实测耗时（未达 ≤0.3 s 目标）**：与 178 单跑基准（286.3 ms）不同，真实飞行并发负载（UE + 5 Hz 控制 DINO + 双路 1080p 录像 + `torch.set_num_threads(2)` / `cv2.setNumThreads(1)`）下，16 目标影子推理中位耗时为飞机 **0.50–0.72 s**（p95 `0.70–0.82 s`，实际采样间隔 `0.81–1.01 s`）、机库/塔台 **0.66–0.83 s**（p95 `0.77–1.04 s`，采样间隔 `1.01–1.21 s`）。旧单帧冻结阈值 `0.913` 在机库/塔台连续飞行上几乎零确认（16 目标中机库仅 `15` 号确认 3 帧，塔台 `18/19` 均为 0 帧）。
+- **P3 连续飞行影子采集与选择偏差**：16/19 目标完成录制，合计 **1,743 帧**零报错 RGB-D 与预测（飞机 794 帧、机库 680 帧、塔台 269 帧）；按 `appearance` 划分为训练目标 10/11（1,052 帧，缺 11）、验证目标 3/3（365 帧）、测试目标 3/5（326 帧，缺 3/13，封存至 P5）。注意该数据存在明显选择偏差：旧控制器远端最难的 `03/11/13` 未起飞而缺帧，且每目标仅 1 条轨迹、帧间高度自相关，有效独立样本远少于帧数。
+- **未完成项与关停状态**：本次完成了第 1 轮 `19×1`；收尾用 `SendKeys('{ESC}')` 自动关停返回 `PLAY_PORTS_STILL_LISTENING`（`closed=false`），由人工停止 Play；已将 Win32 `PostMessage(VK_ESCAPE)` 关停逻辑整合进 `run_p1_batch.py` 的 `finally` 块，但该实现尚未在运行中的 UE Play 上实测验证（仅在已关闭状态下返回 `ALREADY_STOPPED`）。
+
+[批跑脚本](../runs/evaluation/20261119-p1-revalidation/run_p1_batch.py) · [逐目标索引](../runs/evaluation/20261119-p1-revalidation/index.json) · [批跑日志](../runs/evaluation/20261119-p1-revalidation/batch.log) · [影子清单](../runs/evaluation/20261119-p1-shadow/frozen.json) · [关停记录](../runs/evaluation/20261119-p1-revalidation/shutdown.json) · [06 号单测目录](../runs/evaluation/20261119-p1-smoke/06-f35-folded-wing/report.json)
+
