@@ -1,7 +1,6 @@
 """Publish airport occupancy grids and geometry-derived aircraft voxels."""
 import argparse
 import json
-import sys
 from pathlib import Path
 
 import numpy as np
@@ -25,7 +24,7 @@ from visualization.colors import height_color
 
 
 class AirportMapNode(Node):
-    def __init__(self, map_dir):
+    def __init__(self, map_dir, *, target_catalog=None):
         super().__init__('airport_grid_map', namespace='/near_nose')
         root = Path(map_dir) / 'grids'
         report = json.loads((root / 'summary.json').read_text())
@@ -41,6 +40,8 @@ class AirportMapNode(Node):
         markers = [clear]
         for info in report['maps']:
             name = info['name']
+            if target_catalog is not None and name != 'global':
+                continue
             with np.load(root / (name + '.npz')) as data:
                 cells = data['occupancy']
                 origin = data['origin_enu_m']
@@ -73,11 +74,16 @@ class AirportMapNode(Node):
         with np.load(root / 'context_voxels.npz') as data:
             context = data['centers_enu_m']
             resolution = float(data['resolution_m'])
+        if target_catalog is not None:
+            targets = json.loads(Path(target_catalog).read_text())['targets']
+            context, mesh_markers = self.target_meshes(stamp, targets, context, resolution)
+            markers.extend(mesh_markers)
         buildings = self.cubes(stamp, 'context_5m', context, resolution)
         buildings.color = ColorRGBA(r=0.43, g=0.56, b=0.68, a=1.0)
         markers.append(buildings)
         self.point_counts = {'context': len(context)}
-        for target in report['targets']:
+        legacy_targets = report['targets'] if target_catalog is None else []
+        for target in legacy_targets:
             name = target['name']
             with np.load(root / (name + '_voxels.npz')) as data:
                 points = data['centers_enu_m']
@@ -92,7 +98,40 @@ class AirportMapNode(Node):
         self.marker_array = MarkerArray(markers=markers)
         self.publisher.publish(self.marker_array)
         self.get_logger().info(
-            f'Occupancy grids and voxels published: {self.point_counts}; ENU, frame=world')
+            f'Map published: {self.point_counts} voxels; ENU, frame=world')
+
+    def target_meshes(self, stamp, targets, context, context_resolution):
+        colors = {
+            'aircraft': (0.70, 0.82, 0.88),
+            'hangar': (0.65, 0.73, 0.79),
+            'tower': (0.74, 0.82, 0.80),
+        }
+        markers = []
+        keep = np.ones(len(context), dtype=bool)
+        actor_count = 0
+        half = context_resolution / 2
+        for target in targets:
+            bounds = np.asarray(target['bounds_ned_m'])[:, [1, 0, 2]] * [1, 1, -1]
+            low, high = bounds.min(axis=0), bounds.max(axis=0)
+            keep &= ~((context + half > low) & (context - half < high)).all(axis=1)
+            marker = self.base(stamp, target['id'], Marker.TRIANGLE_LIST)
+            marker.scale.x = marker.scale.y = marker.scale.z = 1.0
+            red, green, blue = colors[target['category']]
+            marker.color = ColorRGBA(r=red, g=green, b=blue, a=1.0)
+            for actor in target['actors']:
+                with np.load(project_path(actor['mesh'])) as mesh:
+                    vertices, faces = mesh['vertices_enu'], mesh['triangles']
+                if target['category'] == 'aircraft':
+                    vertices, faces = cluster_mesh(vertices, faces, resolution=0.25)
+                marker.points.extend(Point(x=float(e), y=float(n), z=float(u))
+                                     for e, n, u in vertices[faces].reshape(-1, 3))
+                actor_count += 1
+            markers.append(marker)
+        triangle_count = sum(len(marker.points) // 3 for marker in markers)
+        self.get_logger().info(
+            f'Target meshes: {len(markers)} targets, {actor_count} actors, '
+            f'{triangle_count} display triangles; {int((~keep).sum())} overlapping context voxels removed')
+        return context[keep], markers
 
     @staticmethod
     def base(stamp, namespace, kind):
@@ -136,13 +175,30 @@ class AirportMapNode(Node):
         return [marker for marker in groups.values() if marker.points]
 
 
+def cluster_mesh(vertices, faces, resolution):
+    """Merge vertices within display cells and discard collapsed or duplicate faces."""
+    cells = np.floor((vertices - vertices.min(axis=0)) / resolution).astype(np.int64)
+    cell_ids = np.ravel_multi_index(cells.T, cells.max(axis=0) + 1)
+    _, groups, counts = np.unique(cell_ids, return_inverse=True, return_counts=True)
+    centers = np.column_stack([
+        np.bincount(groups, weights=axis) / counts for axis in vertices.T
+    ])
+    faces = groups[faces]
+    a, b, c = faces.T
+    faces = faces[(a != b) & (a != c) & (b != c)]
+    _, indices = np.unique(np.sort(faces, axis=1), axis=0, return_index=True)
+    return centers, faces[indices]
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--profile', default=None)
     parser.add_argument('--map-dir', default=None)
+    parser.add_argument('--target-catalog', type=Path)
     args = parser.parse_args()
     rclpy.init()
-    node = AirportMapNode(args.map_dir or project_path(PROFILE['map']['root']))
+    node = AirportMapNode(args.map_dir or project_path(PROFILE['map']['root']),
+                          target_catalog=args.target_catalog)
     try:
         rclpy.spin(node)
     except KeyboardInterrupt:
