@@ -1,10 +1,12 @@
 """Frozen image-only candidate fusion and template verification, also used in shadow mode."""
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 import cv2
 import numpy as np
 import torch
 import torch.nn.functional as F
 from common.paths import project_path
+from perception.extract_dino_features import to_input_tensor
 from perception.template_verification import (TemplateVerifier, square_rgb, rgb_descriptors,
                                               rgb_correspondence_features, patch_verification_features)
 from perception.template_matcher import TemplateMatcher
@@ -17,6 +19,7 @@ class MultiCandidateVerifier(TemplateVerifier):
         cfg = configuration
         super().__init__(cfg['base_verifier'], device)
         self.protocol = cfg; self.reference_bank = {}; self.heads = {}; self.states = {}
+        self._sift_pool = ThreadPoolExecutor(max_workers=max(1, min(8, int(cfg.get('candidate_count', 5)))))
         for fold in range(3):
             for source in ['original', 'all_balanced']:
                 path = project_path(cfg['proposal_directory']) / source / f'fold-{fold}/model.pt'
@@ -29,6 +32,12 @@ class MultiCandidateVerifier(TemplateVerifier):
         if exported is not None:
             self.acceptance = torch.load(project_path(exported), map_location='cpu', weights_only=True)
 
+    @torch.no_grad()
+    def _encode_fast(self, images):
+        with torch.autocast(self.device.type, dtype=torch.float16, enabled=self.device.type == 'cuda'):
+            x = to_input_tensor(np.stack(images), self.cfg['image_size'], self.image_mean, self.image_std, self.device)
+            return self.encoder.forward_features(x)['x_norm_patchtokens'].to(torch.float16).float()
+
     def add_reference(self, name, rgb):
         self.set_reference(rgb)
         self.reference_bank[name] = (self.reference, self.rgb_reference)
@@ -36,11 +45,10 @@ class MultiCandidateVerifier(TemplateVerifier):
     @torch.no_grad()
     def prepare_query(self, rgb, fold=None):
         fold = self.protocol['deployment_fold'] if fold is None else fold
-        tokens = self.encode([rgb]); pools = {}; statistics = {}
+        tokens = self._encode_fast([rgb]); pools = {}; statistics = {}
         for source in ['original', 'all_balanced']:
-            state = self.states[fold, source]; params = state['configuration']
+            state = self.states[fold, source]
             q = (tokens - state['mean'].to(self.device)) / state['std'].to(self.device)
-            q = q.expand(params['batch'], -1, -1).contiguous()
             with torch.autocast(self.device.type, dtype=torch.bfloat16, enabled=self.device.type == 'cuda'):
                 logits, stats = self.heads[fold, source](q, torch.zeros_like(q))
             statistics[source] = stats[0].cpu().numpy()
@@ -50,9 +58,12 @@ class MultiCandidateVerifier(TemplateVerifier):
         crops = [square_rgb(rgb[y0:y1, x0:x1], self.cfg['image_size']) for x0, y0, x1, y1 in [c['box_xyxy'] for c in candidates]]
         if not crops:
             return dict(candidates=[], tokens=[], rgb=[], statistics=statistics)
-        z = self.encode(crops)
-        return dict(candidates=candidates, tokens=F.normalize((z-self.crop_mean)/self.crop_std, dim=-1),
-                    rgb=[rgb_descriptors(im) for im in crops], statistics=statistics)
+        pool = getattr(self, '_sift_pool', None)
+        sift_futures = [pool.submit(rgb_descriptors, im) for im in crops] if pool is not None else None
+        z = self._encode_fast(crops)
+        crop_tokens = F.normalize((z - self.crop_mean) / self.crop_std, dim=-1)
+        crop_rgb = [f.result() for f in sift_futures] if sift_futures is not None else [rgb_descriptors(im) for im in crops]
+        return dict(candidates=candidates, tokens=crop_tokens, rgb=crop_rgb, statistics=statistics)
 
     def candidate_features(self, query, reference_id):
         reference, rgb_reference = self.reference_bank[reference_id]; result = []

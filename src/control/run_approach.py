@@ -32,7 +32,8 @@ def initialize(argv=None):
  parser.add_argument('--stop-drift-tolerance-m',type=float,default=.35,help='Maximum displacement from the settled stop position')
  options=parser.parse_args(argv);OUT=options.out_dir.expanduser().resolve();VDIR=OUT/'viz_dump'
  if options.active_verifier and options.shadow_verifier:parser.error('Choose active or shadow verification for this run')
- if bool(options.active_verifier)!=bool(options.verifier_target_id):parser.error('active-verifier and verifier-target-id are required together')
+ if options.active_verifier and not options.verifier_target_id:parser.error('active-verifier requires verifier-target-id')
+ if options.verifier_target_id and not (options.active_verifier or options.shadow_verifier):parser.error('verifier-target-id requires active-verifier or shadow-verifier')
  options.handoff_on_roi=options.handoff_on_roi or options.roof_handoff
  if not math.isfinite(options.max_duration) or options.max_duration<=0:parser.error('max-duration must be finite and positive')
  if any(not math.isfinite(v) or v<=0 for v in (options.post_stop_hold_s,options.post_stop_observe_s,options.stop_drift_tolerance_m)):parser.error('Stop hold, observation duration and drift tolerance must be finite and positive')
@@ -417,7 +418,7 @@ def main(argv=None):
  shadow=None
  if options.shadow_verifier:
   from perception.shadow_verification import ShadowVerifier
-  shadow=ShadowVerifier(options.shadow_verifier,OUT)
+  shadow=ShadowVerifier(options.shadow_verifier,OUT,target_id=options.verifier_target_id)
  recorders={k:Recorder(k) for k in ('front','chase')}
  c=ProjectAirSimClient(address=args.address);drone=None;latest={};buffers={};lock=threading.Lock();rows=[];rgbs=[];poses=[];sims=[]
  report={'status':'started','output_dir':str(OUT),'live_viz_dump':str(VDIR),'map_used_for_control':False,'max_steps':None,'max_duration_s':None,'camera_capture_interval_s':.0167,'distance_stop_m':args.stop_dist,'stop_confirm_frames':3,'altitude_guard_m':14,'reference_used_for_control':False,'online_segmentation':False,'depth_resolution':[640,360],'source_configuration_modified':False,'transport_address':args.address,'max_sensor_skew_s':.25,'topic_receive_buffer_messages':32}

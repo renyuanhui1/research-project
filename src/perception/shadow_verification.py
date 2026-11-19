@@ -27,14 +27,14 @@ def synchronized_pair(rgb_cache, depth_cache, last_rgb, last_depth, max_skew_s, 
 
 
 class ShadowVerifier:
-    def __init__(self, frozen_path, directory):
+    def __init__(self, frozen_path, directory, target_id=None):
         frozen_path = project_path(frozen_path); frozen = read(frozen_path); cfg = frozen['configuration']
         for path, expected in (frozen['sources'] | frozen['inputs']).items():
             if digest(project_path(path)) != expected: raise ValueError('Frozen source differs: '+path)
         export = frozen_path.parent/'verifier.pt'
         if digest(export) != frozen['verifier_sha256']: raise ValueError('Verifier export changed')
         self.model = MultiCandidateVerifier(cfg, exported=export)
-        self.spec = cfg['shadow']; self.target_id = self.spec['target_id']
+        self.spec = cfg['shadow']; self.target_id = self.spec['target_id'] if target_id is None else target_id
         catalog = read(project_path(cfg['catalog'])); target = next(t for t in catalog['targets'] if t['id']==self.target_id)
         image = cv2.imread(str(project_path(target['template']['file'])))[:,:,::-1].copy()
         self.model.add_reference(self.target_id,image)
