@@ -1,0 +1,29 @@
+{
+  "status": "completed",
+  "address": "172.21.192.1",
+  "camera": "FrontCamera",
+  "size": [
+    1280,
+    720
+  ],
+  "capture_interval_s": 0.0167,
+  "scene": "debug/camera/20261118-front-single-resolution/runtime-720p.json",
+  "duration_requested_s": 15,
+  "encoding": false,
+  "baseline_restored": true,
+  "started": "2026-11-18T16:17:01.888938+08:00",
+  "ended": "2026-11-18T16:17:16.897226+08:00",
+  "wall_s": 15.008268792997114,
+  "sim_s": 15.0092299,
+  "unique": 452,
+  "fps": 30.116731398820896,
+  "frames_per_sim_second": 30.114802892052445,
+  "median_source_interval_ms": 33.1613,
+  "max_arrival_gap_s": 0.05378754899720661,
+  "payload_MB_s": 83.26673897146001,
+  "window": {
+    "samples": 14,
+    "minimized": 0,
+    "foreground": 0
+  }
+}

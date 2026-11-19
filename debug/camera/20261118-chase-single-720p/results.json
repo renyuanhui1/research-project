@@ -1,0 +1,30 @@
+{
+  "status": "completed",
+  "address": "192.168.31.178",
+  "source_scene": "debug/camera/20261118-camera-720p/runtime-scene.json",
+  "source_sha256": "d732170fabb24894886456d0b097926f327ec96e25d15e8b9733fa30e3cd53ea",
+  "camera": "Chase",
+  "width": 1280,
+  "height": 720,
+  "capture_interval_s": 0.0167,
+  "recording": false,
+  "duration_requested_s": 30,
+  "baseline_restored": true,
+  "started": "2026-11-18T16:01:35.108984+08:00",
+  "ended": "2026-11-18T16:02:02.666962+08:00",
+  "wall_s": 30.030616358999396,
+  "sim_s": 27.719836,
+  "received_frames": 831,
+  "unique_source_frames": 831,
+  "source_fps": 27.67175971567999,
+  "median_arrival_gap_s": 0.036068346482352354,
+  "max_arrival_gap_s": 0.07582824799465016,
+  "payload_MB_s": 76.50688126191203,
+  "window": {
+    "samples": 26,
+    "total_samples": 29,
+    "minimized": 0,
+    "foreground": 0,
+    "maximized": 0
+  }
+}

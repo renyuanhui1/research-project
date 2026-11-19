@@ -1,0 +1,71 @@
+{
+  "address": "172.21.192.1",
+  "status": "completed",
+  "source": "runs/approach/20261118-new-model-e2e-repeat/attempt-01/runtime-scene.json",
+  "source_sha256": "8c3c672f7f759cc903fe7c52f642f629361039cc6b21f34cf3c361e597e1365a",
+  "duration_requested_s": 35.0,
+  "motion_commands": 0,
+  "recordings": {
+    "front": {
+      "file": "front.mp4",
+      "width": 1920,
+      "height": 1080,
+      "output_fps": 30,
+      "output_frames": 1050,
+      "duration_s": 35.0,
+      "received_source_frames": 161,
+      "input_fps": 4.6,
+      "unique_frames_in_video": 161,
+      "effective_video_fps": 4.6,
+      "repeat_fraction": 0.8466666666666667,
+      "error": null
+    },
+    "chase": {
+      "file": "chase.mp4",
+      "width": 1920,
+      "height": 1080,
+      "output_fps": 30,
+      "output_frames": 1050,
+      "duration_s": 35.0,
+      "received_source_frames": 161,
+      "input_fps": 4.6,
+      "unique_frames_in_video": 161,
+      "effective_video_fps": 4.6,
+      "repeat_fraction": 0.8466666666666667,
+      "error": null
+    }
+  },
+  "streams": {
+    "front": {
+      "received": 161,
+      "source_fps": 4.6,
+      "max_arrival_gap_s": 0.25089628499699757
+    },
+    "chase": {
+      "received": 161,
+      "source_fps": 4.6,
+      "max_arrival_gap_s": 0.2595311259792652
+    },
+    "depth": {
+      "received": 161,
+      "source_fps": 4.6,
+      "max_arrival_gap_s": 0.2507810599927325
+    }
+  },
+  "rgbd_after_recording": {
+    "front_frames": 161,
+    "time_support_ms": [
+      50,
+      250
+    ],
+    "nearest_depth_matches": [
+      161,
+      161
+    ],
+    "check_ticks": 175,
+    "new_pairs": 160,
+    "ticks_without_new_pair": 15,
+    "age_median_s": 0.12627535,
+    "age_max_s": 0.2510494
+  }
+}

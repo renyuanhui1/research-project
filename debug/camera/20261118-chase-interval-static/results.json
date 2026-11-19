@@ -1,0 +1,260 @@
+{
+  "started": "2026-11-18T15:18:03.839710+08:00",
+  "address": "192.168.31.178",
+  "status": "completed",
+  "source": "runs/approach/20261118-new-model-e2e-repeat/attempt-01/runtime-scene.json",
+  "source_sha256": "8c3c672f7f759cc903fe7c52f642f629361039cc6b21f34cf3c361e597e1365a",
+  "duration_per_stage_s": 35,
+  "stationary": true,
+  "encoding": false,
+  "front_capture_interval_s": 0.2,
+  "order": [
+    0.2,
+    0.0167,
+    0.2
+  ],
+  "stages": [
+    {
+      "stage": 1,
+      "chase_capture_interval_s": 0.2,
+      "wall_s": 35.04373377899174,
+      "sim_s": 32.3482251,
+      "streams": {
+        "front": {
+          "frames": 139,
+          "unique_timestamps": 139,
+          "fps": 3.9664723193202858,
+          "median_arrival_gap_s": 0.23616010948899202,
+          "max_arrival_gap_s": 0.7047319050179794,
+          "max_source_timestamp_gap_s": 0.6329243,
+          "max_gap_including_boundaries_s": 0.7047319050179794,
+          "frames_per_5_s": [
+            21,
+            20,
+            17,
+            20,
+            19,
+            21,
+            21
+          ],
+          "payload_MB_s": 24.674631004027635,
+          "format": [
+            1920,
+            1080,
+            "BGR"
+          ]
+        },
+        "depth": {
+          "frames": 57,
+          "unique_timestamps": 57,
+          "fps": 1.6265390086421316,
+          "median_arrival_gap_s": 0.4696484154992504,
+          "max_arrival_gap_s": 3.043225457018707,
+          "max_source_timestamp_gap_s": 2.7518552,
+          "max_gap_including_boundaries_s": 3.043225457018707,
+          "frames_per_5_s": [
+            8,
+            5,
+            10,
+            6,
+            15,
+            8,
+            5
+          ],
+          "payload_MB_s": 0.7495091751822942,
+          "format": [
+            640,
+            360,
+            "16FC1"
+          ]
+        },
+        "chase": {
+          "frames": 149,
+          "unique_timestamps": 149,
+          "fps": 4.251830040134695,
+          "median_arrival_gap_s": 0.23435946401150431,
+          "max_arrival_gap_s": 0.2914290130138397,
+          "max_source_timestamp_gap_s": 0.2361167,
+          "max_gap_including_boundaries_s": 0.2914290130138397,
+          "frames_per_5_s": [
+            21,
+            21,
+            22,
+            21,
+            22,
+            21,
+            21
+          ],
+          "payload_MB_s": 26.44978431366991,
+          "format": [
+            1920,
+            1080,
+            "BGR"
+          ]
+        }
+      }
+    },
+    {
+      "stage": 2,
+      "chase_capture_interval_s": 0.0167,
+      "wall_s": 35.03089138798532,
+      "sim_s": 32.3378961,
+      "streams": {
+        "front": {
+          "frames": 86,
+          "unique_timestamps": 86,
+          "fps": 2.4549760680510615,
+          "median_arrival_gap_s": 0.28872951900120825,
+          "max_arrival_gap_s": 1.6927262660174165,
+          "max_source_timestamp_gap_s": 1.6774597,
+          "max_gap_including_boundaries_s": 1.6927262660174165,
+          "frames_per_5_s": [
+            13,
+            16,
+            11,
+            7,
+            12,
+            14,
+            13
+          ],
+          "payload_MB_s": 15.271915124132045,
+          "format": [
+            1920,
+            1080,
+            "BGR"
+          ]
+        },
+        "depth": {
+          "frames": 64,
+          "unique_timestamps": 64,
+          "fps": 1.8269589343635808,
+          "median_arrival_gap_s": 0.4712986450176686,
+          "max_arrival_gap_s": 1.6232904740027152,
+          "max_source_timestamp_gap_s": 1.4831622,
+          "max_gap_including_boundaries_s": 1.6232904740027152,
+          "frames_per_5_s": [
+            11,
+            8,
+            12,
+            9,
+            9,
+            7,
+            8
+          ],
+          "payload_MB_s": 0.8418626769547379,
+          "format": [
+            640,
+            360,
+            "16FC1"
+          ]
+        },
+        "chase": {
+          "frames": 438,
+          "unique_timestamps": 438,
+          "fps": 12.503250207050757,
+          "median_arrival_gap_s": 0.06636519602034241,
+          "max_arrival_gap_s": 0.4240277799835894,
+          "max_source_timestamp_gap_s": 0.3348031,
+          "max_gap_including_boundaries_s": 0.4240277799835894,
+          "frames_per_5_s": [
+            67,
+            65,
+            62,
+            54,
+            66,
+            64,
+            60
+          ],
+          "payload_MB_s": 77.78021888802134,
+          "format": [
+            1920,
+            1080,
+            "BGR"
+          ]
+        }
+      }
+    },
+    {
+      "stage": 3,
+      "chase_capture_interval_s": 0.2,
+      "wall_s": 35.038847169984365,
+      "sim_s": 32.3443307,
+      "streams": {
+        "front": {
+          "frames": 143,
+          "unique_timestamps": 143,
+          "fps": 4.081184500913014,
+          "median_arrival_gap_s": 0.23919183750695083,
+          "max_arrival_gap_s": 0.5242385200108401,
+          "max_source_timestamp_gap_s": 0.4669496,
+          "max_gap_including_boundaries_s": 0.5242385200108401,
+          "frames_per_5_s": [
+            21,
+            21,
+            21,
+            19,
+            20,
+            20,
+            21
+          ],
+          "payload_MB_s": 25.388232543279674,
+          "format": [
+            1920,
+            1080,
+            "BGR"
+          ]
+        },
+        "depth": {
+          "frames": 36,
+          "unique_timestamps": 36,
+          "fps": 1.0274310631669126,
+          "median_arrival_gap_s": 0.6996427799749654,
+          "max_arrival_gap_s": 5.623668749991339,
+          "max_source_timestamp_gap_s": 5.1328412,
+          "max_gap_including_boundaries_s": 5.623668749991339,
+          "frames_per_5_s": [
+            8,
+            5,
+            4,
+            6,
+            3,
+            5,
+            5
+          ],
+          "payload_MB_s": 0.47344023390731327,
+          "format": [
+            640,
+            360,
+            "16FC1"
+          ]
+        },
+        "chase": {
+          "frames": 148,
+          "unique_timestamps": 148,
+          "fps": 4.223883259686196,
+          "median_arrival_gap_s": 0.2412128089927137,
+          "max_arrival_gap_s": 0.294119566999143,
+          "max_source_timestamp_gap_s": 0.2356821,
+          "max_gap_including_boundaries_s": 0.294119566999143,
+          "frames_per_5_s": [
+            21,
+            21,
+            21,
+            21,
+            21,
+            21,
+            22
+          ],
+          "payload_MB_s": 26.275932981855888,
+          "format": [
+            1920,
+            1080,
+            "BGR"
+          ]
+        }
+      }
+    }
+  ],
+  "baseline_restored": true,
+  "finished": "2026-11-18T15:19:51.318559+08:00"
+}

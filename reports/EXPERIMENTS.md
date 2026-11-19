@@ -670,3 +670,18 @@ RGB与深度最大时差为84—110毫秒，39项测试通过。离线复核命�
 **核验与限制**：84个设置共32172对预测按原生标签复算一致，六项整目标/部位基线复现，原型各落点方法的分数与朝向选择相同；26项测试、两个文件编译及格式检查通过。首次运行因缺少共享数据链接在读取阶段失败，补齐后重跑，日志保留。最优方法及阈值均在同一开发验证集选择，只有3个目标、2组主体网格；未读既有测试查询图、未连接UE、未改控制器。当前结果可用于后续方法选择，尚不足以接管抵近控制。
 
 见[实验登记](../runs/evaluation/20261117-dino-matching-ablation/pre-registration.json)、[全部指标](../runs/evaluation/20261117-dino-matching-ablation/comparison.json)、[消融图](../runs/evaluation/20261117-dino-matching-ablation/comparison.png)、[开发方法选择](../runs/evaluation/20261117-dino-matching-ablation/selection.json)、[身份诊断](../runs/evaluation/20261117-dino-matching-ablation/identity-diagnostic.json)、[中心位置对照](../runs/evaluation/20261117-dino-matching-ablation/center-prior-diagnostic.json)、[本机耗时](../runs/evaluation/20261117-dino-matching-ablation/latency.json)、[评价日志](../runs/evaluation/20261117-dino-matching-ablation/evaluation.log)、[原生标签复算](../runs/evaluation/20261117-dino-matching-ablation/result-audit.json)、[测试日志](../runs/evaluation/20261117-dino-matching-ablation/validation.log)。各编码器目录保留全部逐对结果。
+
+## 2026-11-18 相机链路与巡检验证
+
+实验在 178 的 WSL `airsim` 环境连接 Windows UE。上午部分试次使用宿主局域网地址，随后在 WSL 网关上复验。各条件以单轮为主，帧率均按墙钟时间内收到的独立源帧计算。
+
+| 验证项 | 当日结果 | 证据 |
+|---|---|---|
+| 单相机链路 | 同一静止前视 1080p 场景，采集间隔 0.0167 秒，WSL 网关 27.71 FPS，局域网 16.05 FPS。网关前视 720p 为 30.12 FPS，局域网单 Chase 720p 为 27.67 FPS。 | [同场景地址对照](../debug/camera/20261118-front-single-resolution/address-recheck/results.json) · [前视 720p](../debug/camera/20261118-front-single-resolution/wsl-720p/results.json) · [Chase 720p](../debug/camera/20261118-chase-single-720p/results.json) |
+| 双路录像与同步 | 局域网双路 720p 首轮前视／Chase 为 13.06／13.34 FPS，窗口未最小化且不在前台的复测为 9.26／10.37 FPS。单轮窗口对照不足以解释飞行卡顿。网关双路 1080p 按 5 Hz 请求，35 秒实收三路各 161 帧，全部前视帧能在 50 毫秒内配到深度。 | [双路录制](../debug/camera/20261118-camera-720p/results.json) · [窗口复测](../debug/camera/20261118-camera-720p/windowed-unfocused/results.json) · [网关收帧与配对](../runs/approach/20261118-wsl-gateway-retest/transport/results.json) |
+| 到达与停车 | 原控制器在局域网和网关均有通过记录。冻结新模型在局域网两次失锁，终点距部位表面 22.45、13.84 米；网关复测同样失锁，距表面 18.47 米，停稳通过，6 米到达失败。更换链路改善了 Chase 录像连续性，未消除失锁。 | 本地原始记录 `runs/approach/20261118-{aircraft-template-e2e,new-model-e2e,new-model-e2e-repeat,wsl-gateway-retest}/` |
+| 同步、身份与交接 | 早期同步试次因 RGB-D 配对超时中断。影子试验中原控制器两轮到达，错模板回放仍有 15 个误确认帧。后续在线影子试次连续 32 个结果身份正确。三轮实际近端接管均命中指定部位并停稳，均先触发高度保护，未达到 6 米。调整后另一次达到停车条件，末帧滤波距离 5.918 米、保持最大漂移 0.087 米，仅验证一次。 | 本地审计 `runs/evaluation/20261118-online-identity-shadow/audit.json`、`20261118-active-part-handoff/` 各轮接管审计及 `20261118-adaptive-height-handoff/flight/adaptive-audit.json`（后两项也位于 `runs/evaluation/`） |
+
+[静止收帧脚本](../runs/approach/20261118-wsl-gateway-retest/probe_transport.py)读取相机、深度和时钟，在指定的新输出目录保存结果。可用归档的[到达时间戳](../runs/approach/20261118-wsl-gateway-retest/transport/sensor-arrivals.csv)、[时钟](../runs/approach/20261118-wsl-gateway-retest/transport/clock.csv)和[运行日志](../runs/approach/20261118-wsl-gateway-retest/transport/projectairsim_client.log)复核本轮采集。
+
+当天尚未验证新模型独立完成远端定位、近端接管及到达。影子结果只评价识别，近端单次通过也不能给出重复成功率。目录 `20261118-airport-handoff-revalidation` 的全场景批次于 11 月 19 日完成，按完成日另计。

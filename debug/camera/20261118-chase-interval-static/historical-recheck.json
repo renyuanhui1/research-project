@@ -1,0 +1,46 @@
+{
+  "address": "172.21.192.1",
+  "started": "2026-11-18T15:30:03.983667+08:00",
+  "source": "configs/simulation/scene_airport.jsonc",
+  "duration_per_stage_s": 15,
+  "status": "completed",
+  "stages": [
+    {
+      "name": "rgb-only",
+      "wall_s": 15.016014025983168,
+      "sim_s": 13.8615012,
+      "settings": {
+        "FrontCamera": 0.0167
+      },
+      "summary": {
+        "FrontCamera": {
+          "frames": 415,
+          "fps": 27.637161185511616,
+          "max_arrival_gap_s": 0.06514680900727399
+        }
+      }
+    },
+    {
+      "name": "front-chase-rgb",
+      "wall_s": 15.01827412599232,
+      "sim_s": 13.8623842,
+      "settings": {
+        "Chase": 0.0167,
+        "FrontCamera": 0.0167
+      },
+      "summary": {
+        "FrontCamera": {
+          "frames": 275,
+          "fps": 18.31102546757047,
+          "max_arrival_gap_s": 0.606880157982232
+        },
+        "Chase": {
+          "frames": 275,
+          "fps": 18.31102546757047,
+          "max_arrival_gap_s": 0.572127844003262
+        }
+      }
+    }
+  ],
+  "baseline_restored": true
+}

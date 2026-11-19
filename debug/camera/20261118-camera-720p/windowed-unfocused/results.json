@@ -1,0 +1,63 @@
+{
+  "status": "completed",
+  "address": "192.168.31.178",
+  "capture_interval_s": 0.0167,
+  "rgb_size": [
+    1280,
+    720
+  ],
+  "duration_s": 35,
+  "stationary": true,
+  "recording_output_fps": 30,
+  "scene": "existing 720p runtime, no scene reload",
+  "streams": {
+    "front": {
+      "received": 324,
+      "unique_timestamps": 324,
+      "fps": 9.257142857142858,
+      "max_arrival_gap_s": 0.949285914975917,
+      "payload_MB_s": 25.594148571428573,
+      "recording": {
+        "output_frames": 1050,
+        "unique_source_frames": 324,
+        "effective_fps": 9.257142857142858
+      }
+    },
+    "depth": {
+      "received": 357,
+      "unique_timestamps": 357,
+      "fps": 10.2,
+      "max_arrival_gap_s": 0.8318938490119763,
+      "payload_MB_s": 4.70016
+    },
+    "chase": {
+      "received": 363,
+      "unique_timestamps": 363,
+      "fps": 10.371428571428572,
+      "max_arrival_gap_s": 0.5573499370075297,
+      "payload_MB_s": 28.674925714285713,
+      "recording": {
+        "output_frames": 1050,
+        "unique_source_frames": 361,
+        "effective_fps": 10.314285714285715
+      }
+    }
+  },
+  "sim_s": 33.0076133,
+  "started": "2026-11-18T15:48:39.755891+08:00",
+  "ended": "2026-11-18T15:49:14.755891+08:00",
+  "errors": {},
+  "window": {
+    "samples": 30,
+    "total_samples": 32,
+    "minimized": 0,
+    "foreground": 0,
+    "maximized": 0,
+    "first_timestamp": "2026-11-18T15:48:42.8585412+08:00",
+    "last_timestamp": "2026-11-18T15:49:13.8802102+08:00"
+  },
+  "summary_recovery": {
+    "initial_error": "ValueError(\"Invalid isoformat string: '2026-11-18T15:48:42.8585412+08:00'\")",
+    "method": "Reprocess saved Windows timestamps at Python-compatible microsecond precision. Source image and clip counts were independently confirmed."
+  }
+}

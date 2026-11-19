@@ -1,0 +1,136 @@
+{
+  "started": "2026-11-18T15:44:21.804851+08:00",
+  "address": "192.168.31.178",
+  "status": "completed",
+  "stages": [
+    {
+      "label": "1080p",
+      "rgb_size": [
+        1920,
+        1080
+      ],
+      "wall_s": 35.0,
+      "sim_s": 33.0320797,
+      "streams": {
+        "front": {
+          "received": 236,
+          "unique_timestamps": 236,
+          "fps": 6.742857142857143,
+          "median_arrival_gap_s": 0.10017998001421802,
+          "max_arrival_gap_s": 1.4756404370127711,
+          "payload_MB_s": 41.94596571428572,
+          "size": [
+            1920,
+            1080
+          ],
+          "recording": {
+            "output_frames": 1050,
+            "unique_source_frames": 237,
+            "effective_fps": 6.771428571428571,
+            "repeat_fraction": 0.7742857142857142
+          }
+        },
+        "depth": {
+          "received": 265,
+          "unique_timestamps": 265,
+          "fps": 7.571428571428571,
+          "median_arrival_gap_s": 0.07191157498164102,
+          "max_arrival_gap_s": 1.1287218469951767,
+          "payload_MB_s": 3.488914285714286,
+          "size": [
+            640,
+            360
+          ]
+        },
+        "chase": {
+          "received": 227,
+          "unique_timestamps": 227,
+          "fps": 6.485714285714286,
+          "median_arrival_gap_s": 0.11708924450795166,
+          "max_arrival_gap_s": 0.7245470310153905,
+          "payload_MB_s": 40.346331428571425,
+          "size": [
+            1920,
+            1080
+          ],
+          "recording": {
+            "output_frames": 1050,
+            "unique_source_frames": 228,
+            "effective_fps": 6.514285714285714,
+            "repeat_fraction": 0.7828571428571429
+          }
+        }
+      }
+    },
+    {
+      "label": "720p",
+      "rgb_size": [
+        1280,
+        720
+      ],
+      "wall_s": 35.0,
+      "sim_s": 33.036309,
+      "streams": {
+        "front": {
+          "received": 457,
+          "unique_timestamps": 457,
+          "fps": 13.057142857142857,
+          "median_arrival_gap_s": 0.06176534098631237,
+          "max_arrival_gap_s": 0.5232604389893822,
+          "payload_MB_s": 36.100388571428574,
+          "size": [
+            1280,
+            720
+          ],
+          "recording": {
+            "output_frames": 1050,
+            "unique_source_frames": 455,
+            "effective_fps": 13.0,
+            "repeat_fraction": 0.5666666666666667
+          }
+        },
+        "depth": {
+          "received": 467,
+          "unique_timestamps": 467,
+          "fps": 13.342857142857143,
+          "median_arrival_gap_s": 0.05207182699814439,
+          "max_arrival_gap_s": 0.5233018379949499,
+          "payload_MB_s": 6.148388571428572,
+          "size": [
+            640,
+            360
+          ]
+        },
+        "chase": {
+          "received": 467,
+          "unique_timestamps": 467,
+          "fps": 13.342857142857143,
+          "median_arrival_gap_s": 0.06081078448914923,
+          "max_arrival_gap_s": 0.45665447498322465,
+          "payload_MB_s": 36.89033142857143,
+          "size": [
+            1280,
+            720
+          ],
+          "recording": {
+            "output_frames": 1050,
+            "unique_source_frames": 465,
+            "effective_fps": 13.285714285714286,
+            "repeat_fraction": 0.5571428571428572
+          }
+        }
+      }
+    }
+  ],
+  "source": "runs/approach/20261118-new-model-e2e-repeat/attempt-01/runtime-scene.json",
+  "capture_interval_s": 0.0167,
+  "depth_size": [
+    640,
+    360
+  ],
+  "duration_per_stage_s": 35,
+  "output_fps": 30,
+  "stationary": true,
+  "active_runtime": "720p",
+  "finished": "2026-11-18T15:45:32.600338+08:00"
+}

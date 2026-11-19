@@ -1,0 +1,60 @@
+{
+  "status": "completed",
+  "address": "192.168.31.178",
+  "source_config": "debug/camera/20261118-camera-720p/runtime-scene.json",
+  "source_sha256": "d732170fabb24894886456d0b097926f327ec96e25d15e8b9733fa30e3cd53ea",
+  "camera": "FrontCamera",
+  "capture_interval_s": 0.0167,
+  "duration_requested_s": 20,
+  "stationary": true,
+  "encoding": false,
+  "stages": [
+    {
+      "label": "720p",
+      "size": [
+        1280,
+        720
+      ],
+      "started": "2026-11-18T16:11:52.906522+08:00",
+      "ended": "2026-11-18T16:12:10.419033+08:00",
+      "wall_s": 20.020369186007883,
+      "sim_s": 18.4813288,
+      "received": 501,
+      "unique": 501,
+      "fps": 25.0245135514357,
+      "frames_per_sim_second": 27.108440384438158,
+      "median_source_interval_ms": 33.1279,
+      "max_arrival_gap_s": 0.3881566810014192,
+      "payload_MB_s": 69.18777506700943,
+      "window": {
+        "samples": 16,
+        "minimized": 0,
+        "foreground": 0
+      }
+    },
+    {
+      "label": "1080p",
+      "size": [
+        1920,
+        1080
+      ],
+      "started": "2026-11-18T16:12:13.753755+08:00",
+      "ended": "2026-11-18T16:12:31.282247+08:00",
+      "wall_s": 20.01315288900514,
+      "sim_s": 18.4797658,
+      "received": 281,
+      "unique": 281,
+      "fps": 14.040766168052222,
+      "frames_per_sim_second": 15.205820411425345,
+      "median_source_interval_ms": 66.03295,
+      "max_arrival_gap_s": 0.4287217560049612,
+      "payload_MB_s": 87.34479817821928,
+      "window": {
+        "samples": 17,
+        "minimized": 0,
+        "foreground": 0
+      }
+    }
+  ],
+  "baseline_restored": true
+}
