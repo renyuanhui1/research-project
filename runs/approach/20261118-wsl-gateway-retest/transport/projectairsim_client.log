@@ -1,0 +1,29 @@
+2026-11-18 17:01:37,956 [INFO] Connecting to simulation server at 172.21.192.1
+2026-11-18 17:01:37,961 [INFO] Connection opened.
+2026-11-18 17:01:38,088 [INFO] Getting the list of available topic info from the sim server...
+2026-11-18 17:01:38,099 [INFO] Successfully received topic info list.
+2026-11-18 17:01:41,103 [INFO] World object updated for the loaded scene '/Sim/SceneAirbase'. Note: Any previous Drone object instances may no longer be valid.
+2026-11-18 17:01:41,103 [INFO] Initalizing Drone 'Drone1'...
+2026-11-18 17:01:41,103 [INFO] -------------------------------------------------
+2026-11-18 17:01:41,103 [INFO] The following topics can be subscribed to for robot 'Drone1':
+2026-11-18 17:01:41,103 [INFO]     sensors["Chase"]["scene_camera"]
+2026-11-18 17:01:41,103 [INFO]     sensors["Chase"]["scene_camera_info"]
+2026-11-18 17:01:41,103 [INFO]     sensors["FrontCamera"]["scene_camera"]
+2026-11-18 17:01:41,103 [INFO]     sensors["FrontCamera"]["scene_camera_info"]
+2026-11-18 17:01:41,103 [INFO]     sensors["FrontCamera"]["depth_camera"]
+2026-11-18 17:01:41,103 [INFO]     sensors["FrontCamera"]["depth_camera_info"]
+2026-11-18 17:01:41,103 [INFO]     sensors["IMU1"]["imu_kinematics"]
+2026-11-18 17:01:41,103 [INFO]     sensors["lidar1"]["lidar"]
+2026-11-18 17:01:41,103 [INFO]     sensors["DistanceSensor"]["distance_sensor"]
+2026-11-18 17:01:41,103 [INFO]     sensors["GPS"]["gps"]
+2026-11-18 17:01:41,103 [INFO]     sensors["Barometer"]["barometer"]
+2026-11-18 17:01:41,103 [INFO]     sensors["Magnetometer"]["magnetometer"]
+2026-11-18 17:01:41,103 [INFO]     sensors["Airspeed"]["airspeed"]
+2026-11-18 17:01:41,103 [INFO]     sensors["Battery"]["battery"]
+2026-11-18 17:01:41,103 [INFO]     robot_info["actual_pose"]
+2026-11-18 17:01:41,103 [INFO]     robot_info["collision_info"]
+2026-11-18 17:01:41,103 [INFO]     robot_info["rotor_info"]
+2026-11-18 17:01:41,103 [INFO] -------------------------------------------------
+2026-11-18 17:01:41,104 [INFO] Drone 'Drone1' initialized for World scene '/Sim/SceneAirbase'
+2026-11-18 17:02:11,688 [INFO] Disconnecting from simulation server...
+2026-11-18 17:02:11,713 [INFO] Disconnected.
