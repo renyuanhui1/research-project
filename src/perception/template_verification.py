@@ -30,22 +30,15 @@ def hull_area(points):
     return float(cv2.contourArea(cv2.convexHull(points.astype(np.float32)))) if len(points)>=3 else 0.
 
 
-def correspondence_features(similarity,reprojection_threshold,query_positions=None,template_positions=None,minimum_distinctiveness=0.):
-    similarity=np.clip(similarity,-1.,1.)
-    nq,nt=similarity.shape;gq=math.isqrt(nq);gt=math.isqrt(nt)
+def _correspondence_from_summary(nq,nt,q_mean,t_mean,margin_mean,distinct_mean,q,t,scores,reprojection_threshold,query_positions=None,template_positions=None):
+    gq=math.isqrt(nq);gt=math.isqrt(nt)
     feature=np.zeros(len(FEATURE_NAMES),float);feature[13]=1.
-    if nq==0 or nt<2:return feature,0.
-    query_to_template=similarity.argmax(1);template_to_query=similarity.argmax(0)
-    q=np.flatnonzero(template_to_query[query_to_template]==np.arange(nq));t=query_to_template[q]
-    top=np.partition(similarity,-2,axis=1)[:,-2:];best=top.max(1);second=top.min(1)
-    distinct=((best-second).clip(0)/(1-second).clip(1e-8)).clip(0,1)
-    q=q[distinct[q]>=minimum_distinctiveness];t=query_to_template[q]
-    feature[:4]=[similarity.max(1).mean(),similarity.max(0).mean(),(best-second).mean(),len(q)/min(nq,nt)]
-    feature[13]=1.;feature[16]=distinct.mean()
+    feature[:4]=[float(q_mean),float(t_mean),float(margin_mean),len(q)/min(nq,nt)]
+    feature[16]=float(distinct_mean)
     if not len(q):return feature,0.
     qp=(np.c_[(q%gq+.5)/gq,(q//gq+.5)/gq] if query_positions is None else query_positions[q]).astype(np.float32)
     tp=(np.c_[(t%gt+.5)/gt,(t//gt+.5)/gt] if template_positions is None else template_positions[t]).astype(np.float32)
-    scores=similarity[q,t];feature[4:8]=[scores.mean(),np.quantile(scores,.1),hull_area(qp),hull_area(tp)]
+    feature[4:8]=[float(scores.mean()),float(np.quantile(scores,.1)),hull_area(qp),hull_area(tp)]
     if len(q)<3:return feature,0.
     transform,inliers=cv2.estimateAffine2D(tp,qp,method=cv2.RANSAC,ransacReprojThreshold=reprojection_threshold,maxIters=2000,confidence=.99,refineIters=10)
     if transform is None or inliers is None or not np.isfinite(transform).all():return feature,0.
@@ -58,6 +51,50 @@ def correspondence_features(similarity,reprojection_threshold,query_positions=No
     return feature,float(coherent)
 
 
+def correspondence_features(similarity,reprojection_threshold,query_positions=None,template_positions=None,minimum_distinctiveness=0.):
+    similarity=np.clip(similarity,-1.,1.)
+    nq,nt=similarity.shape
+    feature=np.zeros(len(FEATURE_NAMES),float);feature[13]=1.
+    if nq==0 or nt<2:return feature,0.
+    query_to_template=similarity.argmax(1);template_to_query=similarity.argmax(0)
+    q=np.flatnonzero(template_to_query[query_to_template]==np.arange(nq));t=query_to_template[q]
+    top=np.partition(similarity,-2,axis=1)[:,-2:];best=top.max(1);second=top.min(1)
+    distinct=((best-second).clip(0)/(1-second).clip(1e-8)).clip(0,1)
+    q=q[distinct[q]>=minimum_distinctiveness];t=query_to_template[q]
+    return _correspondence_from_summary(nq,nt,similarity.max(1).mean(),similarity.max(0).mean(),(best-second).mean(),distinct.mean(),
+                                        q,t,similarity[q,t],reprojection_threshold,query_positions,template_positions)
+
+
+@torch.no_grad()
+def _correspondence_features_torch(sim_batch,reprojection_threshold,query_positions=None,template_positions=None,minimum_distinctiveness=0.):
+    s=sim_batch.clamp(-1.,1.)
+    r,nq,nt=s.shape
+    if nq==0 or nt<2:
+        empty=np.zeros(len(FEATURE_NAMES),float);empty[13]=1.
+        return [(empty.copy(),0.) for _ in range(r)]
+    top2_vals,top2_idx=torch.topk(s,2,dim=-1)
+    best=top2_vals[...,0];second=top2_vals[...,1];q2t=top2_idx[...,0]
+    t_best,t2q=s.max(dim=-2)
+    distinct=((best-second).clamp_min(0.)/(1.-second).clamp_min(1e-8)).clamp(0.,1.)
+    ar=torch.arange(nq,device=s.device).unsqueeze(0).expand(r,nq)
+    mutual=(t2q.gather(1,q2t)==ar)&(distinct>=minimum_distinctiveness)
+    stats=torch.stack([best.mean(dim=-1),t_best.mean(dim=-1),(best-second).mean(dim=-1),distinct.mean(dim=-1)],dim=-1).cpu().numpy()
+    nz=mutual.nonzero(as_tuple=False)
+    if nz.numel():
+        r_idx=nz[:,0];q_idx=nz[:,1];t_idx=q2t[r_idx,q_idx];sc=best[r_idx,q_idx]
+        packed=torch.stack([r_idx,q_idx,t_idx],dim=-1).cpu().numpy()
+        scores_all=sc.cpu().numpy()
+    else:
+        packed=np.empty((0,3),np.int64);scores_all=np.empty((0,),np.float32)
+    out=[]
+    for i in range(r):
+        mask=packed[:,0]==i
+        out.append(_correspondence_from_summary(nq,nt,stats[i,0],stats[i,1],stats[i,2],stats[i,3],
+                                                packed[mask,1],packed[mask,2],scores_all[mask],
+                                                reprojection_threshold,query_positions,template_positions))
+    return out
+
+
 def rgb_descriptors(image):
     points,descriptors=cv2.SIFT_create().detectAndCompute(cv2.cvtColor(image,cv2.COLOR_RGB2GRAY),None)
     if descriptors is None:return np.empty((0,2),np.float32),np.empty((0,128),np.float32)
@@ -66,14 +103,19 @@ def rgb_descriptors(image):
     return xy,descriptors
 
 
-def rgb_correspondence_features(query,template,reprojection_threshold,ratio):
+def rgb_correspondence_features(query,template,reprojection_threshold,ratio,device=None):
     qp,qd=query;tp,td=template
+    if device is not None and device.type=='cuda' and len(qd)>0 and len(td)>=2:
+        with torch.no_grad():
+            sim=(torch.from_numpy(qd).to(device)@torch.from_numpy(td).to(device).T).unsqueeze(0)
+            return _correspondence_features_torch(sim,reprojection_threshold,qp,tp,1-ratio**2)[0]
     return correspondence_features(qd@td.T,reprojection_threshold,qp,tp,1-ratio**2)
 
 
 def patch_verification_features(query,template,proposal_stats,reprojection_threshold):
-    similarity=(query[None]@template[:4].transpose(-1,-2)).detach().cpu().numpy()
-    rotations=[correspondence_features(s,reprojection_threshold) for s in similarity]
+    with torch.no_grad():
+        similarity=query[None]@template[:4].transpose(-1,-2)
+        rotations=_correspondence_features_torch(similarity,reprojection_threshold)
     order=np.argsort([r[1] for r in rotations]);best=rotations[int(order[-1])]
     feature=np.r_[best[0],best[1],best[1]-rotations[int(order[-2])][1],proposal_stats[:8]]
     return feature.astype(np.float32),best[1]

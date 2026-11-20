@@ -14,6 +14,7 @@ import torch
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'src'))
 from perception.active_verification import ActivePartMatcher
 from perception.fingerprint import Fingerprint
+from perception.graded_gating import DistanceBinCalibrator, GradedGate
 from perception.part_matching import CroppedPartMatcher
 
 
@@ -169,6 +170,69 @@ class ActiveVerificationTests(unittest.TestCase):
                 controller.matching_preflight()
         self.assertEqual(matcher.query.call_count, 1)
         self.assertTrue(matcher.query.call_args.kwargs['use_roi'])
+
+    def _graded_observer(self, score=.75, peer_score=.30):
+        observer = self.observer(accepted=False)
+        observer.staged = True
+        observer.model.prepare_query.return_value = dict(candidates=[dict(box_xyxy=[880, 460, 1040, 620])])
+        observer.model.select.return_value = dict(
+            accepted=False, point_xy=[.5, .5], score=score, chosen_rank=1,
+            candidates=[dict(point_xy=[.5, .5], box_xyxy=[880, 460, 1040, 620], verification_score=score)],
+        )
+        observer.model.score_candidate.return_value = peer_score
+        observer.peer_ids = ['peer_a']
+        cal = DistanceBinCalibrator()
+        cal.fit([.1, .2, .3, .4, .7, .8, .9, .95] * 8, [0, 0, 0, 0, 1, 1, 1, 1] * 8, [70.] * 64)
+        observer.graded_gate = GradedGate(cal, dict(
+            far_consistent_frames=2, far_min_score=.50, far_llr_threshold=-.2,
+            confirm_max_range_m=80., confirm_llr_threshold=1.5, confirm_min_mid_frames=2,
+            require_same_class_margin=True, min_same_class_logit_margin=.3,
+        ))
+        return observer
+
+    def test_graded_far_permits_cautious_approach_without_peer_calls_and_blocks_near(self):
+        observer = self._graded_observer(score=.72, peer_score=.20)
+        rgb = np.zeros((40, 50, 3), np.uint8)
+        meta0 = dict(pos_x=0., pos_y=0., pos_z=-60., rot_w=1., rot_x=0., rot_y=0., rot_z=0., width=1920, height=1080)
+        meta1 = dict(pos_x=3., pos_y=0., pos_z=-60., rot_w=1., rot_x=0., rot_y=0., rot_z=0., width=1920, height=1080)
+        with patch('perception.active_verification._sample_candidate_depth', return_value=110.0):
+            r0 = observer.query(rgb, use_roi=False, rgb_metadata=meta0, depth_message={}, time_s=0.0)
+            r1 = observer.query(rgb, use_roi=False, rgb_metadata=meta1, depth_message={}, time_s=1.0)
+        self.assertEqual(r0[3], -1.)
+        self.assertAlmostEqual(r1[3], .72)
+        self.assertTrue(observer.last_prediction['motion_permitted'])
+        self.assertFalse(observer.last_prediction['confirmed'])
+        self.assertEqual(observer.last_prediction['speed_cap_mps'], 1.5)
+        observer.model.score_candidate.assert_not_called()
+        # Near handoff must still be blocked before mid-range identity confirmation
+        near = observer.query(rgb, use_roi=True)
+        self.assertEqual(near[3], -1.)
+        observer.part_matcher.query.assert_not_called()
+
+    def test_graded_mid_confirms_with_peer_margin_and_admits_near(self):
+        observer = self._graded_observer(score=.90, peer_score=.20)
+        rgb = np.zeros((40, 50, 3), np.uint8)
+        observer.part_matcher.query.return_value = (.1, .2, 1., .8, np.ones(4))
+        with patch('perception.active_verification._sample_candidate_depth', return_value=60.0):
+            for step in range(4):
+                meta = dict(pos_x=step * 3., pos_y=0., pos_z=-35., rot_w=1., rot_x=0., rot_y=0., rot_z=0., width=1920, height=1080)
+                observer.query(rgb, use_roi=False, rgb_metadata=meta, depth_message={}, time_s=float(step))
+                observer.count += 1
+        self.assertTrue(observer.last_prediction['confirmed'])
+        self.assertGreater(observer.model.score_candidate.call_count, 0)
+        near = observer.query(rgb, use_roi=True)
+        self.assertEqual(near[3], .8)
+        self.assertEqual(observer.last_prediction['phase'], 'near_part')
+
+    def test_graded_mid_blocks_confirmation_when_peer_beats_target(self):
+        observer = self._graded_observer(score=.75, peer_score=.92)
+        rgb = np.zeros((40, 50, 3), np.uint8)
+        with patch('perception.active_verification._sample_candidate_depth', return_value=60.0):
+            for step in range(5):
+                meta = dict(pos_x=step * 3., pos_y=0., pos_z=-35., rot_w=1., rot_x=0., rot_y=0., rot_z=0., width=1920, height=1080)
+                observer.query(rgb, use_roi=False, rgb_metadata=meta, depth_message={}, time_s=float(step))
+        self.assertFalse(observer.last_prediction['confirmed'])
+        self.assertLess(observer.last_prediction['gate']['same_class_mean_margin'], 0.0)
 
 
 if __name__ == '__main__':

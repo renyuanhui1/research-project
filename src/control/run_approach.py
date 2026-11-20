@@ -284,7 +284,9 @@ async def run_control():
    await asyncio.sleep(.005)
   if matched is None:reason='synchronized_image_timeout';break
   perception_start=time.monotonic()
-  last=matched;rgb=sc.decode_image(m)[0];cx,cy,mass,peak,sim=fp.query(rgb,use_roi=roi_active)
+  last=matched;rgb=sc.decode_image(m)[0]
+  if options.active_verifier:cx,cy,mass,peak,sim=fp.query(rgb,use_roi=roi_active,rgb_metadata=m,depth_message=dm,time_s=time.monotonic()-start)
+  else:cx,cy,mass,peak,sim=fp.query(rgb,use_roi=roi_active)
   perception_duration=time.monotonic()-perception_start
   if options.thin_roi_refinement and perception_duration>.75:
    report['perception_overrun_s']=perception_duration;reason='perception_overrun';break
@@ -321,6 +323,11 @@ async def run_control():
   if 'close_range_m' in setup:
    (f,r,d),close_latched=close_speed_limit((f,r,d),df,close_latched,setup['close_range_m'],setup['close_speed_mps'])
    if close_latched and 'close_speed_latched_at_step' not in report:report['close_speed_latched_at_step']=step
+  if options.active_verifier and not roi_active:
+   gate_cap=fp.last_prediction.get('speed_cap_mps')
+   if gate_cap is not None and gate_cap>0:
+    speed=math.sqrt(f*f+r*r+d*d)
+    if speed>gate_cap:f*=gate_cap/speed;r*=gate_cap/speed;d*=gate_cap/speed
   if options.handoff_on_roi and phase_dist is not None and phase_dist<=args.roi_switch_dist+10:
    speed=math.sqrt(f*f+r*r+d*d)
    if speed>.35:f*=.35/speed;r*=.35/speed;d*=.35/speed
@@ -342,6 +349,7 @@ async def run_control():
   elif roof_vertical is not None and roof_vertical<15:stop='roof_clearance_guard'
   elif guard_depth is not None and guard_depth<setup['depth_guard_m']:stop='depth_clearance_guard'
   elif alt<=setup.get('altitude_guard_m',14):stop='altitude_guard'
+  elif options.active_verifier and fp.last_prediction.get('gate',{}).get('identity_rejected'):stop='identity_rejected'
   elif lost>=15:stop='tracking_lost'
   elif alt>setup.get('max_altitude_m',40):stop='unexpected_altitude'
   row={'step':step,'time_s':time.monotonic()-start,'north':pos['x'],'east':pos['y'],'down':pos['z'],'cx':xf,'cy':yf,'peak':peak,'depth_m':-1 if df is None else df,'forward':f,'right':r,'down_speed':d,'reference_distance_m':distance,'rgb_timestamp':last,'depth_timestamp':depthts,'sensor_skew_ms':abs(last-depthts)/1e6,'contact_count':contact,'state':state}
@@ -369,7 +377,8 @@ async def run_control():
    row['command_dispatched']=True
    fp.record(rgb,m,dm,row)
   if oblique and not roi_active:
-   roi_hits=roi_hits+1 if locked and df is not None and phase_dist is not None and phase_dist<=args.roi_switch_dist else 0
+   handoff_ok=(not options.active_verifier or getattr(fp,'graded_gate',None) is None or bool(fp.last_prediction.get('confirmed')))
+   roi_hits=roi_hits+1 if locked and handoff_ok and df is not None and phase_dist is not None and phase_dist<=args.roi_switch_dist else 0
    if roi_hits>=3:
     roi_active=True;contact=0;aligned=0
     for key in filtered:filtered[key]=None

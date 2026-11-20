@@ -72,9 +72,26 @@ class MultiCandidateVerifier(TemplateVerifier):
             vec, _ = patch_verification_features(query['tokens'][i], reference,
                         query['statistics'][candidate['source']], self.cfg['reprojection_threshold'])
             rgb_vec, _ = rgb_correspondence_features(query['rgb'][i], rgb_reference,
-                        self.cfg['rgb_reprojection_threshold'], self.cfg['rgb_ratio'])
+                        self.cfg['rgb_reprojection_threshold'], self.cfg['rgb_ratio'], device=self.device)
             result.append(np.r_[vec, rgb_vec].astype(np.float32))
         return np.asarray(result, np.float32).reshape(-1, 44)
+
+    def score_candidate(self, query, index, reference_id):
+        if self.acceptance is None:
+            raise RuntimeError('Load a frozen acceptance export before inference')
+        if index < 0 or index >= len(query['candidates']):
+            raise IndexError('Candidate index out of range')
+        reference, rgb_reference = self.reference_bank[reference_id]
+        candidate = query['candidates'][index]
+        cv2.setRNGSeed(self.protocol['confidence_seed'])
+        vec, _ = patch_verification_features(query['tokens'][index], reference,
+                    query['statistics'][candidate['source']], self.cfg['reprojection_threshold'])
+        rgb_vec, _ = rgb_correspondence_features(query['rgb'][index], rgb_reference,
+                    self.cfg['rgb_reprojection_threshold'], self.cfg['rgb_ratio'], device=self.device)
+        value = np.r_[vec, rgb_vec].astype(np.float32)
+        state = self.acceptance
+        logit = float(((value - state['center'].numpy()) / state['scale'].numpy()) @ state['weight'].numpy() + float(state['bias']))
+        return float(1.0 / (1.0 + np.exp(-np.clip(logit, -700.0, 700.0))))
 
     def select(self, query, reference_id):
         if self.acceptance is None:

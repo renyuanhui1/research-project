@@ -795,3 +795,40 @@ WSL 经网关 `172.21.192.1` 连接 UE。非物理观察相机分别朝向 19 �
 
 [批跑脚本](../runs/evaluation/20261119-p1-revalidation/run_p1_batch.py) · [逐目标索引](../runs/evaluation/20261119-p1-revalidation/index.json) · [批跑日志](../runs/evaluation/20261119-p1-revalidation/batch.log) · [影子清单](../runs/evaluation/20261119-p1-shadow/frozen.json) · [关停记录](../runs/evaluation/20261119-p1-revalidation/shutdown.json) · [06 号单测目录](../runs/evaluation/20261119-p1-smoke/06-f35-folded-wing/report.json)
 
+## 2026-11-20 推理二次降延、P3 连续飞行校准与 P2.6 分级门控离线集成
+
+全程离线在 178 本机 WSL（`airsim`，RTX 4060 Ti 8 GB）完成（UE 未启动；服务器 237 当时不可达 `No route to host`）。P1.3 实飞采得的 3 个 `appearance.test` 目标（`08, 17, 19`，共 326 帧）及缺失目标 `03, 13` 严格封存并登记 SHA256，未参与任何评分、校准或分析。
+
+**GPU 互近邻特征归约与单候选同类评分**：针对 P1.3 联机实测 0.50–0.83 s 瓶颈（将 20–32 个 `1024×1024` 矩阵拷回 CPU 并在 1–2 线程上执行 `np.partition`/`argmax`），在 `src/perception/template_verification.py` 新增 `_correspondence_features_torch`，将 `clamp`、`topk(2)`、`max` 与互近邻筛选全部留在 CUDA 上完成，仅回传互近邻坐标对供 `cv2.estimateAffine2D`；同时在 `src/perception/multicandidate_verification.py` 新增 `score_candidate` 供 P4.2 同类裕量只评唯一已选候选。在 `12-hangar-3955` 10 帧实飞图上校验，与原在线实录分数最大差 `5.76e-08`，与 CPU 路径最大差 `5.96e-08`。178 实测延迟如下（并发负载模拟含 5 Hz 控制 DINO + 双路编解码 + `torch.set_num_threads(2)`）：
+
+| 条件 | 优化前中位 | 优化后中位 | 优化后 p95 | 加速比 |
+|---|---:|---:|---:|---:|
+| K=5 单跑 | 473.4 ms | **146.7 ms** | 165.6 ms | 3.2× |
+| K=5 并发模拟 | 580.4 ms | **157.8 ms** | 199.5 ms | 3.7× |
+| K=8 单跑 | 823.2 ms | **191.6 ms** | 220.9 ms | 4.3× |
+| K=8 并发模拟 | — | **214.1 ms** | 231.4 ms | — |
+
+**P3 连续飞行分布漂移与仅训练集保序校准**：在 178 上对全部 13 个非测试目标（1,417 帧：10 个训练目标 1,052 帧 + 3 个验证目标 365 帧）× 19 模板完成评分缓存。训练目标连续飞行相对静态瞬移折外（`teleport_oof`）存在显著类别分化：
+- **飞机**：连续飞行得分高于静态瞬移（`45–80 m` 中位 `0.753→0.940`，命中 `96.3%`；`80–120 m` `0.589→0.859`，命中 `98.0%`；`0–45 m` `0.797→0.897`，命中 `100%`）。
+- **机库**：`120+ m` 中位 `0.814`（命中 `94.7%`）→ `80–120 m` `0.640`（`85.4%`）→ `45–80 m` 降至 **`0.459`**（`64.4%`，因建筑过大溢出裁剪框）。因此机库必须在远距至 `160 m` 起累积确认 LLR，且 P4.2 同类裕量须排除 `appearance_group` 相同的同 mesh 副本。
+- **塔台（`18-tower-7889`）**：全距离中位 `0.308–0.448`，`acc_0913=0%`，`120 m` 内命中 `75%–89%`（`120+ m` 为 `26.1%`）。
+
+仅在 `appearance.train`（3,966 条静态折外 + 1,052 帧连续飞行）上拟合混合保序校准器 `calibrator-blended-train.json`，并在 365 帧未参与拟合的 `appearance.validation`（`06, 12, 16`）与 1,052 帧 `appearance.train` 上回放部署配置 `p26_blended_h160`（机库确认上限 `160 m` + 异 mesh 同类 peer）：
+
+| 分区 / 策略 | `pos_perm` | `pos_conf` | `pos_near` | `hit_on_perm` | `diff_mesh_ws_conf` | `same_mesh_ws_conf` | `cx_move` | `cx_conf` |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|
+| `val` / `legacy_0913` | 1/3 | 1/3 | 1/3 | 100.0% (1/1) | 0/21 | 0/2 | 0/31 | 0/31 |
+| `val` / `blended_cal_p42_m03`（机库 ≤80 m） | 3/3 | 1/3 | 1/3 | 99.43% (175/176) | 0/21 | 0/2 | 0/31 | 0/31 |
+| **`val` / `p26_blended_h160`** | **3/3** | **3/3** | **2/3** | **98.91% (182/184)** | **0/21** | **0/2** | **0/31** | **0/31** |
+| `train` / `legacy_0913` | 6/10 | 6/10 | 5/10 | 100.0% (198/198) | 2/62 | 0/6 | 0/112 | 0/112 |
+| **`train` / `p26_blended_h160`** | **10/10** | **9/10** | **5/10** | **98.87% (526/532)** | **0/62** | **2/6** | **2/112** | **0/112** |
+
+注：`val` 上 `16-hangar-7920` 已确认（`mid_llr=0.751`），`pos_near` 为 `2/3` 系其粗接近影子轨迹在屋顶交接前未跨越 `<=45 m` 候选深度；`train` 上 5 架飞机与 4 座机库全部确认，仅 `18-tower-7889` 因跨视角鸿沟未确认（`final_llr=-1.08`）。
+
+**P2.6 在线分级门控集成与离线烟测**：在 `src/perception/active_verification.py` 与 `src/control/run_approach.py` 接入可选的 `graded_gating` 模式（默认关闭，兼容原三连确认），按配置加载校准器与异 mesh 同类 peer 库，执行阶段限速、确认后方准近端/屋顶交接、身份拒绝停机。全量单元测试 **176/176 通过**（含新增 3 项分级门控用例）。生成冻结清单 `runs/evaluation/20261120-p26-graded-active/frozen.json` 并在 178 上加载真实清单烟测实飞帧：`06-f35-folded-wing`（7 peer）中位 `152.8 ms` 且进入 `MID_CONFIRMED`；`12-hangar-3955`（7 异 mesh peer，已排除 `16`）中位 `132.9 ms`。
+
+**结论与未验证项**：GPU 归约将 178 模拟并发推理压至 `157.8 ms`，`p26_blended_h160` 在验证集实现 `3/3` 正例确认与 `0/21` 异 mesh 同类误确认、`0/31` 跨类误确认。限制与待实测项：（1）`train` 上 `same_mesh_ws_confirmed=2/6` 表明仅靠裁剪外观无法区分同 mesh 机库副本；（2）`18-tower-7889` 仍未跨过确认门槛；（3）P3 仍存在 `03/11/13` 缺失造成的选择偏差与单轨自相关；（4）真实 UE 并发耗时、P2.6 `19×1` 联机闭环与 Win32 `PostMessage(VK_ESCAPE)` 自动关停均待下次开 UE 实测。
+
+[P3 评估脚本](../src/evaluation/eval_p3_flight_calibration.py) · [封存清单](../runs/evaluation/20261120-p3-flight-calibration/sealed-test-manifest.json) · [分布漂移](../runs/evaluation/20261120-p3-flight-calibration/distribution-shift.json) · [混合校准器](../runs/evaluation/20261120-p3-flight-calibration/calibrator-blended-train.json) · [回放汇总](../runs/evaluation/20261120-p3-flight-calibration/val-replay-summary.json) · [P2.6 冻结清单](../runs/evaluation/20261120-p26-graded-active/frozen.json) · [主动核验模块](../src/perception/active_verification.py) · [单测](../tests/test_active_verification.py)
+
+
