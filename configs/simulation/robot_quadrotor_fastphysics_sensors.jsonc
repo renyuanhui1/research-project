@@ -307,7 +307,7 @@
       "type": "camera",
       "enabled": true,
       "parent-link": "Frame",
-      "capture-interval": 0.0167,
+      "capture-interval": 0.0333333,
       "capture-settings": [
         {
           "image-type": 0,
@@ -336,7 +336,7 @@
       "type": "camera",
       "enabled": true,
       "parent-link": "Frame",
-      "capture-interval": 0.0167,
+      "capture-interval": 0.0333333,
       "capture-settings": [
         {
           "image-type": 0,
@@ -364,7 +364,7 @@
           "width": 1920,
           "height": 1080,
           "fov-degrees": 90,
-          "capture-enabled": true,
+          "capture-enabled": false,
           "streaming-enabled": false,
           "pixels-as-float": false,
           "compress": false
@@ -415,11 +415,11 @@
     {
       "id": "DistanceSensor",
       "type": "distance-sensor",
-      "enabled": true,
+      "enabled": false,
       "parent-link": "Frame",
       "max-distance": 50.0,
       "min-distance": 0.5,
-      "draw-debug-points": true,
+      "draw-debug-points": false,
       "origin": {
         "xyz": "0 0 0.2",
         "rpy-deg": "0 -90 0"
@@ -442,7 +442,7 @@
     {
       "id": "Barometer",
       "type": "barometer",
-      "enabled": true,
+      "enabled": false,
       "parent-link": "Frame",
       "qnh": 1013.25,
       "pressure-factor-sigma": 0.001825,
@@ -455,7 +455,7 @@
     {
       "id": "Magnetometer",
       "type": "magnetometer",
-      "enabled": true,
+      "enabled": false,
       "parent-link": "Frame",
       "scale-factor": 1,
       "noise-sigma": "0.005 0.005 0.005",
@@ -464,7 +464,7 @@
     {
       "id": "Airspeed",
       "type": "airspeed",
-      "enabled": true,
+      "enabled": false,
       "parent-link": "Frame",
       "pressure-factor-sigma": 0.001825,
       "pressure-factor-tau": 3600,
@@ -474,7 +474,7 @@
     {
       "id": "Battery",
       "type": "battery",
-      "enabled": true,
+      "enabled": false,
       "parent-link": "Frame",
       "total-battery-capacity": 36000,
       "battery-capacity-on-start": 30000,

@@ -1,0 +1,199 @@
+{
+  "description": "Mixed negative-control (2 intact aircraft + 1 damaged hangar) 6-UAV ProjectAirSim visual-servo E2E validation.",
+  "scene_config": "configs/simulation/scene_airport_multi6.jsonc",
+  "cruise_speed_mps": 16.0,
+  "approach_speed_mps": 4.0,
+  "vertical_speed_mps": 4.5,
+  "targets": [
+    {
+      "target_id": "OBJ-A",
+      "display_name": "目标A（飞机1）",
+      "ground_truth_label": "01-f14-intact (F-14 无毁伤，阴性对照)",
+      "round1_drone_id": "Scout-1",
+      "round2_drone_id": "Inspect-1",
+      "cruise_alt_m": 75.0,
+      "round1_home_ned": [0.0, -6.0, -1.0],
+      "round2_home_ned": [-8.0, -6.0, -1.0],
+      "round1_shots": [
+        {
+          "suffix": "01",
+          "view_type": "nadir",
+          "position_ned": [556.8, 138.9, -32.0],
+          "yaw_deg": 0.0,
+          "camera_pitch_deg": -90.0
+        },
+        {
+          "suffix": "02",
+          "view_type": "oblique",
+          "position_ned": [525.0, 138.9, -24.0],
+          "yaw_deg": 0.0,
+          "camera_pitch_deg": -35.0
+        }
+      ],
+      "round2_approach_waypoints_ned": [
+        [524.0, 141.5, -22.0]
+      ],
+      "round2_shots": [
+        {
+          "suffix": "01",
+          "view_type": "closeup_oblique",
+          "position_ned": [542.0, 138.9, -9.0],
+          "yaw_deg": 0.0,
+          "camera_pitch_deg": -30.0
+        }
+      ],
+      "round2_exit_waypoints_ned": [
+        [524.0, 141.5, -25.0]
+      ],
+      "visual_servo": {
+        "mode": "dino_oblique",
+        "start_ned": [524.0, 141.5, -22.0],
+        "start_yaw_deg": -5.0,
+        "camera_pitch_deg": -32.0,
+        "template_shot_suffix": "02",
+        "template_roi": [0.30, 0.36, 0.70, 0.64],
+        "stop_dist_m": 5.8,
+        "close_range_m": 12.0,
+        "close_speed_mps": 0.75,
+        "slow_dist_m": 24.0,
+        "v_forward_mps": 2.4,
+        "v_down_mps": 0.95,
+        "k_yaw": 0.85,
+        "yaw_max_rps": 0.45,
+        "k_vert": 1.2,
+        "allow_climb": false,
+        "min_peak": 0.22,
+        "min_alt_m": 4.5,
+        "max_alt_m": 45.0,
+        "depth_guard_m": 2.5,
+        "confirm_frames": 3,
+        "max_duration_s": 55.0
+      }
+    },
+    {
+      "target_id": "OBJ-B",
+      "display_name": "目标B（机库）",
+      "ground_truth_label": "09-hangar-910 (机库轻损单区屋面破口，阳性对照)",
+      "round1_drone_id": "Scout-2",
+      "round2_drone_id": "Inspect-2",
+      "cruise_alt_m": 90.0,
+      "round1_home_ned": [0.0, 0.0, -1.0],
+      "round2_home_ned": [-8.0, 0.0, -1.0],
+      "round1_shots": [
+        {
+          "suffix": "01",
+          "view_type": "nadir",
+          "position_ned": [-45.5, 534.8, -90.0],
+          "yaw_deg": 0.0,
+          "camera_pitch_deg": -90.0
+        },
+        {
+          "suffix": "02",
+          "view_type": "oblique",
+          "position_ned": [-105.0, 534.8, -62.0],
+          "yaw_deg": 0.0,
+          "camera_pitch_deg": -35.0
+        }
+      ],
+      "round2_approach_waypoints_ned": [
+        [-48.6, 531.5, -36.0]
+      ],
+      "round2_shots": [
+        {
+          "suffix": "01",
+          "view_type": "interior_closeup",
+          "position_ned": [-48.6, 531.5, -15.0],
+          "yaw_deg": 101.3,
+          "camera_pitch_deg": 0.0,
+          "fallback_position_ned": [-48.6, 531.5, -32.0],
+          "fallback_camera_pitch_deg": -80.0
+        }
+      ],
+      "round2_exit_waypoints_ned": [
+        [-48.6, 531.5, -36.0]
+      ],
+      "visual_servo": {
+        "mode": "opening_nadir",
+        "start_ned": [-45.8, 534.3, -38.0],
+        "start_yaw_deg": 0.0,
+        "camera_pitch_deg": -90.0,
+        "min_layer_gap_m": 6.0,
+        "min_clearance_m": 1.6,
+        "align_tol_m": 0.85,
+        "align_confirm_frames": 3,
+        "gain_xy": 0.28,
+        "max_xy_mps": 0.85,
+        "descend_mps": 2.2,
+        "target_interior_alt_m": 15.5,
+        "min_floor_guard_m": 5.0,
+        "vertical_exit_alt_m": 38.0,
+        "max_duration_s": 55.0
+      }
+    },
+    {
+      "target_id": "OBJ-C",
+      "display_name": "目标C（飞机2）",
+      "ground_truth_label": "05-f35-intact (F-35 无毁伤，阴性对照)",
+      "round1_drone_id": "Scout-3",
+      "round2_drone_id": "Inspect-3",
+      "cruise_alt_m": 105.0,
+      "round1_home_ned": [0.0, 6.0, -1.0],
+      "round2_home_ned": [-8.0, 6.0, -1.0],
+      "round1_shots": [
+        {
+          "suffix": "01",
+          "view_type": "nadir",
+          "position_ned": [119.3, -239.1, -34.0],
+          "yaw_deg": 0.0,
+          "camera_pitch_deg": -90.0
+        },
+        {
+          "suffix": "02",
+          "view_type": "oblique",
+          "position_ned": [149.0, -229.0, -24.0],
+          "yaw_deg": -161.2,
+          "camera_pitch_deg": -35.0
+        }
+      ],
+      "round2_approach_waypoints_ned": [
+        [150.0, -227.5, -22.0]
+      ],
+      "round2_shots": [
+        {
+          "suffix": "01",
+          "view_type": "closeup_oblique",
+          "position_ned": [133.5, -234.0, -9.0],
+          "yaw_deg": -161.2,
+          "camera_pitch_deg": -30.0
+        }
+      ],
+      "round2_exit_waypoints_ned": [
+        [150.0, -227.5, -25.0]
+      ],
+      "visual_servo": {
+        "mode": "dino_oblique",
+        "start_ned": [150.0, -227.5, -22.0],
+        "start_yaw_deg": -156.0,
+        "camera_pitch_deg": -32.0,
+        "template_shot_suffix": "02",
+        "template_roi": [0.30, 0.36, 0.70, 0.64],
+        "stop_dist_m": 5.8,
+        "close_range_m": 12.0,
+        "close_speed_mps": 0.75,
+        "slow_dist_m": 24.0,
+        "v_forward_mps": 2.4,
+        "v_down_mps": 0.95,
+        "k_yaw": 0.85,
+        "yaw_max_rps": 0.45,
+        "k_vert": 1.2,
+        "allow_climb": false,
+        "min_peak": 0.22,
+        "min_alt_m": 4.5,
+        "max_alt_m": 45.0,
+        "depth_guard_m": 2.5,
+        "confirm_frames": 3,
+        "max_duration_s": 55.0
+      }
+    }
+  ]
+}

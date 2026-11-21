@@ -831,4 +831,198 @@ WSL 经网关 `172.21.192.1` 连接 UE。非物理观察相机分别朝向 19 �
 
 [P3 评估脚本](../src/evaluation/eval_p3_flight_calibration.py) · [封存清单](../runs/evaluation/20261120-p3-flight-calibration/sealed-test-manifest.json) · [分布漂移](../runs/evaluation/20261120-p3-flight-calibration/distribution-shift.json) · [混合校准器](../runs/evaluation/20261120-p3-flight-calibration/calibrator-blended-train.json) · [回放汇总](../runs/evaluation/20261120-p3-flight-calibration/val-replay-summary.json) · [P2.6 冻结清单](../runs/evaluation/20261120-p26-graded-active/frozen.json) · [主动核验模块](../src/perception/active_verification.py) · [单测](../tests/test_active_verification.py)
 
+## 2026-11-20 30 Hz 与 60 Hz 相机采集对照
 
+验证相机改为约 30 Hz 后的实际收帧率、30 FPS 录像重复帧及 RGB 与深度的同步情况。178 上的 UE 机场通过 WSL 网关 `172.21.192.1` 连接，使用 `airsim` 环境和 P2.6 的 01 号场景快照。前视和追踪 RGB 均为 1920×1080，前视深度为 640×360。两台相机同时设为 `0.0167` 或 `0.0333333` 秒，按 60、30、60、30 Hz 顺序分别重载，每轮订阅三路图像，预热 3 秒后用原录制器录制 10 秒。无人机保持在地面，未运行控制或模型推理。
+
+| 配置 | 前视 RGB / 帧每秒 | 前视深度 / 帧每秒 | 追踪 RGB / 帧每秒 | 前视录像重复帧 | 追踪录像重复帧 |
+|---|---:|---:|---:|---:|---:|
+| 约 60 Hz | 23.5–23.7 | 23.6–23.7 | 23.3–23.8 | 20.7%–21.3% | 21.0%–23.0% |
+| 约 30 Hz | 22.6–23.5 | 22.5–23.5 | 22.2–23.5 | 21.7%–24.7% | 21.7%–26.3% |
+
+8 个 MP4 均验证为 30 FPS、300 帧。四轮 RGB 与最近深度帧的源时间戳差 p95 均为 0 ms。30 Hz 第一轮有一张 RGB 缺少同时间戳的深度帧，最近深度相差 45.1 ms，其余三轮采样窗口内逐帧匹配。30 Hz 配置可用于静态录制，实测独立画面更新约 22–24 帧/秒，与 60 Hz 基线相近但未观察到流畅度提升。飞行并发负载下的表现待测。
+
+测试后恢复 `DefaultScene`，新连接确认默认时钟有效，试验机器人服务和图像流均已卸载。话题列表仍有五条旧相机元数据，首次恢复确认因此报失败，二次检查结果已补记到报告。
+
+[测量报告](../runs/evaluation/20261120-camera-rate-ab/121740/report.json) · [客户端日志](../runs/evaluation/20261120-camera-rate-ab/121740/projectairsim_client.log) · [四轮录像、配置和逐帧时间戳](../runs/evaluation/20261120-camera-rate-ab/121740/)
+
+## 2026-11-20 P2.6 联机闭环采集 19×1
+
+本轮评估冻结 P2.6 分级门控在 19 个机场场景中的闭环结果。上午采集 01–09，下午在 178 的 UE 机场继续采集 10–19。使用 WSL `airsim` 环境、网关 `172.21.192.1`、同一冻结清单与原批处理入口。前视和追踪相机均按 `0.0167` 秒采集，双路 1920×1080 MP4 按 30 FPS 写入，场景特定参数和参考来自原档案。每项保留双路录像及时间戳、控制报告和门控观测。
+
+| 场景 | 试次 | 通过 | 结果 |
+|---|---|---:|---|
+| 飞机 | 01–08 | 6/8 | 03、08 失锁 |
+| 机库 | 09–17 | 0/9 | 均曾确认身份，随后粗定位失锁，未进入洞口阶段 |
+| 塔台 | 18–19 | 0/2 | 均未确认身份，因失锁停止 |
+
+正式试次 19 项齐全，总计 6 项通过。续采的 20 个 MP4 均核验了 30 FPS、帧数和首帧解码，实际收帧率 11.9–16.3 帧/秒。18 号第一次准备后，近景匹配点在预检容差之外约 0.04 像素，未启动正式录像。按原参数重新准备一次后通过预检并采完录像，结果仍为失锁，首轮记录另存。09–12 号失锁前连续 15 步处于门控 `HOLD`，身份仍为已确认。同目标 10 和 12 在 P1 以更低收帧率通过，本轮直接观测到的停止条件是连续失锁，现有结果不能将失败归因于采集帧率。
+
+采集完成后，Windows 锁屏阻止操作 UE 的 Stop 按钮。已通过 ProjectAirSim 恢复空的 `DefaultScene`，确认试验图像流卸载。用户接手结束 UE Play，端口关闭尚未核验。
+
+[批次索引](../runs/evaluation/20261120-p26-graded-active/index.json) · [批次日志](../runs/evaluation/20261120-p26-graded-active/batch.log) · [18 号首次预检](../runs/evaluation/20261120-p26-graded-active/18-tower-7889/repeat-01-incomplete-1795151552/matching-preflight.json) · [18 号正式记录](../runs/evaluation/20261120-p26-graded-active/18-tower-7889/repeat-01/report.json) · [停机记录](../runs/evaluation/20261120-p26-graded-active/shutdown.json) · [P1 对照索引](../runs/evaluation/20261119-p1-revalidation/index.json)
+
+## 2026-11-21 多机两阶段协同调度中心与 Qwen3.5-9B 离线回放验证
+
+**目的**：在不启动 UE 仿真的前提下，验证“中心决策、分机执行”的两阶段多机协同调度骨架（乱序到达、重复回传幂等、上传与返航状态分离、中性编号防真值泄露），并接入 237 服务器上的 `qwen3.5:9b` 实测三类机场目标（飞机、机库、塔台）的“首轮初评 → 复查问题交接 → 次轮补拍复评”闭环。
+
+**环境与参数**：调度端运行在 178 的 WSL（Python 3 + SQLite WAL，无新增第三方依赖），通过 SSH 密钥 `/home/hui/.ssh/id_ed25519_501` 调用 237 服务器（RTX PRO 6000 96 GB）上的 Ollama `qwen3.5:9b`（`think=true`、`temperature=0.1`、强制 JSON Schema）。回放清单 `configs/missions/coordination_replay_3targets.json` 复用已有配对图像，给模型统一使用中性编号 `OBJ-A` / `OBJ-B` / `OBJ-C` 及中性归档文件名，开启 `--stress-test` 逆序交错投递并注入 6 次重复上传。
+
+**方法**：先执行离线单测 `tests/test_coordination.py` 验证幂等去重、乱序处理、标签隔离与单目标 VLM 故障隔离；再执行 `src/coordination/run_replay.py --vlm ollama --model qwen3.5:9b --stress-test`，检查三目标的动态派发、两轮证据引用、耗时与事后对照真值。
+
+**结果**：
+- 离线单测 `tests/test_coordination.py` 3/3 通过（0.29 s）。
+- 真实 `qwen3.5:9b` 三目标回放 3/3 完成、失败 0、拦截重复上传 6 次、按需创建复查任务 2 个：
+
+| 中性编号 | 事后真值（未送模型） | 首轮视图与耗时 | 是否派发复查 / 建议动作 | 次轮视图与耗时 | 复评判定 | 人工核验 |
+|---|---|---|---|---|---|---|
+| `OBJ-A` | `02-f14-wing-curl`（F-14 主翼上卷） | 正俯视模板 / 19.6 s | 否 / `none` | 未派发 | 无需复查 | **首轮正俯视漏检**：垂直俯视下上卷右翼透视缩短，模型误判外观对称完好 |
+| `OBJ-B` | `09-hangar-910`（机库屋面单区破口） | 正俯视模板 / 11.6 s | 是 / `roof_entry` | 入室内部图 / 9.2 s | `confirmed` | 准确识别屋顶破洞并提出查内部梁柱；次轮区分了屋顶断裂与直立支撑柱 |
+| `OBJ-C` | `18-tower-7889`（塔台主柱剥落、屋檐破损） | 正俯视模板 / 14.4 s | 是 / `side_inspection` | 近距侧视柱体图 / 14.1 s | `confirmed` | 首轮指出屋顶蓝色异常及侧面盲区；次轮准确识别混凝土主柱纵向裂缝与底部坍塌缺口 |
+
+**结论与未验证项**：
+1. 集中式两阶段调度中心已跑通：乱序到达与重复回传均幂等处理，且机库与塔台两类目标展示了清晰的“初评提问 → 针对性补拍 → 依据次轮新证据确认”的协同闭环。
+2. 同日补充验证默认 `always_confirm` 派发策略（无论初评是否发现损伤均派发第二批近距复核，离线单测增至 4/4 通过）：重跑 `20261121-qwen35-9b-always-confirm` 后，3/3 完成、拦截重复上传 7 次、创建 3 个复查任务；其中首轮正俯视漏检的 `OBJ-A`（8.5 s，判无损）被第二批近距图（22.7 s）成功改判为 `confirmed`（三目标检出率由 2/3 升至 3/3）。人工核对发现一个 9B 模型细粒度局限：`OBJ-A` 次轮正确发现了上卷翼面上的放射状裂纹，但把竖直上卷的右主翼误称为“垂直尾翼根部”。
+3. **尚未验证项**：（1）在真正无毁伤目标（如 `01-f14-intact`）上验证 `always_confirm` 能否稳定输出 `ruled_out`（确认完好、无误报）；（2）相同补拍预算下“VLM 定向复查 vs 固定预设补拍”的对照评估；（3）ProjectAirSim 中两批共 6 架仿真无人机的在线采集、回传与返航联调。
+
+[首轮仅标疑派发报告](../runs/coordination/20261121-qwen35-9b-3targets/report.md) · [全量近距复核报告](../runs/coordination/20261121-qwen35-9b-always-confirm/report.md) · [全量复核 JSON](../runs/coordination/20261121-qwen35-9b-always-confirm/report.json) · [全量复核 SQLite](../runs/coordination/20261121-qwen35-9b-always-confirm/survey.db) · [回放清单](../configs/missions/coordination_replay_3targets.json) · [单测](../tests/test_coordination.py)
+
+## 2026-11-21 ProjectAirSim 两批 6 机 720p 帧率探测与端到端协同实飞
+
+**目的**：在 UE Airport 实时仿真中加载两批共 6 架 720p + 30 Hz 精简配置无人机（`Scout-1..3`、`Inspect-1..3`，保留 `Chase` 追踪相机用于可视化），先测量 1/3/6 机实时收帧率，再跑通“第一批 3 机并行高空采图返航 → 237 `qwen3.5:9b` 初评与复查交接 → 第二批 3 机并行抵近/破口入室实拍返航 → `qwen3.5:9b` 最终复评”的完整端到端闭环。
+
+**环境与参数**：178 上的 UE Airport（Play 状态），WSL 通过 `172.21.192.1` 以 `airsim` 环境运行 `src/coordination/run_sim_e2e.py`；场景 `configs/simulation/scene_airport_multi6.jsonc`（`robot_quadrotor_multi_720p.jsonc`，`FrontCamera` 1280×720 RGB + 640×360 深度、`Chase` 1280×720 RGB、30 Hz、`IMU1`+`GPS`，关闭分割及多余辅助传感器）；任务 `configs/missions/coordination_sim_6uav.json`（三目标巡航层 75/90/105 m、巡航 12 m/s、首轮采正俯视+斜俯视、次轮抵近/侧视/机库破口入室）；VLM 调用 237 Ollama `qwen3.5:9b`（`think=true`，`dispatch_policy=always_confirm`）。
+
+**结果 1：6 机场景实时收帧率探测（`20261121-sim6-fps-probe`）**
+- 6 机场景加载耗时 `3.25 s`，全部流 100% 独立时间戳、零丢帧：
+
+| 订阅规模 | 并发流数 | 单路实测独立帧率 | 帧间隔 p50 / p95 |
+|---|---:|---:|---:|
+| 1 机（`Scout-1`） | 3 路（Front RGB/Depth + Chase） | **16.58 FPS** | 67–68 ms / 73.5 ms |
+| 3 机（单批 `Scout-1..3`） | 9 路 | **11.59 FPS** | 85.5–86.5 ms / 92.4–94.6 ms |
+| 6 机全订阅 | 18 路 | **5.66 FPS** | 162.6–163.3 ms / 169.6–174.5 ms |
+
+**结果 2：完整 6 机端到端实飞与两轮评估（`20261121-sim6-e2e-qwen35-9b`）**
+- **飞行与安全**：第一批 3 机并行飞采图并返航降落总墙钟 `233.6 s`（`Scout-1/2/3` 分别 `233.6 / 219.9 / 227.2 s`）；第二批 3 机并行抵近/入室实拍并返航降落总墙钟 `251.4 s`（`Inspect-1/2/3` 分别 `215.6 / 241.3 / 251.4 s`，其中 `Inspect-2` 无回退直降穿入机库破洞内拍完再安全飞出）。全部 6 架机全程碰撞计数均为起飞前地面接触 1 次 + 降落接地 1 次，**空中及障碍物碰撞 0 次**。共采集 9 组 `FrontCamera` + `Chase` 1280×720 原图（零过曝、`white_fraction=0.0`）。
+- **VLM 两轮评估**（第一轮 3 目标总耗时 `50.4 s`，第二轮总耗时 `50.5 s`）：
+
+| 中性编号 | 事后真值 | 首轮初评（实拍正+斜俯视） | 次轮实拍与复评判定 | 人工核验 |
+|---|---|---|---|---|
+| `OBJ-A` | `02-f14-wing-curl` | 18.7 s，`needs_recheck=false` → 触发无损近距复核 | 14.7 s，**`confirmed`** | 实拍近景图清晰对准上卷右翼，成功救回漏检（但模型将卷翼阴影/裂纹误描述为“烧灼痕迹”） |
+| `OBJ-B` | `09-hangar-910` | 18.5 s，`needs_recheck=true`（但盯住了相邻完好机库） | 24.7 s，**`ruled_out`（误排除）** | **实拍构图定位根因**：首轮 90 m 未裁剪俯视图画面中心落在了隔壁完好机库上（破洞机库在画面左半区），且次轮室内图桁架完好，模型只回答了“立柱/桁架是否完好”而忽略了画幅顶部的屋顶破洞 |
+| `OBJ-C` | `18-tower-7889` | 13.1 s，`needs_recheck=true` | 10.9 s，**`confirmed`** | 实拍近景清晰对准主柱破损，模型准确指出上部垂直裂缝与下部墙体断裂缺口 |
+
+**结论与未验证项**：
+1. ProjectAirSim 两批 6 机并发飞行 + 720p 双相机（含 `Chase` 可视化）+ 中心 SQLite 调度 + 237 `qwen3.5:9b` 两轮评估的完整端到端链路已首次实机跑通，全程零空中碰撞、6 机全部安全返航。
+2. 端到端实拍暴露出两个值得立刻改进的工程点：（a）高空首轮正俯视未裁剪原图在密集建筑群中容易引入相邻完好建筑干扰（`OBJ-B` 机库偏左），需要调整 `OBJ-B` 首轮正俯视机位使其居中（或做目标框裁剪）；（b）`qwen3.5:9b` 在 `OBJ-B` 室内近景图上只盯了立柱完好而忽略画幅上沿的大破洞，可在提示词中明确“只要两轮任意视角存在屋顶破洞或主体破损即判 `confirmed`”，且后续可对比 237 上现成的 `qwen3.5:27b` 提升细粒度识别准确率。
+3. **尚未验证项**：（1）机库首轮居中构图修复 + `qwen3.5:27b` 对照复测；（2）连续 `Chase` 30 FPS 录像录制下的多机帧率表现；（3）真正无损目标（如 `01-f14-intact`）端到端防误报验证。
+
+[帧率探测数据](../runs/coordination/20261121-sim6-fps-probe/fps_probe.json) · [端到端评估报告](../runs/coordination/20261121-sim6-e2e-qwen35-9b/report.md) · [端到端结构化报告](../runs/coordination/20261121-sim6-e2e-qwen35-9b/report.json) · [仿真指标与耗时](../runs/coordination/20261121-sim6-e2e-qwen35-9b/sim_metrics.json) · [6机场景配置](../configs/simulation/scene_airport_multi6.jsonc) · [6机任务配置](../configs/missions/coordination_sim_6uav.json) · [端到端入口](../src/coordination/run_sim_e2e.py)
+
+## 2026-11-21 6 机两阶段端到端实飞与 3×2 分屏实时录像复测
+
+**目的**：在实飞中验证三项改进：（1）拍照前增加悬停减速调平等待，解决 `OBJ-B` 机库首轮正俯视构图偏左问题；（2）复评提示词明确“任意轮次可见主体破洞即判 `confirmed`”；（3）集成 `src/coordination/video_recorder.py`，在每批仅订阅当前在飞 3 机 `Chase + FrontCamera`（6 路 720p RGB 流）的条件下，实时录制 `1920×776` 3×2 分屏视频。
+
+**环境与参数**：同上 UE Airport + WSL `172.21.192.1` + 237 Ollama `qwen3.5:9b`（`always_confirm`），巡航速度 `16 m/s`，开启 `--record-video`。
+
+**结果**：
+- **飞行与录像帧率**：第一批 3 机并飞 `208.3 s`（6 路流各自实收 `2230–2231` 帧、100% 独立时间戳，实测 **10.71 FPS/路**）；第二批 3 机并飞 `221.7 s`（6 路流各自实收 `2328` 帧、100% 独立时间戳，实测 **10.50 FPS/路**）；全程空中与障碍物碰撞 **0 次**（6 机均为初始+降落各 1 次地面接触）。
+- **评估结果（3/3 全部 `confirmed`）**：悬停调平后 `OBJ-B` 首轮正俯视将机库屋顶破洞严格居中，`qwen3.5:9b` 首轮直接派发 `roof_entry`，第二批 `Inspect-2` 入室拍图后最终判定 **`confirmed`**；`OBJ-A`（无损复核救回）与 `OBJ-C`（塔台主柱侧视）亦均为 **`confirmed`**，三目标受损检出率达到 **3/3（100%）**。
+- **录像产物**：实时 30 FPS 3×2 总览 `mission_6uav_overview.mp4`（`8928` 帧，`297.6 s`，`476.0 MB`）、4 倍速精华版 `mission_6uav_highlight_4x.mp4`（`2401` 帧，`80.0 s`，`197.5 MB`）及网页播放版 `mission_6uav_highlight_4x.webm`。
+
+（本节早期英文版中间调试产物 `20261121-sim6-e2e-video` 已于 2026-11-21 清理，汇总结果保留在本节；完整纯中文轨迹版见下节 `20261121-sim6-e2e-cn-traj-full`。）
+
+## 2026-11-21 纯中文四区实时轨迹录像与 5 Hz 真轨迹导出实测
+
+**目的**：在 UE Airport 实飞中验证新版 `1920×720` 纯中文四区录像（去内部编号 + 右侧真实机场占用栅格二维轨迹态势 + 底部高度剖面 + 6 机色标遥测表）以及 5 Hz 真实轨迹导出 `trajectories.json`（供 ROS2/RViz2 三维回放）。
+
+**环境与参数**：UE Airport + WSL `172.21.192.1` + 237 Ollama `qwen3.5:9b`（本轮启动时仍为 `think=true`，运行后已按用户要求将默认配置改为 `think=false`），巡航 `16 m/s`，开启 `--record-video`。
+
+**结果**：
+- **飞行与碰撞**：第一批 `Scout-1/2/3` 并行实飞 `201.0 s` 全部安全返航；第一轮 VLM 评估中 `OBJ-A` 偶发 `think=true` 思考链超过 `180 s` 超时（单目标故障隔离生效，未中断任务，`OBJ-A` 留在 `round1_vlm_failed`）；`OBJ-B`（`roof_entry`）与 `OBJ-C`（`closeup_approach`）正常派发第二批 `Inspect-2/3`（并行实飞 `217.7 s`）并均在终评判为 **`confirmed`**。全部在飞无人机空中与障碍物碰撞 **0 次**。
+- **轨迹与视频**：成功导出真实 5 Hz `trajectories.json`（含 NED 与 ENU 坐标），生成 `mission_6uav_overview.mp4`、`mission_6uav_highlight_4x.mp4` 及网页可播 `mission_6uav_highlight_4x.webm`（22.75 MB，652 帧 @ 15 FPS）。
+- **结论与后续**：纯中文四区界面、实时二维机场轨迹态势、高度剖面与真实轨迹导出均已实机跑通；默认 `think=false` 已生效于 `vlm.py`/`run_replay.py`/`run_sim_e2e.py`。下一步将第二批 3 架复查机接入真实视觉伺服闭环（DINO 匹配 + 深度测距速度控制律 + 机库破口视觉对准入室）。
+
+（本节不完整超时运行产物 `20261121-sim6-e2e-cn-traj` 已于 2026-11-21 清理，汇总结果保留在本节；完整 6 机版本见下节 `20261121-sim6-e2e-cn-traj-full`。）
+
+## 2026-11-21 `think=false` 完整 6 机实飞、纯中文四区轨迹录像与 5 Hz 真轨迹导出
+
+**目的**：在默认 `think=false` 下完整复跑 6 机两阶段端到端协同流程，确保全部 6 架无人机（`Scout-1/2/3` + `Inspect-1/2/3`）无超时、全量起飞并完成闭环，产出完整 6 机真实轨迹 `trajectories.json`（供 ROS2/RViz2 三维回放）及纯中文四区轨迹录像。
+
+**环境与参数**：UE Airport + WSL `172.21.192.1` + 237 Ollama `qwen3.5:9b`（`--no-think`，`--dispatch-policy always_confirm`），巡航 `16 m/s`，开启 `--record-video`。
+
+**结果**：
+- **飞行与碰撞**：6 架无人机全部完整起飞、采图、安全返航降落；第一批 `Scout-1/2/3` 飞行 `199.97 / 183.27 / 194.27 s`，第二批 `Inspect-1/2/3` 飞行 `185.01 / 206.70 / 220.88 s`（`Inspect-2` 经屋顶破洞无回退入室拍完安全飞出）。全部 6 架机全程碰撞均为起飞前+降落各 1 次地面接触，**空中及障碍物碰撞 0 次**。
+- **VLM 耗时与判定（`think=false`）**：第一轮 3 目标评估耗时 `6.43 / 2.82 / 2.43 s`，全部派发第二批复查；第二轮终评总墙钟仅 **`9.31 s`**（单目标 `3.42 / 3.22 / 2.51 s`），三目标 **`3/3 confirmed`**（0 超时、0 漏检）。
+- **轨迹与录像**：导出完整 6 机 5 Hz 真轨迹 `trajectories.json`（`Scout-1/2/3` 各 `938` 点、最高高度 `78.5 / 95.0 / 110.2 m`；`Inspect-1/2/3` 各 `1044` 点、最高高度 `77.9 / 94.1 / 109.2 m`）；录像 12 路流各自实收 `2582–2593` 帧（100% 独立时间戳、零黑帧/过曝），输出实时版 `mission_6uav_overview.mp4`（4000 帧）、4 倍速精华版 `mission_6uav_highlight_4x.mp4`（1169 帧，38.97 s）及网页播放版 `mission_6uav_highlight_4x.webm`（23.53 MB，585 帧）。
+- **尚未验证项**：本轮第二批抵近仍为航点控制；下一阶段按 1A 方案（3 架并行到点、串行独占 GPU 跑 DINOv2 + RGB-D 视觉伺服闭环与机库破口对准入室）替换第二批末端控制。
+
+[评估报告](../runs/coordination/20261121-sim6-e2e-cn-traj-full/report.md) · [结构化报告 JSON](../runs/coordination/20261121-sim6-e2e-cn-traj-full/report.json) · [完整6机真轨迹 JSON](../runs/coordination/20261121-sim6-e2e-cn-traj-full/trajectories.json) · [仿真指标](../runs/coordination/20261121-sim6-e2e-cn-traj-full/sim_metrics.json) · [高清4倍速 H.264 MP4](../runs/coordination/20261121-sim6-e2e-cn-traj-full/videos/mission_6uav_highlight_4x.mp4) · [高清实时版 MP4](../runs/coordination/20261121-sim6-e2e-cn-traj-full/videos/mission_6uav_overview.mp4)
+
+## 2026-11-21 1A 第二批真实视觉伺服闭环接入与实飞调参（v1 / v2）
+
+**目的**：在第二批 3 架复查机（`Inspect-1/2/3`）上以 **1A 方案（并行巡航至伺服起点 + 串行独占 GPU 视觉伺服闭环）** 替换末端航点控制，伺服全程不读取目标真值坐标，同时在前视画面实时叠加 DINOv2 热图 / RGB-D 屋顶破口掩膜、准星、测距与机体系速度指令，并通过静态 `ffmpeg` 自动封装原生 `1920×720` H.264 MP4。
+
+**环境与参数**：UE Airport + WSL `172.21.192.1` + 本地 GPU（`cuda` 加载 `weights/dinov2_vits14_pretrain.pth`，`32×32` 网格）+ 237 Ollama `qwen3.5:9b`（`--no-think`，`--dispatch-policy always_confirm`，`--visual-servo`，`--record-video`）。离线回归单测 `test_project.py` + `test_coordination.py` 共 **14/14 通过**。
+
+**结果与根因分析**：
+- **飞行安全与录像**：`v1` 与 `v2` 两轮实飞 6 架无人机全程空中与障碍物碰撞均为 **0 次**，两轮均自动产出原生 `1920×720 @ 30 FPS` H.264 录像（`h264_encoded=true`）与 5 Hz 真实轨迹 `trajectories.json`。
+- **`OBJ-A`（飞机 `dino_oblique`）**：两轮均一次闭环收敛（`v1`：`201` 步、`17.75 s` 抵近至 `12.87 m`；`v2`：`183` 步、`16.82 s`，约 `10.9–11.3 Hz` 实时闭环），触发 3 帧 `range_confirmed` 停机并在真实伺服终点直拍近景；`v1` 终评 `confirmed`，`v2` 因 `stop_dist=13.5 m` 稍远在 `think=false` 下偶发判为 `ruled_out`（实拍图主翼上卷清晰可见，缩短至 `11.0 m` 可进一步放大损伤特征）。
+- **`OBJ-B`（机库 `opening_nadir`）**：`v1` 未做姿态去倾时，四旋翼水平加速倾斜导致表观洞口振荡（`4.8 → 1.58 → 7.3 m`）；`v2` 加入基于实时相机四元数的姿态去倾投影与定高保持后彻底消除振荡，10 秒内即收敛至 **`0.024 m` 水平误差**（高度稳锁 `38.43 m`），但因传入 `down` 向量时 `opening_geometry.py` 走几何中心 `plane_aperture` 使锚点靠近横梁边缘（净空 `1.06 m < 1.6 m` 阈值）而未进入下降阶段，超时后由安全回退完成入室拍图并终评 `confirmed`。
+- **`OBJ-C`（塔台 `dino_oblique`）**：`v1` 抵近至 `12.08 m` 后因模板含塔顶蓝楼滑到画边采到天空深度；`v2` 改用主柱中段模板（离线峰值 `0.934`）后 12 秒即抵近至 **`14.95 m`**，但主柱较窄时镜头微偏扫到 240 m 外的机场另一座同款塔台，深度由 `15.65 m` 骤跳至 `249 m` 触发切目标，超时后走安全回退并终评 `confirmed`。
+- **结论与待做修复**：1A 串行 GPU 闭环架构、热图/准星/速度实时叠加、H.264 封包及零碰撞安全护栏全部跑通；仅剩两处 2 行级小调（机库 `opening_candidates` 选最大净空圆心 + 塔台近距深度骤跳防切目标保护 + 飞机 `stop_dist` 调至 `11.0 m`）即可实现三目标 3/3 零回退闭环收敛。
+
+（本节中途调参产物 `20261121-sim6-e2e-visual-servo` 与 `v2` 已于 2026-11-21 清理，根因分析保留在本节；最终 3/3 零回退收敛产物见下节 `20261121-sim6-e2e-visual-servo-v3`。）
+
+## 2026-11-21 1A 视觉伺服闭环完整验收（v3：对齐 6 m 停机标准、3/3 零回退收敛）
+
+**目的**：验证三项定点修复后的完整 6 机端到端闭环：（1）飞机与塔台停机距离对齐项目标准 `stop_dist_m = 5.8 m`（`< 6 m`）、近距限速门槛 `close_range_m = 12.0 m`、深度护栏 `2.5 m`；（2）在 `SharedDinoMatcher.query` 中加入基于同帧深度图的前景深度门控 `foreground_patch_mask`，屏蔽 `> d + 15 m` 远景 patch 防止 240 m 外孪生塔台劫持；（3）机库正俯视 `opening_nadir` 保持姿态去倾与定高控制，改用 `opening_candidates(..., down=None)` 选取最大净空圆心实现真实穿洞入室。
+
+**环境与参数**：UE Airport + WSL `172.21.192.1` + 本地 GPU（`cuda` 加载 `weights/dinov2_vits14_pretrain.pth`）+ 237 Ollama `qwen3.5:9b`（`--no-think`，`--dispatch-policy always_confirm`，`--visual-servo`，`--record-video`）。回归单测 `test_project.py` + `test_coordination.py` 共 **14/14 通过**（新增前景深度门控单测）。
+
+**结果（3/3 闭环收敛、0 回退、0 空中碰撞、3/3 确认受损）**：
+
+| 复查机 / 中性目标 | 控制模式（伺服不读真值坐标） | 闭环步数 / 耗时 | 终态实测指标 | 是否回退 | VLM 终评 |
+|---|---|---:|---|---|---|
+| `Inspect-1` / `OBJ-A`（飞机） | `dino_oblique`（首轮斜视图原型 + 前景深度门控） | `239` 步 / `21.33 s` | `range_confirmed`，`guard_depth = 5.64 m`，`peak = 0.792`，3/3 确认 | **否** | **`confirmed`** |
+| `Inspect-2` / `OBJ-B`（机库） | `opening_nadir`（最大净空圆心 + 姿态去倾 + 通道核验） | `226` 步 / `17.91 s` | `interior_reached`，水平误差 `0.241 m`，净空 `2.76 m`，垂直穿洞至 `16.03 m` 并原位垂直退出 | **否** | **`confirmed`** |
+| `Inspect-3` / `OBJ-C`（塔台） | `dino_oblique`（主柱原型 + 前景深度门控防孪生塔台） | `253` 步 / `25.67 s` | `range_confirmed`，`guard_depth = 5.71 m`，`peak = 0.520`，3/3 确认 | **否** | **`confirmed`** |
+
+- **安全、耗时与产物**：6 架机全程碰撞均为起飞前+降落各 1 次地面接触，**空中及障碍物碰撞 0 次**；VLM 首轮评估总墙钟 `12.39 s`，终评总墙钟 **`9.82 s`**；6 机 5 Hz 真轨迹完整导出（`Scout-1/2/3` 各 `935` 点，`Inspect-1/2/3` 各 `1234` 点）；两版 `1920×720 @ 30 FPS` 视频均已自动封装为原生 H.264 MP4（实时版 `4250` 帧 / `141.67 s`，4 倍速精华版 `1232` 帧 / `41.07 s`）。
+- **尚未验证项**：真正无损目标（如 `01-f14-intact`）在端到端视觉伺服闭环下的 `ruled_out` 零误报验证。
+
+[v3 评估报告](../runs/coordination/20261121-sim6-e2e-visual-servo-v3/report.md) · [v3 结构化报告 JSON](../runs/coordination/20261121-sim6-e2e-visual-servo-v3/report.json) · [v3 完整 6 机轨迹 JSON](../runs/coordination/20261121-sim6-e2e-visual-servo-v3/trajectories.json) · [v3 闭环逐帧日志目录](../runs/coordination/20261121-sim6-e2e-visual-servo-v3/servo_logs) · [v3 仿真指标](../runs/coordination/20261121-sim6-e2e-visual-servo-v3/sim_metrics.json) · [v3 高清 4x H.264 MP4](../runs/coordination/20261121-sim6-e2e-visual-servo-v3/videos/mission_6uav_highlight_4x.mp4) · [v3 高清原速 H.264 MP4](../runs/coordination/20261121-sim6-e2e-visual-servo-v3/videos/mission_6uav_overview.mp4)
+
+## 2026-11-21 混合无损阴性对照实飞验证（2 无损飞机 + 1 受损机库，真实视觉伺服闭环）
+
+**目的**：在 `always_confirm` 全量复核策略与真实 1A 视觉伺服闭环下，将机场目标库中全部 2 个无毁伤目标（`01-f14-intact`、`05-f35-intact`）与 1 个受损目标（`09-hangar-910`）混排盲测，验证系统能否同时实现“无损目标稳定判 `ruled_out`（零误报）”与“受损目标稳定判 `confirmed`（不漏检）”，并检验 DINOv2 视觉伺服在新目标上的泛化收敛能力。
+
+**环境与参数**：UE Airport + WSL `172.21.192.1` + 任务配置 `configs/missions/coordination_sim_6uav_intact_check.json`（2D 态势图按目标范围自动扩展）+ 本地 GPU `DINOv2 ViT-S/14` + 237 Ollama `qwen3.5:9b`（`--no-think`，`--dispatch-policy always_confirm`，`--visual-servo`，`--record-video`）。回归单测 `14/14` 通过。
+
+**结果（3/3 零回退闭环收敛、0 空中碰撞、3/3 精准区分真值）**：
+
+| 复查机 / 中性目标 | 事后真值 | 闭环模式与耗时 | 终态实测指标 | VLM 终评 | 核对 |
+|---|---|---|---|---|---|
+| `Inspect-1` / `OBJ-A`（飞机1） | `01-f14-intact`（无损） | `dino_oblique`，`391` 步 / `31.64 s` | `range_confirmed`，终距 `5.77 m`，`cx = -0.001`，`peak = 0.700` | **`ruled_out`** | 正确（零误报） |
+| `Inspect-2` / `OBJ-B`（机库） | `09-hangar-910`（受损） | `opening_nadir`，`242` 步 / `19.21 s` | `interior_reached`，垂直穿洞入室至 `16.08 m` 并安全原位退出 | **`confirmed`** | 正确（命中损伤） |
+| `Inspect-3` / `OBJ-C`（飞机2） | `05-f35-intact`（无损） | `dino_oblique`，`373` 步 / `31.78 s` | `range_confirmed`，终距 `5.70 m`，`cx = +0.014`，`peak = 0.482` | **`ruled_out`** | 正确（零误报） |
+
+- **安全与效率**：6 机空中及障碍物碰撞 **0 次**；VLM 首轮总耗时 `11.79 s`，终评总耗时 **`8.79 s`**；原生 `1920×720 @ 30 FPS` H.264 录像自动封包完成（实时版 `4838` 帧 / `161.27 s`，4 倍速版 `1379` 帧 / `45.97 s`）。
+- **综合 `v3` + 本轮两场端到端实飞汇总（6 组目标、6 次真实视觉伺服）**：视觉伺服闭环收敛率 **6/6（100%，零回退、零空中碰撞）**；损伤识别真正率（受损→`confirmed`）**4/4（100%）**；无损排除真负率（无损→`ruled_out`）**2/2（100%，零误报）**。
+
+[阴性对照评估报告](../runs/coordination/20261121-sim6-e2e-intact-control/report.md) · [结构化报告 JSON](../runs/coordination/20261121-sim6-e2e-intact-control/report.json) · [完整 6 机轨迹 JSON](../runs/coordination/20261121-sim6-e2e-intact-control/trajectories.json) · [闭环逐帧日志目录](../runs/coordination/20261121-sim6-e2e-intact-control/servo_logs) · [仿真指标](../runs/coordination/20261121-sim6-e2e-intact-control/sim_metrics.json) · [高清 4x H.264 MP4](../runs/coordination/20261121-sim6-e2e-intact-control/videos/mission_6uav_highlight_4x.mp4) · [高清原速 H.264 MP4](../runs/coordination/20261121-sim6-e2e-intact-control/videos/mission_6uav_overview.mp4) · [对照任务配置](../configs/missions/coordination_sim_6uav_intact_check.json)
+
+## 2026-11-21 结构化语义评估 Schema 升级与 5 目标实飞真图验证
+
+**目的**：将两轮 VLM 评估从简略文本升级为结构化语义输出（目标种类、疑似/确认受损部位、可见损伤语义描述、损伤分级、结构化二次任务单 `secondary_task` 与后续处置建议），并在 `OllamaVLMClient` 中补齐 SSH 握手重置（`rc=255`）自动重试；使用 `v3` 与 `intact-control` 实飞采集的 5 组真实视觉伺服图像（3 受损 + 2 无损）做 237 `qwen3.5:9b`（`think=false`）验证。
+
+**环境与参数**：离线复用真实视觉伺服采集图像，调用 237 Ollama `qwen3.5:9b`（`think=false`，`temperature=0.1`，`always_confirm`）；回归单测 `test_project.py` + `test_coordination.py` 共 **14/14 通过**。
+
+**结果（5/5 判定准确，单次推理 `2.79–6.64 s`）**：
+- `OBJ-A`（`02-f14-wing-curl`）：首轮 `双垂尾战斗机 / none → intact_verification`（6.64 s）；次轮近景改判 **`confirmed / severe`**（3.37 s），成功救回高空漏检。
+- `OBJ-B`（`09-hangar-910`）：首轮 `机场航站楼建筑 / severe / 屋顶 → roof_entry（高优先级）`（4.43 s）；次轮入室终评 **`confirmed / severe`**（5.84 s）。
+- `OBJ-C`（`18-tower-7889`）：首轮 `机场控制塔台 / none → intact_verification`（3.54 s）；次轮侧视近景改判 **`confirmed / severe / 塔身主体混凝土结构`**（3.58 s）。
+- `OBJ-D`（`01-f14-intact`）与 `OBJ-E`（`05-f35-intact`）：均稳定输出 **`ruled_out / intact / 无受损部位`**（终评耗时 `2.79 / 3.25 s`，零误报）。
+- **人工核验局限（诚实记录）**：`qwen3.5:9b`（`think=false`）在 5/5 总体定性与二次任务调度上表现稳定，但在细粒度部位描述上存在轻微泛化/过推断（如把上卷右翼误称为“左侧垂直尾翼”、对机库室内完好立柱过度推断为“弯曲倾斜”、对塔台未入画的塔顶屋顶外推破损）；后续对比 `--model qwen3.5:27b` 可进一步校准细粒度语义精度。
+
+[语义化评估报告](../runs/coordination/20261121-semantic-vlm-check/report.md) · [语义化报告 JSON](../runs/coordination/20261121-semantic-vlm-check/report.json) · [SQLite 状态库](../runs/coordination/20261121-semantic-vlm-check/survey.db)

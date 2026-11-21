@@ -1,0 +1,73 @@
+{
+  "id": "SceneAirbaseMulti6",
+  "actors": [
+    {
+      "type": "robot",
+      "name": "Scout-1",
+      "origin": {
+        "xyz": "0 -6 -1.0",
+        "rpy-deg": "0 0 0"
+      },
+      "robot-config": "robot_quadrotor_multi_720p.jsonc"
+    },
+    {
+      "type": "robot",
+      "name": "Scout-2",
+      "origin": {
+        "xyz": "0 0 -1.0",
+        "rpy-deg": "0 0 0"
+      },
+      "robot-config": "robot_quadrotor_multi_720p.jsonc"
+    },
+    {
+      "type": "robot",
+      "name": "Scout-3",
+      "origin": {
+        "xyz": "0 6 -1.0",
+        "rpy-deg": "0 0 0"
+      },
+      "robot-config": "robot_quadrotor_multi_720p.jsonc"
+    },
+    {
+      "type": "robot",
+      "name": "Inspect-1",
+      "origin": {
+        "xyz": "-8 -6 -1.0",
+        "rpy-deg": "0 0 0"
+      },
+      "robot-config": "robot_quadrotor_multi_720p.jsonc"
+    },
+    {
+      "type": "robot",
+      "name": "Inspect-2",
+      "origin": {
+        "xyz": "-8 0 -1.0",
+        "rpy-deg": "0 0 0"
+      },
+      "robot-config": "robot_quadrotor_multi_720p.jsonc"
+    },
+    {
+      "type": "robot",
+      "name": "Inspect-3",
+      "origin": {
+        "xyz": "-8 6 -1.0",
+        "rpy-deg": "0 0 0"
+      },
+      "robot-config": "robot_quadrotor_multi_720p.jsonc"
+    }
+  ],
+  "clock": {
+    "type": "real-time"
+  },
+  "home-geo-point": {
+    "latitude": 47.641468,
+    "longitude": -122.140165,
+    "altitude": 122.0
+  },
+  "segmentation": {
+    "initialize-ids": false,
+    "ignore-existing": true,
+    "use-owner-name": false
+  },
+  "scene-type": "UnrealNative"
+}

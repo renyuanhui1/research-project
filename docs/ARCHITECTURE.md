@@ -13,6 +13,7 @@
 | `src/evaluation/` | 位姿、包围盒及部位投影的离线评价 |
 | `src/visualization/` | ROS2地图发布、匹配图与轨迹回放 |
 | `src/px4/` | MAVSDK/PX4接口与航向检查 |
+| `src/coordination/` | 集中式两阶段多机协同调度中心、SQLite任务状态库与VLM评估适配 |
 
 Python入口定位项目根目录，并只将`src/`加入搜索路径；跨模块使用`common`、`perception`、`control`等包导入。资产路径相对项目根目录解析，不依赖启动工作目录。`common/profiles.py`加载`--profile`或`UAV_SCENE_PROFILE`指定的JSON；默认使用`airport`。
 
@@ -59,7 +60,7 @@ src/visualization/matching.launch.py
 
 主入口支持斜俯视和俯视。斜俯视100米任务远段水平速度上限3米/秒，近距12米内合速度限制0.35米/秒。停车要求3张独立深度帧满足阈值；保留高度、深度、碰撞、失锁和图像超时保护。部位匹配须通过对应准备目录的预检，各目标结果见[实验索引](../reports/EXPERIMENTS.md)。
 
-前摄与跟随RGB为1920×1080，深度为640×360，采集请求间隔0.0167秒。跟随相机位于机后3米、上方1.5米。深度按`16FC1`米制解码，episode存储保留fp16；无效值记0。不同分辨率测距使用归一化图像坐标。录像按30FPS编码，实际独立源帧率由报告与帧索引给出，含重复帧时不能视为真实30FPS采集。
+前摄与跟随RGB为1920×1080，深度为640×360，采集请求间隔0.0333333秒（30 Hz）；默认关闭语义分割流与未用辅助传感器。多机协同另提供精简720p配置`configs/simulation/robot_quadrotor_multi_720p.jsonc`（前摄与跟随RGB均为1280×720、深度640×360、30 Hz，保留`Chase`供可视化）。跟随相机位于机后3米、上方1.5米。深度按`16FC1`米制解码，episode存储保留fp16；无效值记0。不同分辨率测距使用归一化图像坐标。录像按30FPS编码，实际独立源帧率由报告与帧索引给出，含重复帧时不能视为真实30FPS采集。
 
 ## 文件与坐标约定
 
@@ -357,3 +358,15 @@ SIFT分支使用RootSIFT描述子、双向比值匹配和二维仿射RANSAC；�
 `evaluation/eval_dino_matching.py`使用相同图像、编码器和配对，对通道标准化后L2归一化、仅L2归一化，以及不同落点计算方式做消融。原型方法分别计算边界坐标加权中心、格子中心坐标加权中心、峰值、配置温度的加权中心和峰值邻域内的加权中心；坐标定义与概率聚合分开评价。标准化统计复用骨干对照的训练统计。
 
 逐块方法在完整斜视图与四朝向模板之间计算互近邻对应，可使用二维仿射RANSAC筛选一致匹配。整目标锚点为模板中心，部位锚点为指定ROI内特征格中心的均值；从允许的对应中选取最靠近参考锚点的已观测匹配点，不投影补造未匹配部位。仿射分数结合内点数量、相似度、覆盖范围及ROI支持。查询图的掩码只参与事后评分。输出保留所有设置、逐对落点和缺失预测，分别报告开发集原始命中最优及可靠接受最优设置。
+
+## 多机两阶段协同勘测中心
+
+`src/coordination/` 实现“中心决策、分机执行”的集中式两阶段多机协同勘测骨架（初查 → VLM初评 → 按需复查交接 → 次轮补拍 → VLM复评），各目标独立推进，不依赖全部目标同步完成：
+
+- `coordination/store.py`：使用单文件 SQLite（WAL 模式）维护 `missions`、`targets`、`uploads`、`recheck_tasks`、`assessments` 和 `events` 六张表。通过 `UNIQUE(mission_id, target_id, stage, image_id)` 保证图像回传幂等去重，通过 `UNIQUE(mission_id, target_id)` 保证每个目标最多只创建一次复查任务；图像上传与无人机返航状态分字段记录，中心能区分“照片已收到”与“飞机已返航”。
+- `coordination/vlm.py`：定义统一的 `BaseVLMClient` 接口，提供离线单测用的 `MockVLMClient` 和对接 Ollama `/api/chat`（支持本地 HTTP 或无状态 SSH 代理连接 237 服务器的 `qwen3.5:9b`，默认 `think=false`）的 `OllamaVLMClient`。模型只接收中性目标编号（如 `OBJ-A`）、中性图像编号与图像字节，原始路径和带损伤描述的真值标签不进入模型提示词。首轮结构化语义输出包含目标种类（`target_type`）、疑似受损部位（`suspected_damaged_parts`）、可见损伤描述（`visible_damage_description`）、初评等级（`initial_damage_level`）、观察事实、引用图像编号、待核实疑点及结构化二次任务单（`secondary_task`：任务类型、瞄准部位、期望视角、指令与优先级）；次轮综合两轮图像与原问题输出确认目标种类、确认受损部位（`confirmed_damaged_parts`）、损伤分级（`damage_severity`）、综合损伤描述（`damage_description`）、`confirmed` / `ruled_out` / `still_uncertain` 判定、新增视觉证据与后续处置建议（`recommended_followup`）。
+- `coordination/center.py`：`SurveyCenter` 负责在 `runs/coordination/<mission-id>/` 下拒绝覆盖已有非空目录、按中性文件名归档原图与 SHA-256、按目标隔离 VLM 调用失败并保留待处理状态、按 `dispatch_policy`（默认 `always_confirm`，无论首轮是否发现损伤均生成第二轮复查/完好复核任务；可选 `only_flagged` 仅派发首轮标疑目标）向第二批无人机生成交接包（目标编号、首轮原图、复查问题、重点区域与建议动作），以及导出 `report.json` 与 `report.md`。
+- `coordination/run_replay.py`：读取配对回放清单（默认 `configs/missions/coordination_replay_3targets.json`），支持 `--stress-test` 模拟跨目标乱序到达、重复回传与延迟返航，用于无仿真条件下的调度与 VLM 闭环验证。
+- `coordination/run_sim_e2e.py`：ProjectAirSim 两批 6 机（`Scout-1..3`、`Inspect-1..3`）端到端仿真桥接入口，配合 `configs/simulation/scene_airport_multi6.jsonc`（720p + 30 Hz + 保留 `Chase`）与 `configs/missions/coordination_sim_6uav.json`（三目标 75/90/105 m 分层巡航）。支持 `--probe-only` 实测 1/3/6 机实时帧率，也支持两批 3 机并行起飞实拍、5 Hz 位姿采样导出 `trajectories.json`（NED 与 ENU）、上传中心、调用 237 `qwen3.5:9b`（默认 `think=false`）两轮评估、返航降落及碰撞计数归档；配合 `coordination/video_recorder.py` 仅订阅在飞 3 机的 `Chase` + `FrontCamera` 流，实时合成 `1920×720` 纯中文四区视频（左上 3×2 实时画面、左下实时高度剖面、右上真实机场占用栅格二维轨迹态势图、右下 6 机色标遥测表），并在结束时自动调用 `ffmpeg` 转为浏览器可直播的 H.264 MP4。
+- `coordination/visual_servo.py`：第二批复查机末端真实视觉伺服闭环模块（默认开启 `--visual-servo`，可 `--no-visual-servo` 切回纯航点基线）。采用 **1A 并行到点 + 串行独占 GPU 伺服** 调度：3 架复查机先并行巡航至各自伺服起点悬停，再依次获取异步互斥锁运行闭环控制，伺服全程不读取目标真值坐标。飞机与塔台（`dino_oblique`）共用单实例冻结 `DINOv2 ViT-S/14`（`SharedDinoMatcher`），直接以第一批交接包传回的斜俯视图提取目标原型，结合实时 RGB-D 深度采样与 `servo_closed_loop` 机体系速度控制律抵近并经连续 3 帧停机确认；机库（`opening_nadir`）复用 `opening_geometry.opening_candidates` 对正俯视深度图做屋面/室内双层分割，按破口像素偏移与屋面深度驱动机体系水平对准，核验正下方垂直通道净空后下降入室拍图并沿原位垂直退出。通过 `recorder.set_front_listener` 复用前视 RGB 流（避免双订阅冲突），并通过 `recorder.set_servo_overlay` 在前视画面实时叠加 DINO 热图 / 破口掩膜、目标准星、测距、速度指令及确认进度条，同时落盘逐帧轨迹至 `servo_logs/<target_id>_servo.json`。
+- `visualization/multi_uav_traj_node.py` 与 `visualization/multi_uav_replay.launch.py`：ROS2 Humble 多机三维轨迹回放节点与启动入口，读取 `trajectories.json` 在 `world` ENU 坐标系发布 `/coordination/markers` 与 `/coordination/paths/*`，与 `map_view.py` 机场三维网格及占用栅格叠加显示在 `configs/rviz/multi_uav_coordination.rviz` 中。

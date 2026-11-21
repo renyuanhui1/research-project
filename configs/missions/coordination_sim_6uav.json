@@ -1,0 +1,198 @@
+{
+  "description": "Two-batch 6-UAV ProjectAirSim end-to-end cooperative survey mission plan (3 airport targets, vertically separated cruise layers).",
+  "scene_config": "configs/simulation/scene_airport_multi6.jsonc",
+  "cruise_speed_mps": 16.0,
+  "approach_speed_mps": 4.0,
+  "vertical_speed_mps": 4.5,
+  "targets": [
+    {
+      "target_id": "OBJ-A",
+      "ground_truth_label": "02-f14-wing-curl (F-14 主翼上卷变形)",
+      "round1_drone_id": "Scout-1",
+      "round2_drone_id": "Inspect-1",
+      "cruise_alt_m": 75.0,
+      "round1_home_ned": [0.0, -6.0, -1.0],
+      "round2_home_ned": [-8.0, -6.0, -1.0],
+      "round1_shots": [
+        {
+          "suffix": "01",
+          "view_type": "nadir",
+          "position_ned": [377.2, 228.8, -32.0],
+          "yaw_deg": 0.0,
+          "camera_pitch_deg": -90.0
+        },
+        {
+          "suffix": "02",
+          "view_type": "oblique",
+          "position_ned": [377.2, 260.0, -24.0],
+          "yaw_deg": -90.0,
+          "camera_pitch_deg": -35.0
+        }
+      ],
+      "round2_approach_waypoints_ned": [
+        [373.6, 255.0, -22.0]
+      ],
+      "round2_shots": [
+        {
+          "suffix": "01",
+          "view_type": "closeup_oblique",
+          "position_ned": [373.6, 240.2, -8.2],
+          "yaw_deg": -85.3,
+          "camera_pitch_deg": -30.0
+        }
+      ],
+      "round2_exit_waypoints_ned": [
+        [373.6, 255.0, -25.0]
+      ],
+      "visual_servo": {
+        "mode": "dino_oblique",
+        "start_ned": [373.6, 260.0, -22.0],
+        "start_yaw_deg": -83.0,
+        "camera_pitch_deg": -32.0,
+        "template_shot_suffix": "02",
+        "template_roi": [0.32, 0.40, 0.64, 0.61],
+        "stop_dist_m": 5.8,
+        "close_range_m": 12.0,
+        "close_speed_mps": 0.75,
+        "slow_dist_m": 24.0,
+        "v_forward_mps": 2.4,
+        "v_down_mps": 0.95,
+        "k_yaw": 0.85,
+        "yaw_max_rps": 0.45,
+        "k_vert": 1.2,
+        "allow_climb": false,
+        "min_peak": 0.22,
+        "min_alt_m": 4.5,
+        "max_alt_m": 45.0,
+        "depth_guard_m": 2.5,
+        "confirm_frames": 3,
+        "max_duration_s": 55.0
+      }
+    },
+    {
+      "target_id": "OBJ-B",
+      "ground_truth_label": "09-hangar-910 (机库轻损单区屋面破口)",
+      "round1_drone_id": "Scout-2",
+      "round2_drone_id": "Inspect-2",
+      "cruise_alt_m": 90.0,
+      "round1_home_ned": [0.0, 0.0, -1.0],
+      "round2_home_ned": [-8.0, 0.0, -1.0],
+      "round1_shots": [
+        {
+          "suffix": "01",
+          "view_type": "nadir",
+          "position_ned": [-45.5, 534.8, -90.0],
+          "yaw_deg": 0.0,
+          "camera_pitch_deg": -90.0
+        },
+        {
+          "suffix": "02",
+          "view_type": "oblique",
+          "position_ned": [-105.0, 534.8, -62.0],
+          "yaw_deg": 0.0,
+          "camera_pitch_deg": -35.0
+        }
+      ],
+      "round2_approach_waypoints_ned": [
+        [-48.6, 531.5, -36.0]
+      ],
+      "round2_shots": [
+        {
+          "suffix": "01",
+          "view_type": "interior_closeup",
+          "position_ned": [-48.6, 531.5, -15.0],
+          "yaw_deg": 101.3,
+          "camera_pitch_deg": 0.0,
+          "fallback_position_ned": [-48.6, 531.5, -32.0],
+          "fallback_camera_pitch_deg": -80.0
+        }
+      ],
+      "round2_exit_waypoints_ned": [
+        [-48.6, 531.5, -36.0]
+      ],
+      "visual_servo": {
+        "mode": "opening_nadir",
+        "start_ned": [-45.8, 534.3, -38.0],
+        "start_yaw_deg": 0.0,
+        "camera_pitch_deg": -90.0,
+        "min_layer_gap_m": 6.0,
+        "min_clearance_m": 1.6,
+        "align_tol_m": 0.85,
+        "align_confirm_frames": 3,
+        "gain_xy": 0.28,
+        "max_xy_mps": 0.85,
+        "descend_mps": 2.2,
+        "target_interior_alt_m": 15.5,
+        "min_floor_guard_m": 5.0,
+        "vertical_exit_alt_m": 38.0,
+        "max_duration_s": 55.0
+      }
+    },
+    {
+      "target_id": "OBJ-C",
+      "ground_truth_label": "18-tower-7889 (塔台轻度损伤：主柱局部剥落、缺棱、屋檐破损)",
+      "round1_drone_id": "Scout-3",
+      "round2_drone_id": "Inspect-3",
+      "cruise_alt_m": 105.0,
+      "round1_home_ned": [0.0, 6.0, -1.0],
+      "round2_home_ned": [-8.0, 6.0, -1.0],
+      "round1_shots": [
+        {
+          "suffix": "01",
+          "view_type": "nadir",
+          "position_ned": [47.8, 493.9, -98.0],
+          "yaw_deg": 0.0,
+          "camera_pitch_deg": -90.0
+        },
+        {
+          "suffix": "02",
+          "view_type": "oblique",
+          "position_ned": [0.0, 460.0, -75.0],
+          "yaw_deg": 35.5,
+          "camera_pitch_deg": -35.0
+        }
+      ],
+      "round2_approach_waypoints_ned": [
+        [28.0, 476.0, -70.0],
+        [28.0, 476.0, -24.0]
+      ],
+      "round2_shots": [
+        {
+          "suffix": "01",
+          "view_type": "closeup_side",
+          "position_ned": [42.1, 490.6, -23.9],
+          "yaw_deg": 35.5,
+          "camera_pitch_deg": -30.0
+        }
+      ],
+      "round2_exit_waypoints_ned": [
+        [28.0, 476.0, -24.0],
+        [28.0, 476.0, -70.0]
+      ],
+      "visual_servo": {
+        "mode": "dino_oblique",
+        "start_ned": [24.0, 472.0, -24.0],
+        "start_yaw_deg": 40.0,
+        "camera_pitch_deg": -8.0,
+        "template_shot_suffix": "02",
+        "template_roi": [0.43, 0.46, 0.52, 0.78],
+        "stop_dist_m": 5.8,
+        "close_range_m": 12.0,
+        "close_speed_mps": 0.75,
+        "slow_dist_m": 24.0,
+        "v_forward_mps": 2.2,
+        "v_down_mps": 0.0,
+        "k_yaw": 0.85,
+        "yaw_max_rps": 0.45,
+        "k_vert": 0.4,
+        "allow_climb": false,
+        "min_peak": 0.22,
+        "min_alt_m": 14.0,
+        "max_alt_m": 55.0,
+        "depth_guard_m": 2.5,
+        "confirm_frames": 3,
+        "max_duration_s": 55.0
+      }
+    }
+  ]
+}

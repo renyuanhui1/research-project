@@ -1,0 +1,73 @@
+{
+  "description": "Three-target offline two-stage multi-UAV cooperative survey replay manifest (aircraft, hangar, tower).",
+  "batch1_drones": ["Scout-1", "Scout-2", "Scout-3"],
+  "batch2_drones": ["Inspect-1", "Inspect-2", "Inspect-3"],
+  "targets": [
+    {
+      "target_id": "OBJ-A",
+      "round1_drone_id": "Scout-1",
+      "round2_drone_id": "Inspect-1",
+      "ground_truth_label": "02-f14-wing-curl (F-14 主翼上卷变形)",
+      "round1_uploads": [
+        {
+          "image_id": "OBJ-A-R1-01",
+          "view_type": "nadir",
+          "path": "data/templates/airport_targets_20261116/02-f14-wing-curl/template.png",
+          "captured_at": "2026-11-21T03:00:10+00:00"
+        }
+      ],
+      "round2_uploads": [
+        {
+          "image_id": "OBJ-A-R2-01",
+          "view_type": "closeup_oblique",
+          "path": "runs/approach/20261116-coarse-to-fine/02-f14-wing-curl/control/final-front.png",
+          "captured_at": "2026-11-21T03:04:20+00:00"
+        }
+      ]
+    },
+    {
+      "target_id": "OBJ-B",
+      "round1_drone_id": "Scout-2",
+      "round2_drone_id": "Inspect-2",
+      "ground_truth_label": "09-hangar-910 (机库轻损单区屋面破口)",
+      "round1_uploads": [
+        {
+          "image_id": "OBJ-B-R1-01",
+          "view_type": "nadir",
+          "path": "data/templates/airport_targets_20261116/09-hangar-910/template.png",
+          "captured_at": "2026-11-21T03:00:12+00:00"
+        }
+      ],
+      "round2_uploads": [
+        {
+          "image_id": "OBJ-B-R2-01",
+          "view_type": "interior_closeup",
+          "path": "runs/approach/20261116-coarse-to-fine/09-hangar-910/tracked-vertical-entry/interior-observation.png",
+          "captured_at": "2026-11-21T03:05:15+00:00"
+        }
+      ]
+    },
+    {
+      "target_id": "OBJ-C",
+      "round1_drone_id": "Scout-3",
+      "round2_drone_id": "Inspect-3",
+      "ground_truth_label": "18-tower-7889 (塔台轻度损伤：主柱局部剥落、缺棱、屋檐破损)",
+      "round1_uploads": [
+        {
+          "image_id": "OBJ-C-R1-01",
+          "view_type": "nadir",
+          "path": "data/templates/airport_targets_20261116/18-tower-7889/template.png",
+          "captured_at": "2026-11-21T03:00:15+00:00"
+        }
+      ],
+      "round2_uploads": [
+        {
+          "image_id": "OBJ-C-R2-01",
+          "view_type": "closeup_side",
+          "path": "runs/approach/20261116-coarse-to-fine/18-tower-7889/control/final-front.png",
+          "captured_at": "2026-11-21T03:06:05+00:00"
+        }
+      ]
+    }
+  ]
+}

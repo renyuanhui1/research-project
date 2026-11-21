@@ -1,0 +1,92 @@
+Panels:
+- Class: rviz_common/Displays
+  Help Height: 78
+  Name: Displays
+  Property Tree Widget:
+    Expanded:
+    - /Global Options1
+    Splitter Ratio: 0.5
+  Tree Height: 450
+- Class: rviz_common/Views
+  Name: Views
+Visualization Manager:
+  Class: ''
+  Displays:
+  - Class: rviz_default_plugins/MarkerArray
+    Enabled: true
+    Name: Airport 3D Map & Targets
+    Namespaces: {}
+    Topic:
+      Depth: 1
+      Durability Policy: Transient Local
+      History Policy: Keep Last
+      Reliability Policy: Reliable
+      Value: /near_nose/map
+    Value: true
+  - Class: rviz_default_plugins/Map
+    Name: Global Occupancy Grid (5m)
+    Enabled: true
+    Value: true
+    Alpha: 0.55
+    Color Scheme: map
+    Draw Behind: true
+    Topic:
+      Depth: 1
+      Durability Policy: Transient Local
+      History Policy: Keep Last
+      Reliability Policy: Reliable
+      Value: /near_nose/grid/global
+  - Class: rviz_default_plugins/MarkerArray
+    Enabled: true
+    Name: 6-UAV 3D Trajectories & Beacons
+    Namespaces: {}
+    Topic:
+      Depth: 10
+      Durability Policy: Volatile
+      History Policy: Keep Last
+      Reliability Policy: Reliable
+      Value: /coordination/markers
+    Value: true
+  Enabled: true
+  Global Options:
+    Background Color: 32; 36; 44
+    Fixed Frame: world
+    Frame Rate: 30
+  Name: root
+  Tools:
+  - Class: rviz_default_plugins/MoveCamera
+  - Class: rviz_default_plugins/Select
+  Value: true
+  Views:
+    Current:
+      Class: rviz_default_plugins/Orbit
+      Distance: 780
+      Focal Point:
+        X: 280.0
+        Y: 160.0
+        Z: 35.0
+      Name: Current View
+      Pitch: 0.65
+      Target Frame: <Fixed Frame>
+      Yaw: 4.1
+    Saved:
+    - Class: rviz_default_plugins/Orbit
+      Name: 6-UAV Corridor Overview
+      Distance: 780
+      Focal Point: {X: 280.0, Y: 160.0, Z: 35.0}
+      Pitch: 0.65
+      Yaw: 4.1
+      Target Frame: <Fixed Frame>
+    - Class: rviz_default_plugins/Orbit
+      Name: Top-Down 6-UAV Map
+      Distance: 880
+      Focal Point: {X: 270.0, Y: 160.0, Z: 0.0}
+      Pitch: 1.52
+      Yaw: 4.712389
+      Target Frame: <Fixed Frame>
+Window Geometry:
+  Displays:
+    collapsed: false
+  Height: 920
+  Width: 1480
+  Hidden: false

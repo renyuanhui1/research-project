@@ -817,3 +817,51 @@ python runs/evaluation/20261118-shadow-stability/evaluate_shadow.py
 冻结清单中的影子配置须指定`max_sensor_skew_s`和`max_frame_age_s`；示例分别使用0.05秒和0.5秒，RGB与深度帧均不重复计数。代码修改后须另存运行时冻结清单，保留所用权重及其SHA-256，不能覆盖已有实验的清单。准备方向偏转由`--approach-bearing-offset`指定，场景准备仍检查航线净空及模板可见性。
 
 停车参数分别控制持续零速度保持时长、被动观察时长和相对稳定停车点的最大位移。`report.json`中的`stop_hold_records`保留动作结果和完整状态；`stable_stop_verified`与`arrival_confirmed`、独立部位命中结果分别读取。采集和终点读取结束后，停止UE的Play并确认8990服务已关闭，再进行离线标签核验。
+
+## 多机两阶段协同调度（离线回放与 VLM 评估）
+
+`src/coordination/run_replay.py` 用于在不启动仿真的情况下，验证集中式两阶段多机协同调度中心（SQLite 状态库、原图归档、复查交接与报告导出）及视觉语言模型两轮评估。默认清单 `configs/missions/coordination_replay_3targets.json` 包含飞机、机库、塔台三类目标的首轮与次轮配对图像，并以中性编号 `OBJ-A` / `OBJ-B` / `OBJ-C` 送入模型。
+
+离线单元测试（验证乱序到达、重复上传幂等、标签隔离、单目标故障隔离）：
+
+```bash
+python3 -m unittest tests/test_coordination.py -v
+```
+
+使用内置 Mock VLM 跑中心骨架与乱序/重复压测：
+
+```bash
+python3 src/coordination/run_replay.py --vlm mock --stress-test --mission-id replay-mock-check
+```
+
+连接 237 服务器上的 Ollama `qwen3.5:9b` 执行真实两轮视觉评估（默认 `--dispatch-policy always_confirm`，初评无损伤目标也会派发近距复核任务；如需仅复查首轮标疑目标可传 `--dispatch-policy only_flagged`，通过 `--targets OBJ-A` 可单独测试单个目标）：
+
+```bash
+python3 src/coordination/run_replay.py \
+  --vlm ollama --model qwen3.5:9b --dispatch-policy always_confirm --stress-test \
+  --mission-id 20261121-qwen35-9b-always-confirm
+```
+
+若在本机或已建端口转发的 HTTP 地址调用 Ollama，可传 `--ssh-host "" --ollama-url http://127.0.0.1:11434`。每次运行在 `runs/coordination/<mission-id>/` 下输出 `survey.db`、中性归档图像 `images/`、`report.json` 与可读报告 `report.md`。
+
+### ProjectAirSim 两批 6 机端到端联机运行
+
+UE Airport 进入 Play 后（WSL 使用网关 `172.21.192.1`），先用 `--probe-only` 探测 6 机 720p 场景加载与实时收帧率：
+
+```bash
+/home/hui/miniconda3/envs/airsim/bin/python src/coordination/run_sim_e2e.py \
+  --probe-only --probe-seconds 6 --address 172.21.192.1 \
+  --mission-id 20261121-sim6-fps-probe
+```
+
+执行完整两批 6 机实飞 + 237 `qwen3.5:9b` 两轮评估端到端流程（默认开启 `--visual-servo` 1A 串行视觉伺服闭环、`--no-think` 与 `--record-video`；如需纯航点对照可传 `--no-visual-servo`）。结果归档到 `runs/coordination/<mission-id>/`，含原生 `1920×720` H.264 录像 `videos/mission_6uav_overview.mp4` 与 `videos/mission_6uav_highlight_4x.mp4`、`trajectories.json` 六机 ENU/NED 轨迹、`servo_logs/*_servo.json` 逐帧闭环日志、`sim_captures/` 原图及 `sim_metrics.json`：
+
+```bash
+/home/hui/miniconda3/envs/airsim/bin/python src/coordination/run_sim_e2e.py --address 172.21.192.1 --probe-seconds 2 --vlm ollama --model qwen3.5:9b --no-think --dispatch-policy always_confirm --visual-servo --mission-id 20261121-sim6-e2e-visual-servo
+```
+
+在 ROS2 / RViz2 中三维回放 6 架无人机的彩色轨迹与机场三维网格地图（退出 conda 后使用系统 ROS2 环境，单行执行）：
+
+```bash
+conda deactivate && source /opt/ros/humble/setup.bash && ros2 launch src/visualization/multi_uav_replay.launch.py trajectories:=/home/hui/research-project/runs/coordination/<mission-id>/trajectories.json speed:=6.0
+```
