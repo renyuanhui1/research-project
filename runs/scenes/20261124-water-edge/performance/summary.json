@@ -1,0 +1,16 @@
+{
+  "before": {
+    "frames": 561,
+    "median_ms": {
+      "GPUTime": 9.2446,
+      "FrameTime": 33.3263
+    }
+  },
+  "after": {
+    "frames": 561,
+    "median_ms": {
+      "GPUTime": 9.3065,
+      "FrameTime": 33.3121
+    }
+  }
+}

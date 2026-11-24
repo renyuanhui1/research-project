@@ -1,6 +1,6 @@
-# 机场视觉抵近实验记录
+# 机场与海港灾损巡查实验记录
 
-本文记录各试验的关键配置、结果和限制。完整逐帧数据、日志、权重与配置快照保留在对应实验目录。运行方式见[使用手册](../docs/USAGE.md)，控制与数据流见[架构说明](../docs/ARCHITECTURE.md)。
+本文记录各试验的关键配置、结果和限制。完整逐帧数据、日志、权重与配置快照保留在对应本地实验目录。Git 同步渔港目标表、观察位和关键测量摘要。运行方式见[使用手册](../docs/USAGE.md)，控制与数据流见[架构说明](../docs/ARCHITECTURE.md)，待执行的双场景试验见[研究方案](PLAN.md)。
 
 11 月 16 日的 19 项分阶段验收和 11 月 17 日的 1,920 组 RGB-D 采集均使用 WSL 网关。11 月 18 日的收帧和飞行结果按实际连接地址分别统计，见[当日汇总](#2026-11-18-相机链路与巡检验证)。[分阶段结果](../runs/approach/20261116-coarse-to-fine/summary.json) · [采集报告](../data/captures/airport_targets/20261117-multitarget/report.json)
 
@@ -15,7 +15,7 @@
 - **成功计数**：部位抵近以`arrival_confirmed=true`、入室以`entered=true`计为完成；预检失败和中断目录保留实际状态，不计为成功。运行目录中各文件的含义见[运行文件](../docs/USAGE.md#运行文件)。
 - **起飞接口**：多次准备中`takeoff`（个别为`move`）返回False，每次都由实际爬升与位姿检查确认后继续；原始返回值保留在各`prepare.log`，原因未查明，下文不再逐次重复。
 - **收尾状态**：在线试验结束时无人机悬停、客户端断开，未降落或解除电机，另有说明的除外。
-- **共同限制**：在线飞行均为同一静态UE机场开发场景中的单次试验，没有留出集、重复成功率、动态障碍或完整机体通道验证；下文的“未验证”只列各项特有的部分。
+- **共同限制**：已有闭环飞行来自静态 UE 机场开发场景。海港记录覆盖场景检查、视口测量与预设机位取图。各试验的重复次数、留出情况及通道验证范围见对应记录。
 
 ## 数据位置
 
@@ -28,6 +28,7 @@
 | 飞机网格与占用图 | [data/maps/airport_scene/](../data/maps/airport_scene/) |
 | 相机帧率（含720p、1080p、采集间隔）与网络诊断 | [debug/camera/](../debug/camera/)、[debug/network/](../debug/network/) |
 | 航点飞行 | [runs/waypoint/](../runs/waypoint/) |
+| 海港关卡检查、渲染性能与 RGB-D 取图 | [runs/scenes/](../runs/scenes/)、[海港目标与观察位](../data/metadata/coastal_harbor/) |
 
 包围盒评价读取`data/metadata/targets/`，表面距离使用机场三角面；占用图上的距离不能代替部位的真实距离。`debug/`在`.gitignore`内，不经Git同步。
 
@@ -1026,3 +1027,134 @@ WSL 经网关 `172.21.192.1` 连接 UE。非物理观察相机分别朝向 19 �
 - **人工核验局限（诚实记录）**：`qwen3.5:9b`（`think=false`）在 5/5 总体定性与二次任务调度上表现稳定，但在细粒度部位描述上存在轻微泛化/过推断（如把上卷右翼误称为“左侧垂直尾翼”、对机库室内完好立柱过度推断为“弯曲倾斜”、对塔台未入画的塔顶屋顶外推破损）；后续对比 `--model qwen3.5:27b` 可进一步校准细粒度语义精度。
 
 [语义化评估报告](../runs/coordination/20261121-semantic-vlm-check/report.md) · [语义化报告 JSON](../runs/coordination/20261121-semantic-vlm-check/report.json) · [SQLite 状态库](../runs/coordination/20261121-semantic-vlm-check/survey.db)
+
+## 2026-11-23 沿海渔港灾后关卡构建与单机取图验收
+
+**目的。** 在独立民用场景中提供建筑、水上船、搁浅船及道路车辆的巡查样本，并验证同一研究平台可以读到彩色图和深度图。
+
+**环境与参数。** Windows `project_520`、UE 5.2.1、ProjectAirSim、RTX 4060 Ti 8 GB；WSL 通过 Windows 网关 172.21.192.1 运行 `airsim` Python 环境。研究区域为 2 km × 2 km 的灾后静态关卡。采用单机 FrontCamera、90° 水平视场、30° 下俯，RGB 1920×1080、深度 640×360。[场景与素材](../docs/沿海渔港关卡.md) · [场景配置](../configs/simulation/scene_coastal_harbor.jsonc)
+
+**方法与结果。** 将地图保存为 UE 原生关卡，再用独立编辑器进程重开。本轮读取到 120 栋建筑、40 艘船（32 艘在水上、8 艘搁浅）、120 辆车；32 个重点对象均能按编号定位。5 处垂直碰撞射线检出了陆地 0.00 m、海面 −2.65 m、岸壁平台 +0.17 m、浮桥 −1.72 m 和街道 +0.09 m。按模型凸包支撑点调整了 8 艘搁浅船和 2 辆侧翻货车的接地高度，输出调整量。保存了 10 个 UE 视角。随后启动 Windows 独立游戏进程，在搁浅港作船 `Vessel_035` 的已知观察点取回三组相互独立的 RGB-D，每组双路时间戳一致。末帧有效正深度占比 100%，全图中位深度 24.172 m；该数值包含岸滩背景。[重开清点和碰撞检查](../runs/scenes/20261123-coastal-harbor/scene-check.json) · [接地几何记录](../runs/scenes/20261123-coastal-harbor/ground-contact.json) · [原生画面](../runs/scenes/20261123-coastal-harbor/views/) · [相机记录](../runs/scenes/20261123-coastal-harbor/simulation/check.json) · [无人机前摄](../runs/scenes/20261123-coastal-harbor/simulation/front-rgb.jpg) · [原始深度](../runs/scenes/20261123-coastal-harbor/simulation/front-depth.npz)
+
+**修正与结论。** 首次导入时出现材质引脚名称、引擎纹理查找和 FBX 自动后缀不匹配，修正后完成导入。第一轮近景存在过重阴影、窗户不透明和部分船体离地，随后调整了天空补光、玻璃材质和接地点。首次加载时 UE 仍在编译着色器，部分画面出现灰色棋盘格。最终编辑器复核显式等待资源编译完成；单机取图入口在已知观察点检查红色船底漆显色，再验收三组同步图像。D3D12 离屏编辑器报告过已处理的交换链警告，完成截图与保存。当前结果支持加载场景、识别对象编号和相机采集；多机性能、自动巡查成功率、真实灾损等级和实景泛化仍未测量。[UE 与模拟器日志](../runs/scenes/20261123-coastal-harbor/logs/) · [关卡文件哈希](../runs/scenes/20261123-coastal-harbor/map-sha256.txt)
+
+## 2026-11-24 沿海渔港建筑群与固定机位复拍
+
+**目的与环境。** 检查住宅街、沿街店铺和仓储院落在航拍和抵近观察时的可辨识程度。使用 Windows 上的 UE 5.2.1、Blender 3.6、ProjectAirSim 和 WSL 的 airsim 环境。沿用 2 km × 2 km 任务区、既有对象编号和 32 个复查标签。UE 对照机位使用 72° 水平视场和 1440 × 900 像素。[机位](../runs/scenes/20261124-coastal-streets/street-cameras.json) · [原关卡对象表](../runs/scenes/20261124-coastal-streets/targets-before.json)
+
+**方法与结果。** 沿既有街道布置了 84 栋带老虎窗的双拼、68 栋连排、68 栋四坡顶小屋，以及 22 间环境店铺。两处有编号的鱼市换上条纹雨棚，一端脱落下垂。仓库保留屋顶开口，库外增加装卸道、货箱、托盘和集装箱。重新加载原生地图，核对 120 个建筑、40 艘船和 120 辆车的巡查标签。对地面、水面、码头、栈桥和街道的碰撞探测均在原容差内。另对两间鱼市及仓库中心向下检测，均命中对应建筑。12 个机位分别导出图像，从中选出住宅、鱼市及港区的同机位对照。[街区清单](../runs/scenes/20261124-coastal-streets/street-build.json) · [场景核验](../runs/scenes/20261124-coastal-streets/scene-check.json) · [对照图](../runs/scenes/20261124-coastal-streets/buildings-before-after.jpg) · [最终地图哈希](../runs/scenes/20261124-coastal-streets/map-sha256.txt)
+
+**过程中发现的问题。** 首次写入 UE 网格碰撞设置时遇到属性接口差异，随后改用 UE 5.2 的编辑器属性接口。住宅背面复拍促成了后院边界和附属设施的补建，仓储远景复拍促成了地表纹理更换。混合草地材质第一次连接纹理采样节点失败，修正输入引脚后完成编译和地图保存。无窗口编辑器启动时报告已处理的 DX12 交换链提示，随后完成全部图像导出。首次把无人机从码头直接摆向鱼市时出现仓库碰撞和相机超时，调整为先抬高、再平移和下降的布置顺序。[构建与相机日志](../runs/scenes/20261124-coastal-streets/logs/)
+
+**模拟无人机取图。** 在最终地图上从码头上方布置观察位，前相机取到了 3 组时间戳同步且递增的 RGB 与深度图。RGB 为 1920 × 1080，深度为 640 × 360，深度图中央小区中位数为 19.74 米。固定观察位的布置与取图没有运行自主抵近控制。[相机记录](../runs/scenes/20261124-coastal-streets/simulation/check.json) · [RGB 原图](../runs/scenes/20261124-coastal-streets/simulation/front-rgb.jpg) · [深度数据](../runs/scenes/20261124-coastal-streets/simulation/front-depth.npz)
+
+**结论边界。** 固定机位照片用于检查布局和可见性。此轮没有测视觉模型对损伤的检出率、多机性能或真实灾害中的识别效果。环境房屋不在带编号的巡查真值表中。
+
+## 2026-11-24 渔港曝光与海雾排查
+
+在 Windows UE 5.2 已保存的渔港地图中，离屏 SceneCapture2D 以 68° 水平视场和 1200 × 750 分辨率观察鱼市同一立面。沿同一观察方向将水平距离从 65 米缩短到 14 米，每次稳定 7 秒后采图。分别沿用项目自动曝光和固定曝光（相机最小、最大 EV100 均为 1，仅为诊断值）。远近分别取中心 12 × 12 及 54 × 54 像素，覆盖近似相同的墙面范围。另在同一个高空机位固定曝光，切换海雾。
+
+自动曝光下远、近处墙面输出亮度中位数为 58.8 和 90.2，固定后为 96.7 和 91.9，数值采用 0–255 显示亮度。高空中央区域的亮暗跨度（第 90 与第 10 百分位之差）在有雾时为 47.8，临时关雾时为 55.6。首次采集出现阴影页池溢出提示，正式复拍将离屏阴影页数调为 1536。此对照解释了当前工程能够复现的现象，用户截图的即时曝光及视口参数未知。未保存关卡变动，复核了地图哈希。道路脚本按 205 米等距生成六条平行主路，街区补建沿用相同基线。[原图、脚本与日志](../runs/scenes/20261124-harbor-light-audit/) · [测量数据](../runs/scenes/20261124-harbor-light-audit/measurements.json)
+
+## 2026-11-24 渔港路网重建与固定曝光验证
+
+**目的和环境。** 在原 2 km × 2 km 任务区内重新布置港区、商街、旧镇和外围聚落，核验同一立面抵近时的亮度。以英国纽林的港街与旧聚落关系作形态参照。WSL 负责地块计算，Blender 3.6 导出网格，Windows UE 5.2 保存并重载关卡，ProjectAirSim 在同一关卡采集 RGB-D。关卡固定 EV100 为 1.25，补偿 +1，海雾密度 0.0065。两种取图入口均采用输出伽马 2.2。[场景说明](../docs/沿海渔港关卡.md) · [纽林社区规划](https://www.pznp.co.uk/wp-content/uploads/2023/11/PZNP-Submission-Plan-13-11-23-v2.9.pdf)
+
+**布局。** 24 条道路连成一张路网，共 362 个建筑地块。对 426 个重新摆放的建筑和车辆复核规划中心及重载后的位置。巡查清单中 120 栋建筑和 64 辆车更新了坐标，280 个目标的其余字段全部一致，含 32 个重点巡查目标。32 艘水上船和 8 艘搁浅船保留原位。关卡重载后，24 个路面探针均通过，植被实例为 4,266 株。高空对照取自改造前备份和最终地图，相机位置、68° 水平视场、1440 × 900 分辨率及输出伽马相同，各自保留对应关卡的曝光。[同机位对照](../runs/scenes/20261124-port-town/town-before-after.jpg) · [布局核对](../runs/scenes/20261124-port-town/layout-check.json) · [重载检查](../runs/scenes/20261124-port-town/scene-check.json) · [地块核对](../runs/scenes/20261124-port-town/parcel-check.json) · [地图 SHA-256](../runs/scenes/20261124-port-town/map-sha256.txt)
+
+**鱼市抵近。** UE 相机持续移动约 21 秒，水平距离从 65 米缩短至 14 米，6 个采样点的中心射线均命中 Building_071。保持中心取样的近似物理范围，墙面显示亮度中位数依次为 153.32、152.72、152.64、151.61、151.61、150.75（0–255）。ProjectAirSim 单机在两个端点各取得 3 组同步、递增时间戳，前相机墙面亮度为 152.22、150.61，中心深度为 74.84、16.16 米。这次验证覆盖鱼市这条观察线，模拟器端点使用预设位姿。本次没有执行自主飞行或真实灾害损伤评估。[逐帧测量](../runs/scenes/20261124-port-town/approach/measurements.json) · [65 米 RGB-D](../runs/scenes/20261124-port-town/simulation/65/check.json) · [14 米 RGB-D](../runs/scenes/20261124-port-town/simulation/14/check.json)
+
+**过程中发现的问题。** 初稿中镇外道路过于贴近潮滩，远景农田纹理重复，已调整道路和地表。码头集散棚一度覆盖模拟器出生点，清出净空后重新保存，在出生点及周边四个点向下检测均命中 0.17 米高的码头面。编辑器显示组件会影响部分 Actor 的包围盒，地块中心在无渲染命令行中核对，GPU 重载后再比对 Actor 原点。码头网格导入有切线警告，模拟器日志有虚拟阴影页池告警，个别阴影细节可能缺失。[构建及复验日志](../runs/scenes/20261124-port-town/logs/)
+
+## 2026-11-24 编辑器主视口移动亮块与内陆地块排查
+
+检查用户提供的 12.1 秒、60 fps、1156 × 770 编辑器录像。在 4.20 秒处，亮区同时覆盖道路、住宅及草地。10.49 秒时，近处海面有带直边与阶梯状过渡的亮区。同帧水面亮边内外各取 32 × 16 像素，左上角坐标分别为 (504, 627)、(504, 692)，显示亮度中位数约为 184 和 86（0–255）。这些区域供比较画面亮度，未做辐射定标。[住宅帧](../runs/scenes/20261124-viewport-light-audit/frames/4.20.jpg) · [海面帧](../runs/scenes/20261124-viewport-light-audit/frames/10.49.jpg)
+
+在单独启动的 Windows UE 5.2 编辑器中，通过主透视视口取 1056 × 704 图像。高空、近海和住宅区观察位分别采用 660、145 和 135 米 UE 世界 Z。每次切换后等待至少 5 秒。海面同机位分别关闭 Lumen 漫反射、Lumen 反射、动态阴影、雾和其他候选项，再恢复对照。基线较远和较近采样区的显示亮度约为 92 和 220；关闭 Lumen 漫反射时为 153 和 142，恢复时为 93 和 220。单独关闭反射、阴影或雾仍能看到原来的亮边。亮区对天空光源和 Lumen 辐射缓存也有响应，尚未单独定位引擎内部哪一级采样形成硬边。将渔港全域后处理体积的动态全局光照方法临时设为 None，海面与住宅两处固定机位的亮边均消失，整体色调变浅。没有用该临时设置进行完整航线或无人机 RGB-D 验收。第一次使用 Shot 命令未导出主视口图像，改用 UE AutomationLibrary 的主视口截图。所有诊断只在独立进程生效，保存地图的 SHA-256 复核与建成时一致。[逐项测量](../runs/scenes/20261124-viewport-light-audit/measurements.json) · [主视口原图](../runs/scenes/20261124-viewport-light-audit/viewport/) · [取图脚本与日志](../runs/scenes/20261124-viewport-light-audit/logs/)
+
+对保存的 362 个建筑地块按 UE 世界 Y 统计。在 Y < 250 米处有 259 个，250 至 500 米有 72 个，500 至 750 米有 28 个，750 至 1,000 米只有 3 个。最后一段在任务区内，区内该段巡查清单仅有 3 栋建筑。地块筛选偏向港边与旧镇道路，任务区外另有延伸道路、农田色块、树带和地形，缺少能从空中辨认的聚落层次。图按地块中心绘制，纵轴只展示陆侧和近岸。[地块与道路分布](../runs/scenes/20261124-viewport-light-audit/inland-layout.png) · [原始地块数据](../runs/scenes/20261124-port-town/layout.json)
+
+## 2026-11-24 前港后镇布局与主视口复拍
+
+**目的与方法。** 在 2 km × 2 km 任务区内分散原有 362 个建筑地块，把港口作业与内陆生活区沿道路连接。港边保留 16 个作业建筑地块、两处重点鱼市及码头设施。原有路网在内陆增加 7 条支路，建筑沿山脊、谷地和果园路口选址，住宅地块预留侧院并增大道路后退距离。使用 airsim Python 计算米制地块，Blender 3.6 导出 3 个更新网格，Windows UE 5.2 保存并重载原生地图。施工前的地图、相关 UE 资产和 SourceArt 已备份。[地块与道路](../runs/scenes/20261124-inland-town/layout.json) · [地图校验值](../runs/scenes/20261124-inland-town/map-sha256.txt) · [备份](</mnt/d/Program Files/Epic Games/Project_5.2/project_520/Saved/Backups/CoastalHarbor/BeforeInlandTown>)
+
+**分布与目标验证。** 按建筑地块中心统计，世界 Y < 250 米的地块从 259 个降至 81 个，最北 250 米从 3 个增至 82 个。362 个地块各自最近邻中心距离的中位数从 23.42 米增至 29.76 米。31 条道路连通，重载后 31 个路面探针及 5 个出生点探针通过。426 个重排 Actor 的原点与保存记录一致，植被为 4,115 个实例。巡查清单共 280 项，其中 120 栋建筑和 64 辆车更新了坐标，目标编号、模型、损伤和重点巡查标签均保留。[平面分布](../runs/scenes/20261124-inland-town/building-distribution.png) · [地块统计](../runs/scenes/20261124-inland-town/layout-check.json) · [重载核验](../runs/scenes/20261124-inland-town/scene-check.json) · [本次目标快照](../runs/scenes/20261124-inland-town/targets.json)
+
+**光照对照。** 地图的全域后处理体积将动态全局光照设为 None，天空光强度从 1.45 调至 0.80，固定曝光 EV100 仍为 1.25、补偿 +1。在前次出现亮带的主视口海面机位，按水平视场和分辨率将两个水面采样区映射到相同的视线，较远、较近区域的显示亮度由 93.58、219.78 变为 118.02、107.03。住宅区原问题机位的直边亮块也消失。两次俯视对照保持机位相同，图像保留了各版的原生光照。[海面测量](../runs/scenes/20261124-inland-town/sea-light-check.json) · [改前镇区](../runs/scenes/20261124-inland-town/before/inland.png) · [改后镇区](../runs/scenes/20261124-inland-town/after/inland.png)
+
+**构建记录。** 首次主视口导图使用 Windows 反斜杠导致绝对路径被误拼，修正路径后重拍。更新 FBX 来源记录时有渲染进程占用网格包，待进程退出后重试，3 个网格的来源均指向 Windows 工程内的 SourceArt 并成功保存。UE 提示 TownLots 网格切线退化，离屏视口初始化有 DX12 交换链提示，主视口和离屏采图最终均成功。[构建与采图日志](../runs/scenes/20261124-inland-town/logs/)
+
+**动态与模拟相机复核。** 在主编辑器视口连续移动相机，从内陆山坡经过住宅、码头到海面，再升高观察。检查 13 张沿途取样图，未复现原来的直边亮块。ProjectAirSim 单机前相机在鱼市水平距离 65 米和 14 米处各取得 3 组同步且递增的 RGB-D 时间戳，中心深度分别为 74.84 米、16.16 米。连续移动的是编辑器视口，模拟无人机采用两个固定观察位。[沿途机位与原图](../runs/scenes/20261124-inland-town/traverse/route.json) · [65 米检查](../runs/scenes/20261124-inland-town/simulation/65/check.json) · [14 米检查](../runs/scenes/20261124-inland-town/simulation/14/check.json)
+
+## 2026-11-24 港务办公楼顶层墙脚闪烁排查
+
+用户截图指向 Building_075。用独立的 Windows UE 5.2 主视口复拍蓝门、黄色台阶与空调之间的墙面，移动取景位置并临时关闭动态阴影。深色墙脚的三角斑块在关掉动态阴影后仍然可见。在 Blender 3.6 中读取完整型 harbour_office.fbx，按材质槽提取竖直三角面并在局部 XZ 平面求投影交集。Slot04 与 Slot06 的外表面都在局部 Y ≈ 2.350178 米；在 Z 10.575 至 11.474 米高度带内有 8.273 平方米重合（未缩放的模型面积）。该处发生共面深度冲突。此轮只做诊断，没有重导入模型或保存关卡。[重合面测量](../runs/scenes/20261124-harbour-office-wall/overlap.json) · [主视口复拍](../runs/scenes/20261124-harbour-office-wall/close-normal.png) · [关闭动态阴影](../runs/scenes/20261124-harbour-office-wall/close-off.png) · [取图及日志](../runs/scenes/20261124-harbour-office-wall/)
+
+## 2026-11-24 渔港巡查目标表面闪烁修复
+
+在 Windows `project_520` 的 UE 5.2.1 中重开 CoastalHarbor，逐个读取 120 栋建筑、40 艘船和 120 辆车的可见网格、材质及变换。43 个不同网格构成 39 种模型或部件组合。对每种组合从 25 个方向投影最高细节网格，图像尺寸为 420 × 420。记录前两层近乎平行、深度相差小于 0.15 毫米、材质或 UV 不同且连通面积至少 4 像素的位置。23 种组合出现候选区域，逐组选取代表目标，在 UE 主视口对着疑点小幅横移相机复拍。建筑底面接触、半透明面、材质动画与正常视差也会造成筛查命中或帧差。[目标与部件](../runs/scenes/20261124-target-surface-repair/inventory.json) · [几何筛查](../runs/scenes/20261124-target-surface-repair/exterior-after.json) · [代表目标双机位图](../runs/scenes/20261124-target-surface-repair/paired-views.jpg)
+
+使用 Blender 3.6.23 修复并重导入 8 份网格，涉及 33 个编号目标。16 栋港务办公楼的墙面与包边有重叠。保留可见包边，裁掉藏在后面的部分，再生成风损版。`Building_075` 顶层墙脚的源模型重合面积为 8.273118 平方米，重新从正式 UE 资源导出后，同一区域只剩约 0.000004 平方米的数值残差。正常光照及关闭动态阴影的原机位和横移画面均显示连续墙脚。四间商铺（072、078、084、090）在木门两边保留玻璃，修复前门窗材质相交的连通区有 2,025 至 2,841 像素，修后均低于 4 像素筛查门槛。[办公楼与商铺对照，含自卸车](../runs/scenes/20261124-target-surface-repair/comparison.jpg) · [面积、编号和资源哈希](../runs/scenes/20261124-target-surface-repair/checks.json)
+
+第一次双机位复拍额外确认 `Vehicle_091` 黄色车厢内壁的黑色竖纹。将左右各五条加强筋贴在侧板表面的隐藏端面埋入板内 2 厘米，重新生成完好及风损自卸车，覆盖 11 辆完好车和 2 辆风损车。由正式网格导出的完好车左右侧板上原各有 10 个加强筋端面三角形，修复后两侧均为 0。完好车在同一对机位的中央 128 × 96 像素区中，灰度差超过 24 的像素占比从 6.97% 降至 0。风损车按关卡内侧翻姿态复拍。其他车型、船只和房屋的已拍机位中未确认新的同类大块跳色；未覆盖所有距离、低细节网格、连续飞行轨迹或无人机传感器管线。[自卸车修前两帧](../runs/scenes/20261124-target-surface-repair/truck-before/) · [两款自卸车两侧复拍](../runs/scenes/20261124-target-surface-repair/truck-views/) · [帧差](../runs/scenes/20261124-target-surface-repair/paired-views.json)
+
+首次保存遇到用户编辑器占用，用户关闭工程后完成正式写入。两个导入批次均核对材质槽、碰撞方式和包围盒；独立进程重载后，280 个目标的部件、材质绑定和变换与修前一致。正式地图 SHA-256 与上次保存记录一致。UE 对办公楼提示部分切线退化，对程序化网格提示缺少平滑组，离屏视口启动时有 DX12 交换链提示。各轮复拍均正常导出，复核进程已退出。[导入和渲染日志](../runs/scenes/20261124-target-surface-repair/logs/) · [修前 FBX 与 UE 资源备份](</mnt/d/Program Files/Epic Games/Project_5.2/project_520/Saved/Backups/CoastalHarbor/BeforeTargetSurfaceRepair>)
+
+## 2026-11-24 渔港活动区外围渲染优化
+
+**目的与改动。** 降低从港口飞向内陆时的背景渲染成本，保留 2 km × 2 km 的活动区及近景巡查内容。对有编号的 280 个 Actor 按模型、材质、标签和变换逐项比对，全部一致；4,115 棵树的树种和变换也逐一相同。区内及边界外 120 米缓冲带共 575 棵树保留原设置。其余 3,540 棵单独使用两种远景植被类型，关闭投影，实例按 1,200 米距离上限剔除。远山在沿岸方向的远端与农田后方改用较疏的地形采样，外围源网格由 149,380 降至 89,312 个三角面。农田、核心地面和近岸接缝保持原采样。[对象与资源复核](../runs/scenes/20261124-backdrop-performance/checks.json) · [航线三处同机位画面](../runs/scenes/20261124-backdrop-performance/flight-views.jpg)
+
+**环境和方法。** Windows 11，UE 5.2.1，RTX 4060 Ti 8 GB，D3D12 离屏编辑器主视口。UE 日志记录实际视口为 813 × 655，另存留证图为 1280 × 720。沿同一条从港口到内陆的路径顺序设置 201 个相机位姿。先分别启动新旧版本做独立测量，再在同一进程中按新、旧、旧、新、旧、新的次序重载，旧关卡使用备份的原远山网格。每趟交叉试验均先预热整条航线，使用引擎 CSV Profiler 记录 GPUTime 与 FrameTime，统一取每趟第 8 至 194 条帧记录（各版本 561 帧），避开切换边界。交叉试验用于比较渲染耗时，显存使用独立进程测量，按 PID 采集 Windows 专用 GPU 内存计数器，并限定在每趟 201 个位姿的采样时段。[每趟统计](../runs/scenes/20261124-backdrop-performance/performance.json) · [交叉测试原始日志](../runs/scenes/20261124-backdrop-performance/cross/) · [进程显存采样](../runs/scenes/20261124-backdrop-performance/process-memory.csv)
+
+**结果。** 同进程交叉试验中，GPU 每帧耗时中位数从 35.20 ms 降至 11.35 ms（下降 67.8%）。整帧耗时中位数从 35.63 ms 降至 33.33 ms，第 95 百分位从 51.30 ms 降至 33.91 ms。独立启动的 UE 进程专用显存中位数为 1,649.8 和 1,649.4 MiB，采样峰值为 1,681.8 和 1,649.4 MiB；观察到的稳定收益集中在渲染时间，常态显存相近。高分位耗时改善不能直接换算成多机相机吞吐量。[按航线位置绘制的 GPU 耗时](../runs/scenes/20261124-backdrop-performance/gpu-route.png)
+
+**功能复验。** 从磁盘重载后，280 个巡查编号（含 32 个重点目标）、31 条道路、5 个出生点、地形边缘、海岸和屋面碰撞等既有检查均通过。单独启动 Windows 游戏和 ProjectAirSim 单机，在距离鱼市目标水平 14 米的观察位取得 3 组时间戳同步的 RGB-D；RGB 为 1920 × 1080，深度为 640 × 360，中心中位深度为 16.16 米，取图超时为 0。此测试没有测量多机同时取图性能。[关卡复核](../runs/scenes/20261124-backdrop-performance/optimized/scene.json) · [模拟相机记录](../runs/scenes/20261124-backdrop-performance/simulation/check.json)
+
+**排查记录。** 首次航线试跑只设置了 CSV 文件名，补上启动采集指令后重测；首次使用无渲染命令行核验时地面碰撞探针未命中，改为在已加载的原生编辑器世界中执行相同的碰撞测试，改前和改后均通过。离屏启动日志有 DX12 交换链提示，全部正式采样、截图及模拟取图均完成。修前关卡、外围网格及 FBX 已留存备份。[试验日志](../runs/scenes/20261124-backdrop-performance/logs/) · [Windows 工程修前备份](</mnt/d/Program Files/Epic Games/Project_5.2/project_520/Saved/Backups/CoastalHarbor/BeforeBackdropPerformance>)
+
+## 2026-11-24 将渔港裁成活动区与 120 米缓冲带
+
+**目标与方法。** 保留 2 km × 2 km 巡查区，在东西南北各保留 120 米缓冲，移除多余场景。Windows UE 5.2.1、Blender 3.6.23、RTX 4060 Ti。对正式 FBX 按世界 XY 边界切割外围地形、田块和街道，收短三条越界道路及计划中的中心线。海面从 60 km 收到 2.24 km 宽，保留原水位及世界空间材质。移除两组外围植被，共 3,540 株，保留的 575 株逐一比对了树种和变换。天空球继续负责绘制天空。一些树冠自然伸出边缘数米；从高处向外俯看能看到地表截断。[重载边界清单](../runs/scenes/20261124-activity-crop/after/bounds.json) · [俯视实景](../runs/scenes/20261124-activity-crop/activity-area.png)
+
+**几何与使用验证。** 当前外围地形、街道、田块分别有 4,951、33,152 和 1,441 个三角形。对这三份网格中包围框与活动区相交的三角形逐一配对，材质槽一致，角点偏差不超过 0.14 毫米。首次使用按毫米取整的哈希检查，FBX 往返的浮点舍入使道路哈希不一致，改用一对一匹配和角点最大误差。独立 UE 进程重载正式地图，280 个巡查目标的标签、网格、材质和变换全部与裁切前一致。原 31 条道路与 5 个出生点通过碰撞检查，外边界四侧的 4 个探针均未命中地表或海面。另从原始布局输入完整运行规划脚本，保留地块位置、装饰和树种与已部署计划一致，生成的地表顶点均在边界内。新生成与直接裁切的网格在边缘处有不同的三角划分。[网格测量](../runs/scenes/20261124-activity-crop/geometry-check.json) · [生成复验](../runs/scenes/20261124-activity-crop/rebuild-check.json) · [UE 探针](../runs/scenes/20261124-activity-crop/after/scene.json)
+
+**航线采样。** 在同一台机器、同样的离屏编辑器主视口和港口至内陆的 201 个相机位姿上，新旧版本各独立启动，预热后重复 3 次。每趟去掉首尾后取 187 个位姿，分别合并 561 帧。GPU 帧耗时中位数由 10.98 ms 变为 9.24 ms，整帧耗时中位数均约 33.33 ms。高处向界外观察时两版显示的地形范围不同；本轮未测 UE 进程单独的显存节省量。独立运行 ProjectAirSim，在鱼市水平距离 14 米的机位采到 3 组同步且递增的前向 RGB-D，取图超时为 0。[裁切及性能数据](../runs/scenes/20261124-activity-crop/checks.json) · [无人机取图](../runs/scenes/20261124-activity-crop/simulation/check.json) · [Windows 工程备份](</mnt/d/Program Files/Epic Games/Project_5.2/project_520/Saved/Backups/CoastalHarbor/BeforeActivityCrop>)
+
+## 2026-11-24 港池移动视角闪白排查
+
+在用户 60 fps 录屏的第 497、498 帧，水域采样的灰度中位数由 116 升至 171，两个陆地采样点保持稳定。用 Windows UE 5.2 编辑器在港口上方约 482 米的近似机位小幅转动视角，每组取 26 张普通视口截图。以同一机位主动隐藏海面的画面为参照，比较港池开阔水域的 RGB 平均绝对差，低于 3 计为水面消失。[录像采样参数](../runs/scenes/20261124-water-flash-diagnosis/recording.json) · [原录像第 497 帧](../runs/scenes/20261124-water-flash-diagnosis/video-497.png) · [第 498 帧](../runs/scenes/20261124-water-flash-diagnosis/video-498.png)
+
+默认设置两轮各有 13/26 张水面消失，临时关闭遮挡查询后为 0/26。保持遮挡查询开启，仅将 HarborWater 静态网格组件的 Bounds Scale 从 1 调至 2，水面消失为 0/26。该结果验证了测试机位的遮挡剔除问题，未覆盖完整飞行航线和模拟相机。试验只在内存中改参数，结束后正式地图的 SHA-256 与裁切后的记录相同。[逐帧结果](../runs/scenes/20261124-water-flash-diagnosis/controls.json) · [组件对照日志](../runs/scenes/20261124-water-flash-diagnosis/targeted.log)
+
+## 2026-11-24 渔港水面闪白与地形切口修复
+
+在 Windows UE 5.2.1 正式关卡中，用潮滩等高线生成水面，保留 −2.65 米水位、原海面材质与碰撞，将 HarborWater 的 Bounds Scale 设为 2。使用 Blender 3.6.23 从正式地形提取两侧及内陆端的外缘，生成贴合坡面的岩质侧壁，底边为 −6 米。水面水平投影从 5.018 减至 2.012 平方公里，420 段岸线中点处水边均藏入潮滩约 15 厘米；三个方向的侧壁逐段测得最大水平接缝为零。首次复核受 FBX 往返浮点误差影响，将近似相同的列当成不同的列，导致个别高度探针落空。将横坐标按毫米归并后复核通过。另从地形规划入口重新导出两种网格。[几何复核](../runs/scenes/20261124-water-edge/geometry.json) · [正式文件哈希](../runs/scenes/20261124-water-edge/files.json) · [地图备份](</mnt/d/Program Files/Epic Games/Project_5.2/project_520/Saved/Backups/CoastalHarbor/BeforeWaterEdge/CoastalHarbor.umap>)
+
+用独立 UE 进程从磁盘重载。保持全场遮挡查询开启，在上次复现问题的港口俯视机位小幅转动，26 张普通主视口截图中水面消失次数从 13 降到 0。以主动隐藏水面的同位姿截图为参考，像素判据与上次一致。通过目标签名记录精度核对了全部 280 个目标的模型、变换、标签及材质。31 条道路、5 个出生点、575 棵树、3 处屋顶和界外探针通过原有关卡检查。5 个海上探针均命中原水位，10 个内陆点均无水面，3 个水平探针分别命中三侧边壁。另起游戏进程，在东侧搁浅船机位用 ProjectAirSim 取得三组同步前视 RGB-D，取图超时为零。离屏编辑器启动时记录了 DX12 交换链提示，截图与取图均完成。[移动视口采样](../runs/scenes/20261124-water-edge/frame-check.json) · [边缘探针](../runs/scenes/20261124-water-edge/edge-probes.json) · [场景复核](../runs/scenes/20261124-water-edge/check.json) · [RGB-D 记录](../runs/scenes/20261124-water-edge/simulation/check.json)
+
+在 RTX 4060 Ti 8 GB 上重复港口至内陆的 201 个机位、全线预热和 3 趟采样，按上次相同规则保留 561 帧。与裁切后的上一轮独立进程比较，GPU 帧耗时中位数从 9.2446 变为 9.3065 毫秒，整帧从 33.3263 变为 33.3121 毫秒。本轮观察到的改善是海面稳定和边缘闭合；未测专用显存和多机吞吐。[航线性能及原始 CSV](../runs/scenes/20261124-water-edge/performance/) · [港池画面](../runs/scenes/20261124-water-edge/views/saved-19.png) · [侧面画面](../runs/scenes/20261124-water-edge/views/east-00.png)
+
+## 2026-11-24 住宅沿既有街道成排
+
+Windows UE 5.2.1、Blender 3.6.23。以正式港镇 362 个地块为基准，在各街侧按路口、急弯、非住宅地块及长空档分组。对同排建筑按宽度及 8 米侧院间距定位，临街退让目标为 5 米，受障碍约束处放宽组内间距。290 栋住宅都保留原街道、街侧及建筑模型，中位平移 8.15 米。226 栋形成 73 排，另 64 栋独立占地。按地块沿街投影估算，同排相邻住宅侧间距的第 10、50、90 百分位由 9.96、19.68、41.75 米变为 7.89、8.00、8.09 米。362 个建筑地基逐对检查没有相交，住宅地基与道路及人行道没有重叠。31 条路的中心线、其他建筑和车辆的布局、田间及港区布置、植被计划均与原布局一致。[布置测量](../runs/scenes/20261124-residential-rows/layout-check.json) · [住宅俯视](../runs/scenes/20261124-residential-rows/district.png) · [街面实景](../runs/scenes/20261124-residential-rows/street.png)
+
+首次规划将入户路生成提取后遗漏了鱼摊使用的门前坐标，规划在写入工程前终止，补回坐标后完整生成并复跑，规划与几何文件逐字节一致。先在独立副本复验，用户关闭占用文件的 Windows 编辑器后备份并写回正式工程。独立重载正式地图，所有 290 栋住宅的底面与地基碰撞高度相差小于 0.01 毫米，31 条道路、5 个出生点及 32 个重点目标通过既有检查，三处主视口已实拍。280 个巡查目标的标签、网格及材质一致，210 个非住宅目标的变换也一致。同步了 70 栋编号住宅的坐标。离屏编辑器有 DX12 交换链提示，截图正常完成。本轮未测 GPU 性能或无人机飞行。[正式地图核验](../runs/scenes/20261124-residential-rows/scene-check.json) · [地基探针](../runs/scenes/20261124-residential-rows/foundations.json) · [目标对照](../runs/scenes/20261124-residential-rows/target-check.json) · [修前备份](</mnt/d/Program Files/Epic Games/Project_5.2/project_520/Saved/Backups/CoastalHarbor/BeforeResidentialRows-9k6qVj>)
+
+## 2026-11-24 渔港不规则外围与住宅聚落
+
+Windows UE 5.2.1、Blender 3.6.23、RTX 4060 Ti。以用户选定的草案多边形裁切外围地形、海面、道路与田块，用地形真实切边生成岩质侧壁。陆地与海面水平投影的并集与草案轮廓的对称差小于 0.01 平方米。外轮廓东西 2,605.6 米，南北 2,601.5 米，面积 5.4176 平方公里，完整覆盖任务方形。保存后从磁盘重载，在曲边均匀取 64 个位置，分别向内、外各偏移 3 米进行竖向探测，64 个内点均命中地形或水面，64 个外点均无命中。全景对照使用相同 2,880 米宽的正交机位；展示图抹去地图外黑色区域上的 UE 天空提示，保留原始截图。[几何测量](../runs/scenes/20261124-irregular-districts/measurements.json) · [边缘探针](../runs/scenes/20261124-irregular-districts/edge-check.json) · [原始全景](../runs/scenes/20261124-irregular-districts/views/after-raw.png)
+
+290 栋住宅分配到五个片区，每区 56 至 59 栋，55 排每排 3 至 8 栋；相较上一版，216 栋平移超过 50 米，中位平移 84.3 米。31 条道路在活动区内的中心线与上版逐条相符。重新测量 290 个地基，全部与房屋底面贴合；建筑地块间无重叠，住宅地块未压道路。280 个目标的网格、材质、标签一致，210 个非住宅编号目标的变换一致。已同步 70 个编号住宅的对象表坐标。海面遮挡测试在原俯视机位转动 26 帧，均与隐藏水面参照有显著差异，消失为 0 帧。离屏编辑器启动有 DX12 交换链提示，测量和截图完成。[关卡复核](../runs/scenes/20261124-irregular-districts/scene-check.json) · [地基](../runs/scenes/20261124-irregular-districts/foundations.json) · [海面逐帧结果](../runs/scenes/20261124-irregular-districts/water-flash.json) · [Windows 修前备份](</mnt/d/Program Files/Epic Games/Project_5.2/project_520/Saved/Backups/CoastalHarbor/BeforeIrregularDistricts-FhyFFd>)
+
+单次独立启动编辑器，沿港口至内陆的 201 个机位预热后运行三趟，统一取每趟 187 帧。561 帧的 GPU 耗时中位数为 9.80 毫秒，整帧中位数为 33.32 毫秒。未单测显存、多机或 RGB-D 取图。[性能采样](../runs/scenes/20261124-irregular-districts/performance/)
+
+
+## 2026-11-24 沿海小镇风损的空中可见性
+
+**目的与环境**　在正式 `project_520/CoastalHarbor` 的住宅街、工作码头和潮滩增强风暴过后的外观证据。Windows UE 5.2、Blender 3.6、2 km × 2 km 活动区。先备份地图和编号表，在独立副本验证写入，再在正式工程复拍。选取模型朝向和暴露区域时使用固定随机种子 11944。9 个相同机位各拍改前、改后 1280 × 720 图像，含住宅街、编号住宅屋面、码头碎片和搁浅拖船。[机位](../runs/scenes/20261124-wind-aftermath/views.json) · [近景机位](../runs/scenes/20261124-wind-aftermath/close-views.json) · [对照图](../runs/scenes/20261124-wind-aftermath/comparison.jpg)
+
+**几何与标注**　环境住宅局部揭顶 34 栋，成片剥落 39 栋。替换三栋已标损住宅的屋面和一艘已标损拖船的桅杆。64 组屋面碎片、断枝、码头残件和漂木通过 UE 碰撞查询落地，重载后实放位置与记录相符。原尺寸编号住宅网格按 0.2 m 间隔垂直采样，约 13.88 m² 的采样范围内，表面比原屋顶低 5–170 cm。拖船网格弯折后最高点下降 1.867 m，此值为源模型尺寸。280 个编号对象的位置、分类和损伤状态逐条相同，仅四项更新了网格名与可见证据描述。32 个重点对象仍包含 19 个损伤样本和 13 个完好对照。[几何实测](../runs/scenes/20261124-wind-aftermath/storm-check.json) · [编号差异](../runs/scenes/20261124-wind-aftermath/catalog-check.json) · [正式地图校验](../runs/scenes/20261124-wind-aftermath/files.json) · [引擎日志](../runs/scenes/20261124-wind-aftermath/logs/live-check_live.log)
+
+**性能与相机**　复用上一版的视口路线、预热、关垂直同步和取样窗口，连续跑三遍，每版统计 561 帧。改前、改后 GPU 帧耗时中位数分别为 9.803 和 9.792 ms，P95 为 19.232 和 19.749 ms，绘制调用数中位数从 888 变为 1117。单条路线的比较未覆盖所有视角及显存峰值。ProjectAirSim 在搁浅拖船机位收到 3 组同时间戳 RGB、深度帧，零超时，保存帧的有效深度比例 100%。此次验证覆盖视觉和静态碰撞，风力和破坏程度采用合成设定。[路线性能数据](../runs/scenes/20261124-wind-aftermath/performance/summary.json) · [无人机 RGB 图](../runs/scenes/20261124-wind-aftermath/simulation/front-rgb.jpg) · [RGB-D 检查](../runs/scenes/20261124-wind-aftermath/simulation/check.json)
+
+**归档复核**　使用 airsim 环境和 Windows 工程保留的规划、对象尺寸与编号表，离线重算风损布局，与已保存的 73 栋受损环境住宅和 64 组散落物的布局逐项一致。核对了前视 RGB-D 分辨率、280 个唯一编号、32 个重点标签及首轮试跑候选。此复核未重新启动 UE 或执行飞行。[风损布局](../runs/scenes/20261124-wind-aftermath/wind-layout.json) · [巡查目标表](../data/metadata/coastal_harbor/targets.json)

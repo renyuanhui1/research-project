@@ -1,0 +1,326 @@
+[
+  {
+    "index": 10,
+    "target": "hangar_gross_209",
+    "actor": "StaticMeshActor_209",
+    "geometry_status": "candidates_found",
+    "candidate_count": 4,
+    "actors": [
+      "StaticMeshActor_209",
+      "StaticMeshActor_297",
+      "StaticMeshActor_391"
+    ],
+    "reference_camera_metadata": {
+      "annotations": [],
+      "big_endian": false,
+      "encoding": "BGR",
+      "height": 960,
+      "pos_x": 127.8826904296875,
+      "pos_y": 1653.504150390625,
+      "pos_z": -128.90512084960938,
+      "rot_w": 0.7071067690849304,
+      "rot_x": -0.0,
+      "rot_y": -0.7071067690849304,
+      "rot_z": 0.0,
+      "step": 1,
+      "time_stamp": 26113256008900,
+      "width": 1280
+    },
+    "synthetic_depth_role": "offline geometry-only crop proposal",
+    "reference_crop_xyxy": [
+      523,
+      396,
+      701,
+      600
+    ],
+    "projected_clearance_m": 6.601034545898436,
+    "offline_aperture_ned_m": [
+      123.6103327983042,
+      1647.5228497066882,
+      -19.532765486196084
+    ]
+  },
+  {
+    "index": 11,
+    "target": "hangar_gross_2019",
+    "actor": "StaticMeshActor_2019",
+    "geometry_status": "candidates_found",
+    "candidate_count": 4,
+    "actors": [
+      "StaticMeshActor_2018",
+      "StaticMeshActor_2019",
+      "StaticMeshActor_2030"
+    ],
+    "reference_camera_metadata": {
+      "annotations": [],
+      "big_endian": false,
+      "encoding": "BGR",
+      "height": 960,
+      "pos_x": -28.27676010131836,
+      "pos_y": 713.3851318359375,
+      "pos_z": -106.0031509399414,
+      "rot_w": 0.7071067690849304,
+      "rot_x": -0.0,
+      "rot_y": -0.7071067690849304,
+      "rot_z": 0.0,
+      "step": 1,
+      "time_stamp": 26116389327100,
+      "width": 1280
+    },
+    "synthetic_depth_role": "offline geometry-only crop proposal",
+    "reference_crop_xyxy": [
+      547,
+      371,
+      815,
+      605
+    ],
+    "projected_clearance_m": 7.696276855468748,
+    "offline_aperture_ned_m": [
+      -28.409454534932344,
+      721.4794922863916,
+      -21.07871342697949
+    ]
+  },
+  {
+    "index": 12,
+    "target": "hangar_gross_3955",
+    "actor": "StaticMeshActor_3955",
+    "geometry_status": "candidates_found",
+    "candidate_count": 1,
+    "actors": [
+      "StaticMeshActor_3954",
+      "StaticMeshActor_3955",
+      "StaticMeshActor_3966"
+    ],
+    "reference_camera_metadata": {
+      "annotations": [],
+      "big_endian": false,
+      "encoding": "BGR",
+      "height": 960,
+      "pos_x": 1300.981689453125,
+      "pos_y": 359.6988525390625,
+      "pos_z": -192.06301879882812,
+      "rot_w": 0.7071067690849304,
+      "rot_x": -0.0,
+      "rot_y": -0.7071067690849304,
+      "rot_z": 0.0,
+      "step": 1,
+      "time_stamp": 26119556048700,
+      "width": 1280
+    },
+    "synthetic_depth_role": "offline geometry-only crop proposal",
+    "reference_crop_xyxy": [
+      373,
+      250,
+      931,
+      782
+    ],
+    "projected_clearance_m": 15.147128295898435,
+    "offline_aperture_ned_m": [
+      1289.4403930396113,
+      383.55086512699097,
+      -27.92013647329901
+    ]
+  },
+  {
+    "index": 13,
+    "target": "hangar_gross_4321",
+    "actor": "StaticMeshActor_4321",
+    "geometry_status": "candidates_found",
+    "candidate_count": 4,
+    "actors": [
+      "StaticMeshActor_4320",
+      "StaticMeshActor_4321",
+      "StaticMeshActor_4332"
+    ],
+    "reference_camera_metadata": {
+      "annotations": [],
+      "big_endian": false,
+      "encoding": "BGR",
+      "height": 960,
+      "pos_x": 942.841552734375,
+      "pos_y": 979.7639770507812,
+      "pos_z": -189.915771484375,
+      "rot_w": 0.7071067690849304,
+      "rot_x": -0.0,
+      "rot_y": -0.7071067690849304,
+      "rot_z": 0.0,
+      "step": 1,
+      "time_stamp": 26122756073100,
+      "width": 1280
+    },
+    "synthetic_depth_role": "offline geometry-only crop proposal",
+    "reference_crop_xyxy": [
+      488,
+      339,
+      900,
+      723
+    ],
+    "projected_clearance_m": 13.822023010253904,
+    "offline_aperture_ned_m": [
+      934.5959036520552,
+      997.00487967745,
+      -30.000152918171352
+    ]
+  },
+  {
+    "index": 14,
+    "target": "机库-轻度-单区-独立",
+    "actor": "StaticMeshActor_7894",
+    "geometry_status": "candidates_found",
+    "candidate_count": 1,
+    "actors": [
+      "StaticMeshActor_7894",
+      "StaticMeshActor_7895"
+    ],
+    "reference_camera_metadata": {
+      "annotations": [],
+      "big_endian": false,
+      "encoding": "BGR",
+      "height": 960,
+      "pos_x": -228.10214233398438,
+      "pos_y": 580.0078735351562,
+      "pos_z": -106.0031509399414,
+      "rot_w": 0.7071067690849304,
+      "rot_x": -0.0,
+      "rot_y": -0.7071067690849304,
+      "rot_z": 0.0,
+      "step": 1,
+      "time_stamp": 26126022697900,
+      "width": 1280
+    },
+    "synthetic_depth_role": "offline geometry-only crop proposal",
+    "reference_crop_xyxy": [
+      521,
+      343,
+      841,
+      627
+    ],
+    "projected_clearance_m": 8.085189056396484,
+    "offline_aperture_ned_m": [
+      -227.96922263743906,
+      588.6476538106014,
+      -20.934545150943308
+    ]
+  },
+  {
+    "index": 15,
+    "target": "机库-轻度-多区-独立",
+    "actor": "StaticMeshActor_7907",
+    "geometry_status": "candidates_found",
+    "candidate_count": 4,
+    "actors": [
+      "StaticMeshActor_7907",
+      "StaticMeshActor_7908"
+    ],
+    "reference_camera_metadata": {
+      "annotations": [],
+      "big_endian": false,
+      "encoding": "BGR",
+      "height": 960,
+      "pos_x": -228.10214233398438,
+      "pos_y": 700.0078735351562,
+      "pos_z": -106.0031509399414,
+      "rot_w": 0.7071067690849304,
+      "rot_x": -0.0,
+      "rot_y": -0.7071067690849304,
+      "rot_z": 0.0,
+      "step": 1,
+      "time_stamp": 26129289418200,
+      "width": 1280
+    },
+    "synthetic_depth_role": "offline geometry-only crop proposal",
+    "reference_crop_xyxy": [
+      547,
+      371,
+      815,
+      605
+    ],
+    "projected_clearance_m": 7.696277618408201,
+    "offline_aperture_ned_m": [
+      -228.23483678497058,
+      708.1022350453162,
+      -21.078702308754572
+    ]
+  },
+  {
+    "index": 16,
+    "target": "机库-重度-单区-独立",
+    "actor": "StaticMeshActor_7920",
+    "geometry_status": "candidates_found",
+    "candidate_count": 1,
+    "actors": [
+      "StaticMeshActor_7920",
+      "StaticMeshActor_7921"
+    ],
+    "reference_camera_metadata": {
+      "annotations": [],
+      "big_endian": false,
+      "encoding": "BGR",
+      "height": 960,
+      "pos_x": -228.1017303466797,
+      "pos_y": 819.915283203125,
+      "pos_z": -105.77174377441406,
+      "rot_w": 0.7071067690849304,
+      "rot_x": -0.0,
+      "rot_y": -0.7071067690849304,
+      "rot_z": 0.0,
+      "step": 1,
+      "time_stamp": 26132556084500,
+      "width": 1280
+    },
+    "synthetic_depth_role": "offline geometry-only crop proposal",
+    "reference_crop_xyxy": [
+      347,
+      185,
+      961,
+      799
+    ],
+    "projected_clearance_m": 10.51151885986328,
+    "offline_aperture_ned_m": [
+      -227.427915042381,
+      835.4130352019947,
+      -19.52338482418284
+    ]
+  },
+  {
+    "index": 17,
+    "target": "机库-重度-多区-独立",
+    "actor": "StaticMeshActor_7933",
+    "geometry_status": "candidates_found",
+    "candidate_count": 4,
+    "actors": [
+      "StaticMeshActor_7933",
+      "StaticMeshActor_7934"
+    ],
+    "reference_camera_metadata": {
+      "annotations": [],
+      "big_endian": false,
+      "encoding": "BGR",
+      "height": 960,
+      "pos_x": -228.10214233398438,
+      "pos_y": 940.0078735351562,
+      "pos_z": -106.0031509399414,
+      "rot_w": 0.7071067690849304,
+      "rot_x": -0.0,
+      "rot_y": -0.7071067690849304,
+      "rot_z": 0.0,
+      "step": 1,
+      "time_stamp": 26135922777100,
+      "width": 1280
+    },
+    "synthetic_depth_role": "offline geometry-only crop proposal",
+    "reference_crop_xyxy": [
+      485,
+      279,
+      943,
+      735
+    ],
+    "projected_clearance_m": 9.50938262939453,
+    "offline_aperture_ned_m": [
+      -228.23493629730694,
+      953.4200638307368,
+      -21.01501441349002
+    ]
+  }
+]

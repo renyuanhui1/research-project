@@ -1,0 +1,263 @@
+{
+  "target_counts": {
+    "Building": 120,
+    "Vessel": 40,
+    "Vehicle": 120
+  },
+  "assets": 43,
+  "visible_components_or_instances": 296,
+  "assemblies": 39,
+  "candidate_assemblies": 23,
+  "directions_per_assembly": 25,
+  "repaired_targets": [
+    "Building_072",
+    "Building_073",
+    "Building_075",
+    "Building_077",
+    "Building_078",
+    "Building_079",
+    "Building_081",
+    "Building_083",
+    "Building_084",
+    "Building_087",
+    "Building_089",
+    "Building_090",
+    "Building_091",
+    "Building_093",
+    "Building_112",
+    "Building_113",
+    "Building_115",
+    "Building_116",
+    "Building_118",
+    "Building_119",
+    "Vehicle_091",
+    "Vehicle_092",
+    "Vehicle_094",
+    "Vehicle_095",
+    "Vehicle_097",
+    "Vehicle_098",
+    "Vehicle_099",
+    "Vehicle_100",
+    "Vehicle_101",
+    "Vehicle_103",
+    "Vehicle_104",
+    "Vehicle_106",
+    "Vehicle_107"
+  ],
+  "intact_truck_rib_caps_on_sheet_before": {
+    "-1.309864": {
+      "triangles": 10,
+      "area_m2": 0.7475866532169184
+    },
+    "1.530146": {
+      "triangles": 10,
+      "area_m2": 0.7475870004725621
+    }
+  },
+  "intact_truck_rib_caps_on_sheet_after": {
+    "-1.309864": {
+      "triangles": 0,
+      "area_m2": 0.0
+    },
+    "1.530146": {
+      "triangles": 0,
+      "area_m2": 0.0
+    }
+  },
+  "office_original_model_band_m2": 8.273118133332446,
+  "office_saved_model_band_residual_m2": 3.6252887427659663e-06,
+  "office_saved_trim_coverage_m2": 8.273113903308257,
+  "confirmed_material_pairs": [
+    {
+      "asset": "/Game/CoastalHarbor/Meshes/Shop1",
+      "targets": [
+        "Building_072"
+      ],
+      "slots": [
+        "M_Glass",
+        "M_Timber"
+      ],
+      "peak_before_pixels": 2401,
+      "peak_after_pixels": 0
+    },
+    {
+      "asset": "/Game/CoastalHarbor/Library/harbour_office/harbour_office",
+      "targets": [
+        "Building_073",
+        "Building_075",
+        "Building_077",
+        "Building_079",
+        "Building_081",
+        "Building_083",
+        "Building_087",
+        "Building_089",
+        "Building_091",
+        "Building_093",
+        "Building_113",
+        "Building_115",
+        "Building_116",
+        "Building_118",
+        "Building_119"
+      ],
+      "slots": [
+        "MI_Slot04",
+        "MI_Slot05"
+      ],
+      "peak_before_pixels": 3316,
+      "peak_after_pixels": 0
+    },
+    {
+      "asset": "/Game/CoastalHarbor/Library/harbour_office/harbour_office",
+      "targets": [
+        "Building_073",
+        "Building_075",
+        "Building_077",
+        "Building_079",
+        "Building_081",
+        "Building_083",
+        "Building_087",
+        "Building_089",
+        "Building_091",
+        "Building_093",
+        "Building_113",
+        "Building_115",
+        "Building_116",
+        "Building_118",
+        "Building_119"
+      ],
+      "slots": [
+        "MI_Slot04",
+        "MI_Slot06"
+      ],
+      "peak_before_pixels": 1514,
+      "peak_after_pixels": 0
+    },
+    {
+      "asset": "/Game/CoastalHarbor/Meshes/Shop4",
+      "targets": [
+        "Building_078"
+      ],
+      "slots": [
+        "M_Glass",
+        "M_Timber"
+      ],
+      "peak_before_pixels": 2401,
+      "peak_after_pixels": 0
+    },
+    {
+      "asset": "/Game/CoastalHarbor/Meshes/Shop2",
+      "targets": [
+        "Building_084"
+      ],
+      "slots": [
+        "M_Glass",
+        "M_Timber"
+      ],
+      "peak_before_pixels": 2025,
+      "peak_after_pixels": 0
+    },
+    {
+      "asset": "/Game/CoastalHarbor/Meshes/Shop0",
+      "targets": [
+        "Building_090"
+      ],
+      "slots": [
+        "M_Glass",
+        "M_Timber"
+      ],
+      "peak_before_pixels": 2841,
+      "peak_after_pixels": 0
+    },
+    {
+      "asset": "/Game/CoastalHarbor/Library/harbour_office/harbour_office_Storm",
+      "targets": [
+        "Building_112"
+      ],
+      "slots": [
+        "MI_Slot04",
+        "MI_Slot05"
+      ],
+      "peak_before_pixels": 3316,
+      "peak_after_pixels": 0
+    },
+    {
+      "asset": "/Game/CoastalHarbor/Library/harbour_office/harbour_office_Storm",
+      "targets": [
+        "Building_112"
+      ],
+      "slots": [
+        "MI_Slot04",
+        "MI_Slot06"
+      ],
+      "peak_before_pixels": 423,
+      "peak_after_pixels": 0
+    }
+  ],
+  "files_sha256": {
+    "SourceArt/CoastalHarbor/meshes/Shop1.fbx": {
+      "before": "ab86a4135b33b02722bdd6f4934e1a6865b2a012452925a377746e1a4b4e81b8",
+      "after": "86cdffc1a64b268f47830dd72aa10f43be91e051a02544bfa0d9fe543e460664"
+    },
+    "Content/CoastalHarbor/Meshes/Shop1.uasset": {
+      "before": "f48df23b73c6a70652f65dd1ae58be9c8a8fc7b249617df83528553802358fee",
+      "after": "cb06ab2865fc49eda5b2cc34e34bd293f67087fdbbaf77ae5401a22db4baf472"
+    },
+    "SourceArt/CoastalHarbor/library/harbour-office/harbour_office.fbx": {
+      "before": "67fd9893060f94b278a16271efafe34f2706c88ac8a0df93b62298999e74a13e",
+      "after": "d88239d01d21b0550642083cce1531e8bcbc719d2d2607a084694c87bd43641e"
+    },
+    "Content/CoastalHarbor/Library/harbour_office/harbour_office.uasset": {
+      "before": "810eeb46923a6793d4745874504857f51106d1d08b55813ac1d672201bb58ea2",
+      "after": "b72b52e7c90db2b58a3e876246e3473cb596879830db442ecba8f8c99c28a396"
+    },
+    "SourceArt/CoastalHarbor/meshes/Shop4.fbx": {
+      "before": "9c82ff67877f5a0822c9e998f645cc1a82f922ac9e656116e473fb6ee276ccb6",
+      "after": "17ea6adcaa61effaa9f6416bc5d77cd31095406d3f19146c7c10a423208ac40c"
+    },
+    "Content/CoastalHarbor/Meshes/Shop4.uasset": {
+      "before": "354d54d08c446c0f9da2f553207da5f883261ce01dd6fe6e4ffcf785006a88ec",
+      "after": "725ec48d6a9bff58d9cf589e499ee611f3597c579281f023b061efc14c028312"
+    },
+    "SourceArt/CoastalHarbor/meshes/Shop2.fbx": {
+      "before": "709137a0c685bdf4b50eb53b284e54b9021942f59483fa75d75783a030e71221",
+      "after": "414c4baa269fd8217a11076ab82352e567a39ebf4dbaf492ac4ce4d4e54382c7"
+    },
+    "Content/CoastalHarbor/Meshes/Shop2.uasset": {
+      "before": "4de140cadf557491980298e53366789b676037d036d81080b9c63b01731f6f82",
+      "after": "0b8aa00b33cc0f2d85760715e4b92acb185fa4ef3456411391146ff9f967420f"
+    },
+    "SourceArt/CoastalHarbor/meshes/Shop0.fbx": {
+      "before": "20d817048aff7a0c255063f9f3f797c7ace4aae896ae3f962af02ba0c186151d",
+      "after": "a88ec6e0254216aea76608e46baecc614020112015ec4d9a488eb3c79738676b"
+    },
+    "Content/CoastalHarbor/Meshes/Shop0.uasset": {
+      "before": "d0a33819cc96b1e82e372583a092e059c542411a14a63ca637f6cba2bacc01d0",
+      "after": "5dc29f87dfc62513a973d7802050328386b60659ca36596228b5e052be9fabee"
+    },
+    "SourceArt/CoastalHarbor/library/harbour-office/harbour_office_Storm.fbx": {
+      "before": "22339d025a0276bd4c537339c2c6378ad2558d1e695e0721802851ce32865582",
+      "after": "8cd72f8284f9baf06ce000d918d8db11bfd6ec8bd553c97f32b977cc34b8787f"
+    },
+    "Content/CoastalHarbor/Library/harbour_office/harbour_office_Storm.uasset": {
+      "before": "8950416544975268580ec20b51c7f3b23ad8bc2f2388e584e64a9643213b705f",
+      "after": "d9aa28624d15e6b30cd4266819d5d4b01920cbc9e1172e2fb448dfe351947237"
+    },
+    "SourceArt/CoastalHarbor/library/dump-truck/dump_truck.fbx": {
+      "before": "b2642ddfa7b94b368f037c083c6d4ea659c90e0801ff4beda0ffde4653a2a12a",
+      "after": "4e8c007b1eb6f76c56f8ed32ed232b92f1dacce9ef6869f91fe825eee3642307"
+    },
+    "Content/CoastalHarbor/Library/dump_truck/dump_truck.uasset": {
+      "before": "c80bb966dc2555d5cf669322e1befc9716ec563ccef24ef724d6bba33de9e0e8",
+      "after": "c24a75cefd03f3ab468bc2ac36243518db5d42defa85727d45d5357ccc47df43"
+    },
+    "SourceArt/CoastalHarbor/library/dump-truck/dump_truck_Storm.fbx": {
+      "before": "391d27a84eec08a503627bf7f32d86178930648fb49e737bfa589b6d59315044",
+      "after": "e37829d1cf5a22cbf1d771e13d7c601f07da89d74d6d6b18726a28767c210460"
+    },
+    "Content/CoastalHarbor/Library/dump_truck/dump_truck_Storm.uasset": {
+      "before": "9bdab3b61e6392cf9ace2f0a03ab04b2d5a6bc2571434bc010e0e9ddf0ed48f6",
+      "after": "525a805d46c1d402ee68f9a863fc54419dcd9fe9a7515eee552ec768bed59953"
+    }
+  },
+  "map_sha256": "2b6cf86affe4adcd6caa8dbce93a376e5f02d8cea5e8d525d4067197d1b86703"
+}

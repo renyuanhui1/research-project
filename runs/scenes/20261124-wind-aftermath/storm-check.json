@@ -1,0 +1,25 @@
+{
+  "environment_roofs": {
+    "Peeled": 34,
+    "Stripped": 39
+  },
+  "debris_groups": {
+    "SheetScatter0": 10,
+    "SheetScatter2": 12,
+    "BrokenCrown1": 4,
+    "BrokenCrown0": 3,
+    "SheetScatter1": 17,
+    "QuayWreckage0": 5,
+    "QuayWreckage1": 5,
+    "TideWrack": 8
+  },
+  "tagged_models": {
+    "Building_001": "VillageRoofBreach",
+    "Building_013": "VillageRoofBreach",
+    "Building_036": "VillageRoofBreach",
+    "Vessel_035": "TugBentMast"
+  },
+  "roof_probe_spacing_m": 0.2,
+  "roof_lowered_5_to_170_cm_estimate_m2": 13.88,
+  "tug_max_height_reduction_unscaled_m": 1.867
+}

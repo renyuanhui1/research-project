@@ -17,6 +17,17 @@
 
 Python入口定位项目根目录，并只将`src/`加入搜索路径；跨模块使用`common`、`perception`、`control`等包导入。资产路径相对项目根目录解析，不依赖启动工作目录。`common/profiles.py`加载`--profile`或`UAV_SCENE_PROFILE`指定的JSON；默认使用`airport`。
 
+## 沿海渔港关卡
+
+`project_520` 中的 `/Game/CoastalHarbor/Maps/CoastalHarbor` 保存 2 km × 2 km 任务区内的 UE 对象。地面、潮滩和海面分别建模。主体建筑、船只及车辆各自拥有稳定的巡查编号，UE 标签 `Inspection` 标出 32 个重点对象。离线对象表记录编号、状态、外观损伤与位置。单机配置复用既有前向 RGB 和深度相机。安装位置、对象表和取图入口见[沿海渔港关卡](沿海渔港关卡.md)。
+
+`harbor_street_meshes` 用米制几何制作住宅、商铺、栏杆及摊架。`harbor_streets` 复用已保存的街道和巡查对象边界布置地块，环境建筑单独放在 `Harbor/StreetFrontages`。两处重点鱼市保留原 Actor 及标签，通过替换网格更新外观。`harbor_review` 重新载入地图，检查巡查编号、建筑屋面和地面碰撞，并从保存的机位取图。
+
+`harbor_port_plan` 以共享路口、切线路径、道路宽度和地块占地生成路面、人行道、地基、坡地和岸线。港区工业地块沿装卸路选址，两处鱼市贴近码头。住宅与公共建筑沿内陆街道选址，按谷地、山脊与果园聚落的范围赋予不同选址权重。住宅按五个聚落中心选取可连续建房的既有街段，轮流为各片区分配成排住宅，再按迁移距离匹配原住宅编号。排布同时检查路面、其他地块、田块和植被，最后按地势生成地基和通向人行道的入户路。`harbor_port` 在原 Actor 上应用变换，更新观察位，按地块计划记录的树种生成缓冲带内的植被实例。`harbor_outline.json` 以世界坐标米记录共同外边界。规划器按轮廓裁切道路、田块和树木。`harbor_perimeter` 保留地形三角面的坡度裁出曲边，从潮滩等高线与外轮廓的交集生成海面，并用裁切后的真实地形边缘生成岩质侧壁。UE 水面组件使用两倍渲染包围盒，以保持移动视角时的可见性。`harbor_review` 重载核对路面与镇界碰撞，`harbor_exposure_run` 沿鱼市立面法线连续移动相机，`check_harbor_camera` 从更新后的世界坐标布置 ProjectAirSim 的远近 RGB-D 观察位。[场景说明](沿海渔港关卡.md)
+
+风损作为地图构建的最后一步写入。`harbor_storm_plan` 用已保存的地块、朝向和巡查编号选取受损屋面，在来源建筑下风侧、码头和潮滩布置残留物。`harbor_storm_meshes` 生成真实开口、剩余椽条、弯折桅杆和碎片组网格。`harbor_storm_apply` 在原建筑和拖船 Actor 上替换网格，依据 UE 多点碰撞查询调整散落物的位置与坡度。Windows 工程的 `SourceArt/CoastalHarbor/StormAftermath/placed.json` 保存碎片组的来源和实放坐标；编号目标仍由 `PortTown/catalog.json` 管理。
+
+
 ## 跨机器仿真连接
 
 WSL与服务器237均连接Windows主机178上的UE。两端`configs/scenes/airport.json`的`simulator.address`统一填写`192.168.31.178`；入口直接读取该字段，`--profile`和`UAV_SCENE_PROFILE`用于选择档案。运行时选择一端使用完整客户端，结束并断开后再切换另一端。

@@ -112,6 +112,8 @@ python src/control/run_approach.py --out-dir runs/approach/20261118-new-model-e2
 
 ## 场景配置与切换
 
+沿海灾后场景可直接在 Windows 工程中打开，单机取图使用独立的渔港场景配置。入口、UE 路径和巡查对象见[沿海渔港关卡](沿海渔港关卡.md)。
+
 `configs/scenes/airport.json`描述当前机场的连接地址、目标Actor、地图、模板、权重和准备几何。`configs/simulation/`定义ProjectAirSim的无人机、相机、传感器与时钟；`configs/missions/airport_approach.json`定义本次任务的距离、速度、俯角、部位和停车深度。
 
 | 配置项 | 用法 |

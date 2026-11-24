@@ -1,0 +1,1590 @@
+{
+  "roofs": [
+    {
+      "label": "StreetFrontages_069",
+      "mesh": "HouseHarborTerracePeeledB",
+      "severity": "Peeled",
+      "xy": [
+        -68.68868137548161,
+        299.8804706252562
+      ],
+      "base": 7.292407793804973,
+      "road": "River road",
+      "district": 3
+    },
+    {
+      "label": "StreetFrontages_145",
+      "mesh": "HouseHarborTerracePeeledB",
+      "severity": "Peeled",
+      "xy": [
+        508.1058792281288,
+        473.5328491955576
+      ],
+      "base": 15.10845845608817,
+      "road": "East coombe",
+      "district": 4
+    },
+    {
+      "label": "StreetFrontages_167",
+      "mesh": "HouseHarborTerraceStrippedB",
+      "severity": "Stripped",
+      "xy": [
+        317.06056704399407,
+        307.0474902930311
+      ],
+      "base": 11.670080236630792,
+      "road": "Valley road",
+      "district": 4
+    },
+    {
+      "label": "StreetFrontages_187",
+      "mesh": "HouseHarborTerraceStrippedB",
+      "severity": "Stripped",
+      "xy": [
+        -278.19465659719737,
+        329.91637708078105
+      ],
+      "base": 4.148551494795715,
+      "road": "Back lane",
+      "district": 3
+    },
+    {
+      "label": "StreetFrontages_210",
+      "mesh": "HouseHarborTerraceStrippedA",
+      "severity": "Stripped",
+      "xy": [
+        -547.8689689683126,
+        840.7685575047236
+      ],
+      "base": 27.315887557277883,
+      "road": "Ridge terrace",
+      "district": 2
+    },
+    {
+      "label": "StreetFrontages_224",
+      "mesh": "HouseHarborTerraceStrippedA",
+      "severity": "Stripped",
+      "xy": [
+        -275.158411718088,
+        663.2091173424081
+      ],
+      "base": 20.462722647948144,
+      "road": "Upland road",
+      "district": 2
+    },
+    {
+      "label": "StreetFrontages_267",
+      "mesh": "HouseHarborTerraceStrippedA",
+      "severity": "Stripped",
+      "xy": [
+        -133.5773991487761,
+        426.7038603131244
+      ],
+      "base": 10.318520079039686,
+      "road": "Valley road",
+      "district": 3
+    },
+    {
+      "label": "StreetFrontages_309",
+      "mesh": "HouseHarborTerracePeeledA",
+      "severity": "Peeled",
+      "xy": [
+        293.5074248515348,
+        237.52935170519544
+      ],
+      "base": 8.080161608010336,
+      "road": "Valley road",
+      "district": 4
+    },
+    {
+      "label": "StreetFrontages_348",
+      "mesh": "HouseHarborTerracePeeledA",
+      "severity": "Peeled",
+      "xy": [
+        165.69223578814945,
+        816.5167789918411
+      ],
+      "base": 29.681015492993684,
+      "road": "High cross",
+      "district": 5
+    },
+    {
+      "label": "StreetFrontages_433",
+      "mesh": "HouseHarborTerracePeeledA",
+      "severity": "Peeled",
+      "xy": [
+        -623.1223867063862,
+        295.8068465278302
+      ],
+      "base": 0.38833557447835265,
+      "road": "Orchard rise",
+      "district": 1
+    },
+    {
+      "label": "StreetFrontages_441",
+      "mesh": "HouseHarborTerraceStrippedB",
+      "severity": "Stripped",
+      "xy": [
+        -609.5086735826211,
+        321.66173416989557
+      ],
+      "base": 0.3739427615430331,
+      "road": "Orchard rise",
+      "district": 1
+    },
+    {
+      "label": "StreetFrontages_510",
+      "mesh": "HouseHarborTerracePeeledB",
+      "severity": "Peeled",
+      "xy": [
+        -494.5100890406394,
+        896.810671501964
+      ],
+      "base": 32.51672507097726,
+      "road": "Ridge terrace",
+      "district": 2
+    },
+    {
+      "label": "StreetFrontages_529",
+      "mesh": "HouseHarborTerracePeeledB",
+      "severity": "Peeled",
+      "xy": [
+        142.26786684706403,
+        482.3190463113175
+      ],
+      "base": 17.42289114733942,
+      "road": "Valley road",
+      "district": 4
+    },
+    {
+      "label": "StreetFrontages_533",
+      "mesh": "HouseHarborTerraceStrippedB",
+      "severity": "Stripped",
+      "xy": [
+        365.5693912619549,
+        385.59205643893296
+      ],
+      "base": 14.823767535734868,
+      "road": "East coombe",
+      "district": 4
+    },
+    {
+      "label": "StreetFrontages_549",
+      "mesh": "HouseHarborTerraceStrippedA",
+      "severity": "Stripped",
+      "xy": [
+        -665.5783139296146,
+        136.83867302580728
+      ],
+      "base": 0.4922209874099618,
+      "road": "Chapel street",
+      "district": 1
+    },
+    {
+      "label": "StreetFrontages_699",
+      "mesh": "HouseHarborTerraceStrippedA",
+      "severity": "Stripped",
+      "xy": [
+        -754.4641295624925,
+        294.82722781671606
+      ],
+      "base": 0.9337122911637004,
+      "road": "West ridge road",
+      "district": 1
+    },
+    {
+      "label": "StreetFrontages_711",
+      "mesh": "HouseHarborTerraceStrippedA",
+      "severity": "Stripped",
+      "xy": [
+        -153.88581305231196,
+        415.8523835461934
+      ],
+      "base": 9.39600723510568,
+      "road": "Valley road",
+      "district": 3
+    },
+    {
+      "label": "StreetFrontages_860",
+      "mesh": "HouseHarborTerracePeeledA",
+      "severity": "Peeled",
+      "xy": [
+        -151.70898469540052,
+        177.08235416870238
+      ],
+      "base": 2.4818763628480704,
+      "road": "Chapel street",
+      "district": 3
+    },
+    {
+      "label": "StreetFrontages_912",
+      "mesh": "HouseHarborTerracePeeledB",
+      "severity": "Peeled",
+      "xy": [
+        -545.8028151471882,
+        284.46998700019907
+      ],
+      "base": 0.5753534885739227,
+      "road": "Orchard rise",
+      "district": 1
+    },
+    {
+      "label": "StreetFrontages_936",
+      "mesh": "HouseHarborTerracePeeledB",
+      "severity": "Peeled",
+      "xy": [
+        342.414614104778,
+        391.0339448454444
+      ],
+      "base": 15.079493360321566,
+      "road": "East coombe",
+      "district": 4
+    },
+    {
+      "label": "StreetFrontages_982",
+      "mesh": "HouseHarborTerracePeeledA",
+      "severity": "Peeled",
+      "xy": [
+        376.4035746244896,
+        796.7172446901698
+      ],
+      "base": 18.72136410405496,
+      "road": "High cross",
+      "district": 5
+    },
+    {
+      "label": "StreetFrontages_997",
+      "mesh": "HouseHarborTerracePeeledB",
+      "severity": "Peeled",
+      "xy": [
+        -632.1094123135351,
+        332.4491856670146
+      ],
+      "base": 0.3908477013746908,
+      "road": "Orchard rise",
+      "district": 1
+    },
+    {
+      "label": "StreetFrontages_1021",
+      "mesh": "HouseHarborTerracePeeledB",
+      "severity": "Peeled",
+      "xy": [
+        -477.75629652626185,
+        719.8116606596211
+      ],
+      "base": 19.960603236136865,
+      "road": "Westcombe lane",
+      "district": 2
+    },
+    {
+      "label": "StreetFrontages_024",
+      "mesh": "HouseDormerPairPeeledB",
+      "severity": "Peeled",
+      "xy": [
+        387.84785063873534,
+        381.7423721487241
+      ],
+      "base": 14.547547639975594,
+      "road": "East coombe",
+      "district": 4
+    },
+    {
+      "label": "StreetFrontages_055",
+      "mesh": "HouseDormerPairPeeledB",
+      "severity": "Peeled",
+      "xy": [
+        -228.47329191881968,
+        399.756984330346
+      ],
+      "base": 6.847243263539231,
+      "road": "Valley road",
+      "district": 3
+    },
+    {
+      "label": "StreetFrontages_077",
+      "mesh": "HouseDormerPairStrippedA",
+      "severity": "Stripped",
+      "xy": [
+        -246.31602528643197,
+        192.96502756179027
+      ],
+      "base": 2.1092037373414962,
+      "road": "Chapel street",
+      "district": 3
+    },
+    {
+      "label": "StreetFrontages_179",
+      "mesh": "HouseDormerPairPeeledB",
+      "severity": "Peeled",
+      "xy": [
+        -241.96346055594785,
+        221.45445683418788
+      ],
+      "base": 2.6486997237447074,
+      "road": "Chapel street",
+      "district": 3
+    },
+    {
+      "label": "StreetFrontages_195",
+      "mesh": "HouseDormerPairStrippedB",
+      "severity": "Stripped",
+      "xy": [
+        -218.04427427416059,
+        217.5938278727943
+      ],
+      "base": 2.8100139329457603,
+      "road": "Chapel street",
+      "district": 3
+    },
+    {
+      "label": "StreetFrontages_263",
+      "mesh": "HouseDormerPairPeeledB",
+      "severity": "Peeled",
+      "xy": [
+        -334.25437919857296,
+        421.0595685576288
+      ],
+      "base": 4.9008863473790445,
+      "road": "West ridge road",
+      "district": 3
+    },
+    {
+      "label": "StreetFrontages_302",
+      "mesh": "HouseDormerPairStrippedA",
+      "severity": "Stripped",
+      "xy": [
+        -28.8158546338272,
+        182.67827979826637
+      ],
+      "base": 3.577363005722561,
+      "road": "Coombe road",
+      "district": 3
+    },
+    {
+      "label": "StreetFrontages_340",
+      "mesh": "HouseDormerPairPeeledA",
+      "severity": "Peeled",
+      "xy": [
+        460.9112903362067,
+        381.16287181528696
+      ],
+      "base": 14.037596491107758,
+      "road": "East coombe",
+      "district": 4
+    },
+    {
+      "label": "StreetFrontages_367",
+      "mesh": "HouseDormerPairStrippedB",
+      "severity": "Stripped",
+      "xy": [
+        -208.13523861562436,
+        846.5521871118877
+      ],
+      "base": 37.56327453327035,
+      "road": "Ridge terrace",
+      "district": 2
+    },
+    {
+      "label": "StreetFrontages_382",
+      "mesh": "HouseDormerPairStrippedB",
+      "severity": "Stripped",
+      "xy": [
+        -0.4939719450581581,
+        232.30077302374696
+      ],
+      "base": 5.647572168812274,
+      "road": "Coombe road",
+      "district": 3
+    },
+    {
+      "label": "StreetFrontages_475",
+      "mesh": "HouseDormerPairStrippedA",
+      "severity": "Stripped",
+      "xy": [
+        -485.7242204980987,
+        868.942824187304
+      ],
+      "base": 31.189576705859952,
+      "road": "Ridge terrace",
+      "district": 2
+    },
+    {
+      "label": "StreetFrontages_479",
+      "mesh": "HouseDormerPairStrippedA",
+      "severity": "Stripped",
+      "xy": [
+        439.3898175257794,
+        364.9476206251789
+      ],
+      "base": 13.652607478066757,
+      "road": "East coombe",
+      "district": 4
+    },
+    {
+      "label": "StreetFrontages_483",
+      "mesh": "HouseDormerPairStrippedB",
+      "severity": "Stripped",
+      "xy": [
+        -696.7386261796606,
+        365.1625072733212
+      ],
+      "base": 0.7479941749760397,
+      "road": "Westcombe lane",
+      "district": 1
+    },
+    {
+      "label": "StreetFrontages_502",
+      "mesh": "HouseDormerPairStrippedA",
+      "severity": "Stripped",
+      "xy": [
+        -46.83967707814911,
+        461.903779139988
+      ],
+      "base": 13.735104146043497,
+      "road": "Valley road",
+      "district": 3
+    },
+    {
+      "label": "StreetFrontages_506",
+      "mesh": "HouseDormerPairStrippedB",
+      "severity": "Stripped",
+      "xy": [
+        -835.3586956429316,
+        235.65812753618422
+      ],
+      "base": 1.3322166198394256,
+      "road": "West ridge road",
+      "district": 1
+    },
+    {
+      "label": "StreetFrontages_590",
+      "mesh": "HouseDormerPairStrippedB",
+      "severity": "Stripped",
+      "xy": [
+        504.66136076176304,
+        446.59132803880135
+      ],
+      "base": 14.929890644186601,
+      "road": "East coombe",
+      "district": 4
+    },
+    {
+      "label": "StreetFrontages_598",
+      "mesh": "HouseDormerPairStrippedA",
+      "severity": "Stripped",
+      "xy": [
+        -173.84793584403624,
+        403.6035121213778
+      ],
+      "base": 8.338082987694655,
+      "road": "Valley road",
+      "district": 3
+    },
+    {
+      "label": "StreetFrontages_681",
+      "mesh": "HouseDormerPairStrippedA",
+      "severity": "Stripped",
+      "xy": [
+        481.19008933668863,
+        497.8612422545268
+      ],
+      "base": 15.606826341180192,
+      "road": "East coombe",
+      "district": 4
+    },
+    {
+      "label": "StreetFrontages_688",
+      "mesh": "HouseDormerPairPeeledA",
+      "severity": "Peeled",
+      "xy": [
+        -665.5918159379445,
+        314.79603637972264
+      ],
+      "base": 0.4445543788390548,
+      "road": "Orchard rise",
+      "district": 1
+    },
+    {
+      "label": "StreetFrontages_703",
+      "mesh": "HouseDormerPairPeeledA",
+      "severity": "Peeled",
+      "xy": [
+        -642.1272382748416,
+        142.54961943597957
+      ],
+      "base": 0.4895489749041413,
+      "road": "Chapel street",
+      "district": 1
+    },
+    {
+      "label": "StreetFrontages_886",
+      "mesh": "HouseDormerPairPeeledA",
+      "severity": "Peeled",
+      "xy": [
+        870.5720275907948,
+        714.0834906422028
+      ],
+      "base": 4.681668324180304,
+      "road": "East coombe",
+      "district": 5
+    },
+    {
+      "label": "StreetFrontages_900",
+      "mesh": "HouseDormerPairStrippedB",
+      "severity": "Stripped",
+      "xy": [
+        -584.1929506763713,
+        851.4092864433867
+      ],
+      "base": 26.302546010133295,
+      "road": "Ridge terrace",
+      "district": 2
+    },
+    {
+      "label": "StreetFrontages_932",
+      "mesh": "HouseDormerPairPeeledB",
+      "severity": "Peeled",
+      "xy": [
+        -265.4286297433707,
+        402.1907773683474
+      ],
+      "base": 6.009675660307237,
+      "road": "West ridge road",
+      "district": 3
+    },
+    {
+      "label": "StreetFrontages_962",
+      "mesh": "HouseDormerPairStrippedA",
+      "severity": "Stripped",
+      "xy": [
+        -566.5819971855783,
+        828.0927104266314
+      ],
+      "base": 25.667395206872065,
+      "road": "Ridge terrace",
+      "district": 2
+    },
+    {
+      "label": "StreetFrontages_966",
+      "mesh": "HouseDormerPairPeeledB",
+      "severity": "Peeled",
+      "xy": [
+        360.9413385486874,
+        173.03779120808426
+      ],
+      "base": 4.6307745959399185,
+      "road": "Salt road",
+      "district": 4
+    },
+    {
+      "label": "StreetFrontages_1045",
+      "mesh": "HouseDormerPairPeeledA",
+      "severity": "Peeled",
+      "xy": [
+        380.45987645312505,
+        140.66245524939217
+      ],
+      "base": 3.1912913695862404,
+      "road": "Salt road",
+      "district": 4
+    },
+    {
+      "label": "StreetFrontages_031",
+      "mesh": "HouseHippedCottagePeeledB",
+      "severity": "Peeled",
+      "xy": [
+        -734.0299717505562,
+        366.00571300405767
+      ],
+      "base": 1.0351630805810348,
+      "road": "Westcombe lane",
+      "district": 1
+    },
+    {
+      "label": "StreetFrontages_045",
+      "mesh": "HouseHippedCottageStrippedA",
+      "severity": "Stripped",
+      "xy": [
+        20.50860681960711,
+        473.5286484716361
+      ],
+      "base": 15.512699235260317,
+      "road": "Valley road",
+      "district": 3
+    },
+    {
+      "label": "StreetFrontages_066",
+      "mesh": "HouseHippedCottageStrippedA",
+      "severity": "Stripped",
+      "xy": [
+        -502.3060666734618,
+        175.88878734288465
+      ],
+      "base": 0.6540099754325042,
+      "road": "Chapel street",
+      "district": 1
+    },
+    {
+      "label": "StreetFrontages_109",
+      "mesh": "HouseHippedCottageStrippedA",
+      "severity": "Stripped",
+      "xy": [
+        359.9460316623591,
+        360.10555555976885
+      ],
+      "base": 13.810250436745065,
+      "road": "East coombe",
+      "district": 4
+    },
+    {
+      "label": "StreetFrontages_124",
+      "mesh": "HouseHippedCottageStrippedA",
+      "severity": "Stripped",
+      "xy": [
+        -588.5877419711162,
+        308.75104239439776
+      ],
+      "base": 0.4057388825460643,
+      "road": "Orchard rise",
+      "district": 1
+    },
+    {
+      "label": "StreetFrontages_135",
+      "mesh": "HouseHippedCottagePeeledA",
+      "severity": "Peeled",
+      "xy": [
+        112.54446311696903,
+        462.9856235670197
+      ],
+      "base": 16.43216695308987,
+      "road": "Valley road",
+      "district": 3
+    },
+    {
+      "label": "StreetFrontages_138",
+      "mesh": "HouseHippedCottageStrippedA",
+      "severity": "Stripped",
+      "xy": [
+        -465.2705477161592,
+        523.0588088745636
+      ],
+      "base": 5.858277338124167,
+      "road": "Upland road",
+      "district": 2
+    },
+    {
+      "label": "StreetFrontages_221",
+      "mesh": "HouseHippedCottageStrippedB",
+      "severity": "Stripped",
+      "xy": [
+        -170.84447563979933,
+        208.7044732247648
+      ],
+      "base": 3.046062425630892,
+      "road": "Chapel street",
+      "district": 3
+    },
+    {
+      "label": "StreetFrontages_278",
+      "mesh": "HouseHippedCottagePeeledA",
+      "severity": "Peeled",
+      "xy": [
+        174.36121724257322,
+        902.4955838035203
+      ],
+      "base": 32.78507728221108,
+      "road": "Upland road",
+      "district": 5
+    },
+    {
+      "label": "StreetFrontages_293",
+      "mesh": "HouseHippedCottageStrippedA",
+      "severity": "Stripped",
+      "xy": [
+        -199.14917127932026,
+        185.82366247773928
+      ],
+      "base": 2.3061425767902266,
+      "road": "Chapel street",
+      "district": 3
+    },
+    {
+      "label": "StreetFrontages_464",
+      "mesh": "HouseHippedCottageStrippedB",
+      "severity": "Stripped",
+      "xy": [
+        -145.04373346549104,
+        450.149693153681
+      ],
+      "base": 10.754008612332903,
+      "road": "Valley road",
+      "district": 3
+    },
+    {
+      "label": "StreetFrontages_518",
+      "mesh": "HouseHippedCottagePeeledA",
+      "severity": "Peeled",
+      "xy": [
+        -194.1231488779169,
+        391.15290397993243
+      ],
+      "base": 7.383812254837722,
+      "road": "Valley road",
+      "district": 3
+    },
+    {
+      "label": "StreetFrontages_568",
+      "mesh": "HouseHippedCottagePeeledB",
+      "severity": "Peeled",
+      "xy": [
+        -167.0147326967141,
+        438.4093197127217
+      ],
+      "base": 9.70793332782538,
+      "road": "Valley road",
+      "district": 3
+    },
+    {
+      "label": "StreetFrontages_574",
+      "mesh": "HouseHippedCottagePeeledB",
+      "severity": "Peeled",
+      "xy": [
+        -530.8699189142594,
+        413.4469739806308
+      ],
+      "base": 1.445974371062105,
+      "road": "West ridge road",
+      "district": 1
+    },
+    {
+      "label": "StreetFrontages_583",
+      "mesh": "HouseHippedCottagePeeledB",
+      "severity": "Peeled",
+      "xy": [
+        -832.2579475573982,
+        180.18612446367135
+      ],
+      "base": 1.0314480060489601,
+      "road": "West ridge road",
+      "district": 1
+    },
+    {
+      "label": "StreetFrontages_618",
+      "mesh": "HouseHippedCottageStrippedB",
+      "severity": "Stripped",
+      "xy": [
+        -656.8440895643994,
+        368.14528459083203
+      ],
+      "base": 0.5724502926167474,
+      "road": "West ridge road",
+      "district": 1
+    },
+    {
+      "label": "StreetFrontages_629",
+      "mesh": "HouseHippedCottageStrippedB",
+      "severity": "Stripped",
+      "xy": [
+        -33.03441449189146,
+        766.9169536303029
+      ],
+      "base": 31.89196553861542,
+      "road": "Upland road",
+      "district": 5
+    },
+    {
+      "label": "StreetFrontages_635",
+      "mesh": "HouseHippedCottagePeeledB",
+      "severity": "Peeled",
+      "xy": [
+        -808.7261062229072,
+        281.78491521488075
+      ],
+      "base": 1.309871959263715,
+      "road": "West ridge road",
+      "district": 1
+    },
+    {
+      "label": "StreetFrontages_638",
+      "mesh": "HouseHippedCottageStrippedB",
+      "severity": "Stripped",
+      "xy": [
+        482.0110993425906,
+        474.0291988458168
+      ],
+      "base": 15.507422546148579,
+      "road": "East coombe",
+      "district": 4
+    },
+    {
+      "label": "StreetFrontages_641",
+      "mesh": "HouseHippedCottageStrippedB",
+      "severity": "Stripped",
+      "xy": [
+        -687.660209996989,
+        324.54434860155754
+      ],
+      "base": 0.531759065082375,
+      "road": "Orchard rise",
+      "district": 1
+    },
+    {
+      "label": "StreetFrontages_660",
+      "mesh": "HouseHippedCottagePeeledA",
+      "severity": "Peeled",
+      "xy": [
+        -463.9191271981111,
+        875.562448221847
+      ],
+      "base": 32.34424528527065,
+      "road": "Ridge terrace",
+      "district": 2
+    },
+    {
+      "label": "StreetFrontages_872",
+      "mesh": "HouseHippedCottageStrippedB",
+      "severity": "Stripped",
+      "xy": [
+        285.1605157316496,
+        291.3381088192968
+      ],
+      "base": 10.62420122852974,
+      "road": "Valley road",
+      "district": 4
+    },
+    {
+      "label": "StreetFrontages_993",
+      "mesh": "HouseHippedCottagePeeledB",
+      "severity": "Peeled",
+      "xy": [
+        -562.8085786443447,
+        865.0384887567443
+      ],
+      "base": 27.774232386261428,
+      "road": "Ridge terrace",
+      "district": 2
+    },
+    {
+      "label": "StreetFrontages_1029",
+      "mesh": "HouseHippedCottageStrippedB",
+      "severity": "Stripped",
+      "xy": [
+        -562.0750965831529,
+        261.0726718311726
+      ],
+      "base": 0.5241842840601957,
+      "road": "Orchard rise",
+      "district": 1
+    }
+  ],
+  "props": [
+    {
+      "mesh": "SheetScatter0",
+      "xy": [
+        -50.384,
+        305.222
+      ],
+      "yaw": 88.98,
+      "radius": 4.8,
+      "source": "StreetFrontages_069",
+      "surface": "land"
+    },
+    {
+      "mesh": "SheetScatter2",
+      "xy": [
+        340.378,
+        309.039
+      ],
+      "yaw": 95.82,
+      "radius": 4.8,
+      "source": "StreetFrontages_167",
+      "surface": "land"
+    },
+    {
+      "mesh": "SheetScatter0",
+      "xy": [
+        -293.018,
+        336.847
+      ],
+      "yaw": 61.64,
+      "radius": 4.8,
+      "source": "StreetFrontages_187",
+      "surface": "land"
+    },
+    {
+      "mesh": "BrokenCrown1",
+      "xy": [
+        -302.629,
+        343.55
+      ],
+      "yaw": 78.44,
+      "radius": 6.4,
+      "source": "StreetFrontages_187",
+      "surface": "land"
+    },
+    {
+      "mesh": "BrokenCrown0",
+      "xy": [
+        -147.322,
+        462.119
+      ],
+      "yaw": 62.52,
+      "radius": 6.4,
+      "source": "StreetFrontages_267",
+      "surface": "land"
+    },
+    {
+      "mesh": "SheetScatter1",
+      "xy": [
+        -609.31,
+        335.899
+      ],
+      "yaw": 83.85,
+      "radius": 4.8,
+      "source": "StreetFrontages_441",
+      "surface": "land"
+    },
+    {
+      "mesh": "SheetScatter0",
+      "xy": [
+        159.208,
+        494.652
+      ],
+      "yaw": 89.64,
+      "radius": 4.8,
+      "source": "StreetFrontages_529",
+      "surface": "land"
+    },
+    {
+      "mesh": "SheetScatter1",
+      "xy": [
+        385.264,
+        406.526
+      ],
+      "yaw": 59.55,
+      "radius": 4.8,
+      "source": "StreetFrontages_533",
+      "surface": "land"
+    },
+    {
+      "mesh": "BrokenCrown1",
+      "xy": [
+        -777.803,
+        315.842
+      ],
+      "yaw": 87.85,
+      "radius": 6.4,
+      "source": "StreetFrontages_699",
+      "surface": "land"
+    },
+    {
+      "mesh": "SheetScatter2",
+      "xy": [
+        397.042,
+        816.717
+      ],
+      "yaw": 81.59,
+      "radius": 4.8,
+      "source": "StreetFrontages_982",
+      "surface": "land"
+    },
+    {
+      "mesh": "SheetScatter0",
+      "xy": [
+        -236.85,
+        409.567
+      ],
+      "yaw": 69.9,
+      "radius": 4.8,
+      "source": "StreetFrontages_055",
+      "surface": "land"
+    },
+    {
+      "mesh": "SheetScatter0",
+      "xy": [
+        -221.567,
+        229.446
+      ],
+      "yaw": 63.94,
+      "radius": 4.8,
+      "source": "StreetFrontages_195",
+      "surface": "land"
+    },
+    {
+      "mesh": "BrokenCrown1",
+      "xy": [
+        -229.273,
+        240.469
+      ],
+      "yaw": 78.03,
+      "radius": 6.4,
+      "source": "StreetFrontages_195",
+      "surface": "land"
+    },
+    {
+      "mesh": "SheetScatter1",
+      "xy": [
+        -311.584,
+        442.324
+      ],
+      "yaw": 83.23,
+      "radius": 4.8,
+      "source": "StreetFrontages_263",
+      "surface": "land"
+    },
+    {
+      "mesh": "SheetScatter2",
+      "xy": [
+        -46.789,
+        203.71
+      ],
+      "yaw": 97.73,
+      "radius": 4.8,
+      "source": "StreetFrontages_302",
+      "surface": "land"
+    },
+    {
+      "mesh": "SheetScatter1",
+      "xy": [
+        -187.005,
+        864.719
+      ],
+      "yaw": 80.48,
+      "radius": 4.8,
+      "source": "StreetFrontages_367",
+      "surface": "land"
+    },
+    {
+      "mesh": "SheetScatter2",
+      "xy": [
+        8.916,
+        240.488
+      ],
+      "yaw": 96.61,
+      "radius": 4.8,
+      "source": "StreetFrontages_382",
+      "surface": "land"
+    },
+    {
+      "mesh": "SheetScatter1",
+      "xy": [
+        452.381,
+        372.298
+      ],
+      "yaw": 84.38,
+      "radius": 4.8,
+      "source": "StreetFrontages_479",
+      "surface": "land"
+    },
+    {
+      "mesh": "SheetScatter2",
+      "xy": [
+        -696.182,
+        385.195
+      ],
+      "yaw": 59.71,
+      "radius": 4.8,
+      "source": "StreetFrontages_483",
+      "surface": "land"
+    },
+    {
+      "mesh": "SheetScatter0",
+      "xy": [
+        -27.602,
+        466.416
+      ],
+      "yaw": 92.76,
+      "radius": 4.8,
+      "source": "StreetFrontages_502",
+      "surface": "land"
+    },
+    {
+      "mesh": "BrokenCrown0",
+      "xy": [
+        -17.431,
+        496.414
+      ],
+      "yaw": 63.78,
+      "radius": 6.4,
+      "source": "StreetFrontages_502",
+      "surface": "land"
+    },
+    {
+      "mesh": "SheetScatter1",
+      "xy": [
+        -844.273,
+        249.319
+      ],
+      "yaw": 63.41,
+      "radius": 4.8,
+      "source": "StreetFrontages_506",
+      "surface": "land"
+    },
+    {
+      "mesh": "SheetScatter2",
+      "xy": [
+        517.501,
+        458.235
+      ],
+      "yaw": 77.25,
+      "radius": 4.8,
+      "source": "StreetFrontages_590",
+      "surface": "land"
+    },
+    {
+      "mesh": "SheetScatter1",
+      "xy": [
+        469.919,
+        499.958
+      ],
+      "yaw": 79.23,
+      "radius": 4.8,
+      "source": "StreetFrontages_681",
+      "surface": "land"
+    },
+    {
+      "mesh": "SheetScatter2",
+      "xy": [
+        -592.502,
+        870.723
+      ],
+      "yaw": 88.35,
+      "radius": 4.8,
+      "source": "StreetFrontages_900",
+      "surface": "land"
+    },
+    {
+      "mesh": "BrokenCrown1",
+      "xy": [
+        -489.628,
+        206.751
+      ],
+      "yaw": 59.08,
+      "radius": 6.4,
+      "source": "StreetFrontages_066",
+      "surface": "land"
+    },
+    {
+      "mesh": "SheetScatter1",
+      "xy": [
+        342.113,
+        365.133
+      ],
+      "yaw": 92.5,
+      "radius": 4.8,
+      "source": "StreetFrontages_109",
+      "surface": "land"
+    },
+    {
+      "mesh": "SheetScatter2",
+      "xy": [
+        -580.307,
+        330.749
+      ],
+      "yaw": 60.92,
+      "radius": 4.8,
+      "source": "StreetFrontages_124",
+      "surface": "land"
+    },
+    {
+      "mesh": "SheetScatter1",
+      "xy": [
+        -441.239,
+        526.553
+      ],
+      "yaw": 52.66,
+      "radius": 4.8,
+      "source": "StreetFrontages_138",
+      "surface": "land"
+    },
+    {
+      "mesh": "SheetScatter2",
+      "xy": [
+        -170.323,
+        226.21
+      ],
+      "yaw": 74.19,
+      "radius": 4.8,
+      "source": "StreetFrontages_221",
+      "surface": "land"
+    },
+    {
+      "mesh": "SheetScatter2",
+      "xy": [
+        -159.947,
+        463.921
+      ],
+      "yaw": 93.64,
+      "radius": 4.8,
+      "source": "StreetFrontages_464",
+      "surface": "land"
+    },
+    {
+      "mesh": "SheetScatter1",
+      "xy": [
+        -675.157,
+        369.374
+      ],
+      "yaw": 80.6,
+      "radius": 4.8,
+      "source": "StreetFrontages_618",
+      "surface": "land"
+    },
+    {
+      "mesh": "SheetScatter2",
+      "xy": [
+        -37.005,
+        783.423
+      ],
+      "yaw": 58.41,
+      "radius": 4.8,
+      "source": "StreetFrontages_629",
+      "surface": "land"
+    },
+    {
+      "mesh": "SheetScatter1",
+      "xy": [
+        475.155,
+        485.755
+      ],
+      "yaw": 92.16,
+      "radius": 4.8,
+      "source": "StreetFrontages_638",
+      "surface": "land"
+    },
+    {
+      "mesh": "SheetScatter2",
+      "xy": [
+        -699.178,
+        332.657
+      ],
+      "yaw": 73.44,
+      "radius": 4.8,
+      "source": "StreetFrontages_641",
+      "surface": "land"
+    },
+    {
+      "mesh": "SheetScatter1",
+      "xy": [
+        271.798,
+        312.349
+      ],
+      "yaw": 91.18,
+      "radius": 4.8,
+      "source": "StreetFrontages_872",
+      "surface": "land"
+    },
+    {
+      "mesh": "BrokenCrown0",
+      "xy": [
+        -524.598,
+        271.451
+      ],
+      "yaw": 62.59,
+      "radius": 6.4,
+      "source": "StreetFrontages_1029",
+      "surface": "land"
+    },
+    {
+      "mesh": "SheetScatter0",
+      "xy": [
+        62.757,
+        497.023
+      ],
+      "yaw": 52.64,
+      "radius": 4.8,
+      "source": "Building_001",
+      "surface": "land"
+    },
+    {
+      "mesh": "SheetScatter1",
+      "xy": [
+        37.652,
+        497.006
+      ],
+      "yaw": 67.02,
+      "radius": 4.8,
+      "source": "Building_001",
+      "surface": "land"
+    },
+    {
+      "mesh": "SheetScatter1",
+      "xy": [
+        401.371,
+        379.305
+      ],
+      "yaw": 81.81,
+      "radius": 4.8,
+      "source": "Building_036",
+      "surface": "land"
+    },
+    {
+      "mesh": "SheetScatter0",
+      "xy": [
+        -382.094,
+        -81.666
+      ],
+      "yaw": 90.53,
+      "radius": 4.8,
+      "source": "Building_095",
+      "surface": "land"
+    },
+    {
+      "mesh": "SheetScatter1",
+      "xy": [
+        -343.854,
+        -76.003
+      ],
+      "yaw": 64.01,
+      "radius": 4.8,
+      "source": "Building_095",
+      "surface": "land"
+    },
+    {
+      "mesh": "SheetScatter0",
+      "xy": [
+        -799.135,
+        -73.355
+      ],
+      "yaw": 59.41,
+      "radius": 4.8,
+      "source": "Building_098",
+      "surface": "land"
+    },
+    {
+      "mesh": "SheetScatter1",
+      "xy": [
+        -780.425,
+        -71.31
+      ],
+      "yaw": 70.77,
+      "radius": 4.8,
+      "source": "Building_098",
+      "surface": "land"
+    },
+    {
+      "mesh": "SheetScatter0",
+      "xy": [
+        664.291,
+        673.361
+      ],
+      "yaw": 88.68,
+      "radius": 4.8,
+      "source": "Building_112",
+      "surface": "land"
+    },
+    {
+      "mesh": "SheetScatter1",
+      "xy": [
+        661.516,
+        663.034
+      ],
+      "yaw": 84.91,
+      "radius": 4.8,
+      "source": "Building_112",
+      "surface": "land"
+    },
+    {
+      "mesh": "QuayWreckage0",
+      "xy": [
+        -821.464,
+        -207.191
+      ],
+      "yaw": 77.09,
+      "radius": 5.6,
+      "source": "WorkingQuay",
+      "surface": "quay"
+    },
+    {
+      "mesh": "QuayWreckage1",
+      "xy": [
+        -742.904,
+        -219.548
+      ],
+      "yaw": 55.91,
+      "radius": 5.6,
+      "source": "WorkingQuay",
+      "surface": "quay"
+    },
+    {
+      "mesh": "QuayWreckage0",
+      "xy": [
+        -681.576,
+        -214.799
+      ],
+      "yaw": 77.52,
+      "radius": 5.6,
+      "source": "WorkingQuay",
+      "surface": "quay"
+    },
+    {
+      "mesh": "QuayWreckage1",
+      "xy": [
+        -620.886,
+        -208.268
+      ],
+      "yaw": 64.33,
+      "radius": 5.6,
+      "source": "WorkingQuay",
+      "surface": "quay"
+    },
+    {
+      "mesh": "QuayWreckage0",
+      "xy": [
+        -522.405,
+        -213.583
+      ],
+      "yaw": 86.82,
+      "radius": 5.6,
+      "source": "WorkingQuay",
+      "surface": "quay"
+    },
+    {
+      "mesh": "QuayWreckage1",
+      "xy": [
+        -433.966,
+        -215.577
+      ],
+      "yaw": 61.19,
+      "radius": 5.6,
+      "source": "WorkingQuay",
+      "surface": "quay"
+    },
+    {
+      "mesh": "QuayWreckage0",
+      "xy": [
+        -323.049,
+        -208.152
+      ],
+      "yaw": 72.79,
+      "radius": 5.6,
+      "source": "WorkingQuay",
+      "surface": "quay"
+    },
+    {
+      "mesh": "QuayWreckage1",
+      "xy": [
+        -259.789,
+        -218.991
+      ],
+      "yaw": 71.98,
+      "radius": 5.6,
+      "source": "WorkingQuay",
+      "surface": "quay"
+    },
+    {
+      "mesh": "QuayWreckage0",
+      "xy": [
+        -175.807,
+        -211.635
+      ],
+      "yaw": 67.25,
+      "radius": 5.6,
+      "source": "WorkingQuay",
+      "surface": "quay"
+    },
+    {
+      "mesh": "QuayWreckage1",
+      "xy": [
+        -92.284,
+        -189.007
+      ],
+      "yaw": 96.42,
+      "radius": 5.6,
+      "source": "WorkingQuay",
+      "surface": "quay"
+    },
+    {
+      "mesh": "TideWrack",
+      "xy": [
+        80.324,
+        -174.322
+      ],
+      "yaw": 63.57,
+      "radius": 5.5,
+      "source": "Vessel_033",
+      "surface": "mud"
+    },
+    {
+      "mesh": "TideWrack",
+      "xy": [
+        229.228,
+        -234.366
+      ],
+      "yaw": 96.04,
+      "radius": 5.5,
+      "source": "Vessel_034",
+      "surface": "mud"
+    },
+    {
+      "mesh": "TideWrack",
+      "xy": [
+        311.671,
+        -191.492
+      ],
+      "yaw": 71.47,
+      "radius": 5.5,
+      "source": "Vessel_035",
+      "surface": "mud"
+    },
+    {
+      "mesh": "TideWrack",
+      "xy": [
+        433.02,
+        -165.137
+      ],
+      "yaw": 73.3,
+      "radius": 5.5,
+      "source": "Vessel_036",
+      "surface": "mud"
+    },
+    {
+      "mesh": "TideWrack",
+      "xy": [
+        573.431,
+        -226.638
+      ],
+      "yaw": 68.86,
+      "radius": 5.5,
+      "source": "Vessel_037",
+      "surface": "mud"
+    },
+    {
+      "mesh": "TideWrack",
+      "xy": [
+        674.7,
+        -164.552
+      ],
+      "yaw": 57.13,
+      "radius": 5.5,
+      "source": "Vessel_038",
+      "surface": "mud"
+    },
+    {
+      "mesh": "TideWrack",
+      "xy": [
+        781.893,
+        -141.587
+      ],
+      "yaw": 91.16,
+      "radius": 5.5,
+      "source": "Vessel_039",
+      "surface": "mud"
+    },
+    {
+      "mesh": "TideWrack",
+      "xy": [
+        937.498,
+        -167.609
+      ],
+      "yaw": 58.39,
+      "radius": 5.5,
+      "source": "Vessel_040",
+      "surface": "mud"
+    }
+  ],
+  "wind_towards_xy": [
+    0.28,
+    1.0
+  ]
+}

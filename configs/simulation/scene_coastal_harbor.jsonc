@@ -1,0 +1,16 @@
+{
+  "id": "CoastalHarbor",
+  "scene-type": "UnrealNative",
+  "clock": {"type": "real-time"},
+  // 本地合成渔港使用独立 NED 坐标。GPS 锚点仅供仿真接口使用。
+  "home-geo-point": {"latitude": 27.0, "longitude": -82.0, "altitude": 0.0},
+  "actors": [
+    {
+      "type": "robot",
+      "name": "Drone1",
+      "origin": {"xyz": "-390 -154 -1.5", "rpy-deg": "0 0 -90"},
+      "robot-config": "robot_coastal_harbor_sensors.jsonc"
+    }
+  ],
+  "segmentation": {"initialize-ids": true, "ignore-existing": false, "use-owner-name": true}
+}

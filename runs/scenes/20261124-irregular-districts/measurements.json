@@ -1,0 +1,46 @@
+{
+  "before": {
+    "rows": 137,
+    "single": 64,
+    "size_distribution": {
+      "5": 7,
+      "6": 4,
+      "1": 64,
+      "3": 21,
+      "4": 11,
+      "2": 30
+    }
+  },
+  "after": {
+    "rows": 55,
+    "single": 0,
+    "size_distribution": {
+      "7": 9,
+      "8": 8,
+      "4": 9,
+      "3": 13,
+      "6": 8,
+      "5": 8
+    }
+  },
+  "houses_per_district": {
+    "4": 58,
+    "2": 59,
+    "5": 56,
+    "1": 59,
+    "3": 58
+  },
+  "median_move_m": 84.28318761630894,
+  "move_over_50m": 216,
+  "outer_area_km2": 5.4176422600000045,
+  "outer_bounds_m": [
+    -1291.7,
+    -1280.3,
+    1313.9,
+    1321.2
+  ],
+  "water_km2": 2.1885402812834522,
+  "skirt_m": 5444.564461745711,
+  "surface_symmetric_difference_m2": 0.0,
+  "unchanged_core_roads": 31
+}

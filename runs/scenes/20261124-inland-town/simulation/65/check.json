@@ -1,0 +1,68 @@
+{
+  "scene": "/Sim/CoastalHarbor",
+  "actors": [
+    "Drone1"
+  ],
+  "camera": "FrontCamera",
+  "timestamps": [
+    [
+      310350907692800,
+      310350907692800
+    ],
+    [
+      310352450228000,
+      310352450228000
+    ],
+    [
+      310353932601700,
+      310353932601700
+    ]
+  ],
+  "warmup_frames": 0,
+  "capture_timeouts": 0,
+  "view": "fish-market",
+  "center_depth_m": 74.84375,
+  "rgb_shape": [
+    1080,
+    1920,
+    3
+  ],
+  "depth_shape": [
+    360,
+    640
+  ],
+  "fraction_positive_finite": 1.0,
+  "median_depth_m": 99.0,
+  "viewpoint_ned_m": [
+    -678.0062846050581,
+    28.242455544713792,
+    -43.392767497325664
+  ],
+  "rgb_camera_ned_m": [
+    -678.0062255859375,
+    28.242454528808594,
+    -43.09276580810547
+  ],
+  "rgb_camera_rotation_xyzw": [
+    -0.16761162877082825,
+    -0.19721470773220062,
+    -0.6255351305007935,
+    0.7360153198242188
+  ],
+  "capture_pose": {
+    "orientation": {
+      "w": 0.7619791030883789,
+      "x": 0.0,
+      "y": 0.0,
+      "z": -0.6476016044616699
+    },
+    "position": {
+      "x": -678.0062866210938,
+      "y": 28.242456436157227,
+      "z": -43.39276885986328
+    }
+  },
+  "rgb_encoding": "bgr",
+  "depth_encoding": "16FC1",
+  "method": "three static set-pose camera checks"
+}

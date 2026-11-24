@@ -1,0 +1,59 @@
+{
+  "method": "Median of 0.2126 R + 0.7152 G + 0.0722 B on gamma 2.2 display bytes, central square of half-width round(k/horizontal_m) pixels (k=380 UE, 390 ProjectAirSim).",
+  "continuous_ue": [
+    {
+      "image": "wall_65.png",
+      "horizontal_m": 65,
+      "elapsed_s": 6.01500000001397,
+      "center_ray_actor": "Building_071",
+      "wall_display_luma_0_255": 153.32
+    },
+    {
+      "image": "wall_55.png",
+      "horizontal_m": 54.93923072516919,
+      "elapsed_s": 10.203000000037719,
+      "center_ray_actor": "Building_071",
+      "wall_display_luma_0_255": 152.72
+    },
+    {
+      "image": "wall_45.png",
+      "horizontal_m": 44.961979761719746,
+      "elapsed_s": 14.35899999999674,
+      "center_ray_actor": "Building_071",
+      "wall_display_luma_0_255": 152.64
+    },
+    {
+      "image": "wall_35.png",
+      "horizontal_m": 34.982717114687006,
+      "elapsed_s": 18.53100000001723,
+      "center_ray_actor": "Building_071",
+      "wall_display_luma_0_255": 151.61
+    },
+    {
+      "image": "wall_25.png",
+      "horizontal_m": 24.923276713490537,
+      "elapsed_s": 22.75,
+      "center_ray_actor": "Building_071",
+      "wall_display_luma_0_255": 151.61
+    },
+    {
+      "image": "wall_14.png",
+      "horizontal_m": 14,
+      "elapsed_s": 27.29700000002049,
+      "center_ray_actor": "Building_071",
+      "wall_display_luma_0_255": 150.75
+    }
+  ],
+  "static_projectairsim": [
+    {
+      "horizontal_m": 65,
+      "wall_display_luma_0_255": 152.22,
+      "center_depth_m": 74.84375
+    },
+    {
+      "horizontal_m": 14,
+      "wall_display_luma_0_255": 150.61,
+      "center_depth_m": 16.15625
+    }
+  ]
+}

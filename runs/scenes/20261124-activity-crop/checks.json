@@ -1,0 +1,67 @@
+{
+  "targets_unchanged": 280,
+  "trees_before": 4115,
+  "trees_after": 575,
+  "retained_tree_transforms_match": true,
+  "surface_span_m": [
+    2240,
+    2240
+  ],
+  "task_span_m": [
+    2000,
+    2000
+  ],
+  "empty_exterior_rays": 4,
+  "performance_median_ms": {
+    "before": {
+      "GPUTime": 10.9764,
+      "FrameTime": 33.3275
+    },
+    "after": {
+      "GPUTime": 9.2446,
+      "FrameTime": 33.3263
+    }
+  },
+  "hashes": [
+    {
+      "file": "SourceArt/CoastalHarbor/PortTown/CoastBeyondTown.fbx",
+      "before": "4cebf35fe27d9b66fddefa2dca044957eb6a68fd9956ed198f7873ad83629368",
+      "after": "5ad33b10369fd110921ea9daf1cfbc04dc6efde96753a626060dc3a9e9ae9c2c"
+    },
+    {
+      "file": "SourceArt/CoastalHarbor/PortTown/FieldParcels.fbx",
+      "before": "46da6861d9b11cb70afd8387ba71d4e3812d64ce4b74e2b7292f129a820e25e6",
+      "after": "328ac392f4a484cbc37f61fc3493709b2f50172ab8d9e906a7f208fa48863614"
+    },
+    {
+      "file": "SourceArt/CoastalHarbor/PortTown/plan.json",
+      "before": "ab728882e55bffece2fc1c53fde14ec399c9ac667ebebc2dad43437dbf576648",
+      "after": "1334ffd940020d20973d180f55ada278119b97289f7d9889766411d2913ddc39"
+    },
+    {
+      "file": "SourceArt/CoastalHarbor/PortTown/TownStreets.fbx",
+      "before": "14a1b7f1f8a8258265a8b82de0d40eb050d9b39bacee1ad9216dda43ab0d25f2",
+      "after": "67b46d6da58c0e9e66a1337aa21f19d164657db1cfdf464de80fd360da7ae3c6"
+    },
+    {
+      "file": "Content/CoastalHarbor/Maps/CoastalHarbor.umap",
+      "before": "001caad1115f6d9c6969fe9fa2f66a4f822f35bee3ce1eab63732217017264a7",
+      "after": "8800f7b85c8cccb48bfe25680f9a97c88068b44446c278839ee4baae707ed111"
+    },
+    {
+      "file": "Content/CoastalHarbor/PortTown/CoastBeyondTown.uasset",
+      "before": "45b3aa4d88e1ee2d796edd1c6e38756010f9cd64cd2900b24b1dd4c013fc2a3b",
+      "after": "1de773f48787567a9a7dfbb70e261bccbe87c90aad2bed27c2249e2687cb579a"
+    },
+    {
+      "file": "Content/CoastalHarbor/PortTown/FieldParcels.uasset",
+      "before": "482086695bfc27ca4d0e69d86d10ec16eee9255022a5b8e802b0aaa6911326ea",
+      "after": "2f639c63187ef6df0a38cc8b43beea540a6e3badc6d174ee7c2035f1d0550f92"
+    },
+    {
+      "file": "Content/CoastalHarbor/PortTown/TownStreets.uasset",
+      "before": "26ac41fbc421d44848cebbaa49f6cab0c1c6e780e0cb47fb3705ccbb7228f614",
+      "after": "27bd9d6dd4939b28a1105ecd1e2177cb9103b7aa8960dc18febdfebc64776b01"
+    }
+  ]
+}

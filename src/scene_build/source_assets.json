@@ -1,0 +1,191 @@
+[
+  {
+    "file": "boathouse.glb",
+    "source": "https://tevy.dev/models/boathouse",
+    "url": "https://tevy.dev/models/boathouse/v1/lod0.glb",
+    "license": "CC0",
+    "sha256": "1d9c50b517f329de5886e5497778634184ef7644740797fd97bc70eb27b9d695"
+  },
+  {
+    "file": "delivery-van.glb",
+    "source": "https://tevy.dev/models/delivery-van",
+    "url": "https://tevy.dev/models/delivery-van/v1/lod0.glb",
+    "license": "CC0",
+    "sha256": "1d76ab54664f2762964e80972229297078a1a3756e3d202e6b7cc020af08afab"
+  },
+  {
+    "file": "dump-truck.glb",
+    "source": "https://tevy.dev/models/dump-truck",
+    "url": "https://tevy.dev/models/dump-truck/v1/lod0.glb",
+    "license": "CC0",
+    "sha256": "6c9e14cda21fdc76bb42deda7d929736a814ec89bfb5cc2d07d2ea3edf8787d1"
+  },
+  {
+    "file": "family-sedan.glb",
+    "source": "https://tevy.dev/models/family-sedan",
+    "url": "https://tevy.dev/models/family-sedan/v1/lod0.glb",
+    "license": "CC0",
+    "sha256": "0f5f333d67d76db1d4d39d3e19a21313206a32b81573691d378fb5698cfb7671"
+  },
+  {
+    "file": "fishing-trawler.glb",
+    "source": "https://tevy.dev/models/fishing-trawler",
+    "url": "https://tevy.dev/models/fishing-trawler/v1/lod0.glb",
+    "license": "CC0",
+    "sha256": "2faa0962fc7fb6d9c9b8f4b8dd9cb691f3a9531c08475b090a406a0b87ded457"
+  },
+  {
+    "file": "forklift.glb",
+    "source": "https://tevy.dev/models/forklift",
+    "url": "https://tevy.dev/models/forklift/v1/lod0.glb",
+    "license": "CC0",
+    "sha256": "065b8ee36b15927fe25f38647d517b5ae53f36ac71fded7c999df588d60e465e"
+  },
+  {
+    "file": "harbour-crane.glb",
+    "source": "https://tevy.dev/models/harbour-crane",
+    "url": "https://tevy.dev/models/harbour-crane/v1/lod0.glb",
+    "license": "CC0",
+    "sha256": "1c132f87c2557996aaa5bb90336a82481e630695384817edea599134deadc0fa"
+  },
+  {
+    "file": "harbour-office.glb",
+    "source": "https://tevy.dev/models/harbour-office",
+    "url": "https://tevy.dev/models/harbour-office/v1/lod0.glb",
+    "license": "CC0",
+    "sha256": "49ce65265627397c8d18da916cedba05bff8d1e5697e522a10b54886641d5139"
+  },
+  {
+    "file": "lighthouse.glb",
+    "source": "https://tevy.dev/models/lighthouse",
+    "url": "https://tevy.dev/models/lighthouse/v1/lod0.glb",
+    "license": "CC0",
+    "sha256": "07efef24ee42848a9ef900c8175692dedf0bbb321386518df277fdc46086e28e"
+  },
+  {
+    "file": "lombardy-poplar.glb",
+    "source": "https://tevy.dev/models/lombardy-poplar",
+    "url": "https://tevy.dev/models/lombardy-poplar/v1/lod0.glb",
+    "license": "CC0",
+    "sha256": "0732a7a7e6581d14ecef09be8356ec2365b511b626fbdf8cfc301d350eaa623a"
+  },
+  {
+    "file": "pickup-truck.glb",
+    "source": "https://tevy.dev/models/pickup-truck",
+    "url": "https://tevy.dev/models/pickup-truck/v1/lod0.glb",
+    "license": "CC0",
+    "sha256": "aad5d59ed3c8dc914a42957f7b40d031b04d69cf33921e41c7f24b6381024d89"
+  },
+  {
+    "file": "red-cottage.glb",
+    "source": "https://tevy.dev/models/red-cottage",
+    "url": "https://tevy.dev/models/red-cottage/v1/lod0.glb",
+    "license": "CC0",
+    "sha256": "6a532b9113d42e50d951953ffc83a127ac912c7cfdb916523930b3683eba7fd5"
+  },
+  {
+    "file": "semi-truck.glb",
+    "source": "https://tevy.dev/models/semi-truck",
+    "url": "https://tevy.dev/models/semi-truck/v1/lod0.glb",
+    "license": "CC0",
+    "sha256": "d3802b970402e6d834bfa13a12b906e4e60c93b619c9862df49e56b27c190f1f"
+  },
+  {
+    "file": "silver-birch.glb",
+    "source": "https://tevy.dev/models/silver-birch",
+    "url": "https://tevy.dev/models/silver-birch/v1/lod0.glb",
+    "license": "CC0",
+    "sha256": "e12466d3c07083acdbb248b252b8129fb72808d4d2bf9d08580ff646ab34e44b"
+  },
+  {
+    "file": "skiff.glb",
+    "source": "https://www.innerscene.com/tools/library/3d-parts/fishing-boat-3c5a6bfd",
+    "url": "https://www.innerscene.com/api/library/fishing-boat-3c5a6bfd/download",
+    "license": "CC0",
+    "sha256": "4237fc982229ca29487e391e961c3b0f66520d1552c447958c427e0ea766d311"
+  },
+  {
+    "file": "speedboat.glb",
+    "source": "https://tevy.dev/models/speedboat",
+    "url": "https://tevy.dev/models/speedboat/v1/lod0.glb",
+    "license": "CC0",
+    "sha256": "d18c22d24c73d31a3324ab1d37bebd8712fe2d4dd43e7ea935c11118603b0e61"
+  },
+  {
+    "file": "tow-truck.glb",
+    "source": "https://tevy.dev/models/tow-truck",
+    "url": "https://tevy.dev/models/tow-truck/v1/lod0.glb",
+    "license": "CC0",
+    "sha256": "31bd75f96144ca7cc96b380eaa4595a0fffdfd9fe926980f5cdb66efdc55732a"
+  },
+  {
+    "file": "tugboat.glb",
+    "source": "https://tevy.dev/models/tugboat",
+    "url": "https://tevy.dev/models/tugboat/v1/lod0.glb",
+    "license": "CC0",
+    "sha256": "84167a8e349a5d48c8ec52256989e9a59a6e62206a24f2f98a12cdfe8a72b8b9"
+  },
+  {
+    "file": "village-house.glb",
+    "source": "https://tevy.dev/models/village-house",
+    "url": "https://tevy.dev/models/village-house/v1/lod0.glb",
+    "license": "CC0",
+    "sha256": "ee8cad079fc0d94f4668ccd727843841254fde075048f1dd7be2c7d68784123d"
+  },
+  {
+    "file": "warehouse.glb",
+    "source": "https://tevy.dev/models/warehouse",
+    "url": "https://tevy.dev/models/warehouse/v1/lod0.glb",
+    "license": "CC0",
+    "sha256": "7bb1603bb94f3db00586f97192caf7ce8dacb2ccd13b0ef7ada4391db843731f"
+  },
+  {
+    "file": "wrecked-pickup.glb",
+    "source": "https://tevy.dev/models/wrecked-pickup",
+    "url": "https://tevy.dev/models/wrecked-pickup/v1/lod0.glb",
+    "license": "CC0",
+    "sha256": "05db069ac589c9bb1595583bdd18b6428643bee581f06c022f603aff484b891d"
+  },
+  {
+    "file": "wrecked-sedan.glb",
+    "source": "https://tevy.dev/models/wrecked-sedan",
+    "url": "https://tevy.dev/models/wrecked-sedan/v1/lod0.glb",
+    "license": "CC0",
+    "sha256": "fc0c296c6cb89b8a68ed0f3c2a4088448cc84c36cebcc37d665beb43622d0e14"
+  },
+  {
+    "file": "HarborSky.hdr",
+    "source": "https://polyhaven.com/a/kloofendal_48d_partly_cloudy_puresky",
+    "url": "https://dl.polyhaven.org/file/ph-assets/HDRIs/hdr/2k/kloofendal_48d_partly_cloudy_puresky_2k.hdr",
+    "license": "CC0",
+    "sha256": "5244534e9cf5b606f2ff513aa00ddb161b0a4826ffd88a0d3bd03ac29247d198"
+  },
+  {
+    "file": "streets/Ground/YardStone_BC.jpg",
+    "source": "https://polyhaven.com/a/gravel_floor",
+    "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/gravel_floor/gravel_floor_diff_2k.jpg",
+    "license": "CC0",
+    "sha256": "98d19a873c896682fa1c2d5257262fde7630c8e0b5079485c7ca0a4e8738c42b"
+  },
+  {
+    "file": "streets/Ground/YardStone_N.jpg",
+    "source": "https://polyhaven.com/a/gravel_floor",
+    "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/gravel_floor/gravel_floor_nor_dx_2k.jpg",
+    "license": "CC0",
+    "sha256": "fec23713acd30fc7b6e96f1f8e8867e5b4485a161a3d360ef801f7e6c89acd80"
+  },
+  {
+    "file": "streets/Ground/MaritimeSward_BC.jpg",
+    "source": "https://polyhaven.com/a/aerial_grass_rock",
+    "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/aerial_grass_rock/aerial_grass_rock_diff_2k.jpg",
+    "license": "CC0",
+    "sha256": "1a2ddfa4652adbe00447b940c40019d46f4b88245bc1b341cdf622c2110b7bc5"
+  },
+  {
+    "file": "streets/Ground/MaritimeSward_N.jpg",
+    "source": "https://polyhaven.com/a/aerial_grass_rock",
+    "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/aerial_grass_rock/aerial_grass_rock_nor_dx_2k.jpg",
+    "license": "CC0",
+    "sha256": "2522704b40a81e0da84b024ba170834e34d0226fc9b15c679f69a56bb91dddb9"
+  }
+]

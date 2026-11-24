@@ -1,0 +1,66 @@
+{
+  "scene": "/Sim/CoastalHarbor",
+  "actors": [
+    "Drone1"
+  ],
+  "camera": "FrontCamera",
+  "timestamps": [
+    [
+      272537907424500,
+      272537907424500
+    ],
+    [
+      272539885629800,
+      272539885629800
+    ],
+    [
+      272541787104400,
+      272541787104400
+    ]
+  ],
+  "warmup_frames": 0,
+  "red_hull_fraction_center": 0.04713348765432099,
+  "rgb_shape": [
+    1080,
+    1920,
+    3
+  ],
+  "depth_shape": [
+    360,
+    640
+  ],
+  "fraction_positive_finite": 1.0,
+  "median_depth_m": 24.172,
+  "viewpoint_ned_m": [
+    312.6,
+    -224.3,
+    -10.3
+  ],
+  "rgb_camera_ned_m": [
+    312.6000061035156,
+    -224.29998779296875,
+    -10.0
+  ],
+  "rgb_camera_rotation_xyzw": [
+    0.129409521818161,
+    -0.2241438627243042,
+    0.4829629063606262,
+    0.8365163207054138
+  ],
+  "capture_pose": {
+    "orientation": {
+      "w": 0.8660253882408142,
+      "x": 0.0,
+      "y": 0.0,
+      "z": 0.5
+    },
+    "position": {
+      "x": 312.6000061035156,
+      "y": -224.3000030517578,
+      "z": -10.300000190734863
+    }
+  },
+  "rgb_encoding": "bgr",
+  "depth_encoding": "16FC1",
+  "method": "three static set-pose camera checks"
+}

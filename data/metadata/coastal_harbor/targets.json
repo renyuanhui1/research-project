@@ -1,0 +1,4732 @@
+[
+  {
+    "id": "Building_001",
+    "category": "Building",
+    "kind": "House",
+    "inspection": true,
+    "state": "damaged",
+    "visible_evidence": "roof covering missing across adjacent bays with exposed rafters and battens; one roof corner lifted",
+    "xyz_m": [
+      43.476,
+      471.514,
+      15.899
+    ],
+    "model": "VillageRoofBreach",
+    "ue_actor_name": "StaticMeshActor_1167",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1167",
+    "damage_status": "damaged"
+  },
+  {
+    "id": "Building_002",
+    "category": "Building",
+    "kind": "House",
+    "inspection": false,
+    "state": "intact",
+    "visible_evidence": "intact exterior",
+    "xyz_m": [
+      915.996,
+      727.575,
+      5.147
+    ],
+    "model": "village-house",
+    "ue_actor_name": "StaticMeshActor_1169",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1169",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Building_003",
+    "category": "Building",
+    "kind": "House",
+    "inspection": false,
+    "state": "intact",
+    "visible_evidence": "intact exterior",
+    "xyz_m": [
+      410.442,
+      766.767,
+      16.416
+    ],
+    "model": "red-cottage",
+    "ue_actor_name": "StaticMeshActor_1171",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1171",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Building_004",
+    "category": "Building",
+    "kind": "House",
+    "inspection": false,
+    "state": "intact",
+    "visible_evidence": "intact exterior",
+    "xyz_m": [
+      36.049,
+      787.623,
+      32.387
+    ],
+    "model": "red-cottage",
+    "ue_actor_name": "StaticMeshActor_1173",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1173",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Building_005",
+    "category": "Building",
+    "kind": "House",
+    "inspection": false,
+    "state": "intact",
+    "visible_evidence": "intact exterior",
+    "xyz_m": [
+      -518.801,
+      889.804,
+      31.065
+    ],
+    "model": "red-cottage",
+    "ue_actor_name": "StaticMeshActor_1175",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1175",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Building_006",
+    "category": "Building",
+    "kind": "House",
+    "inspection": false,
+    "state": "intact",
+    "visible_evidence": "intact exterior",
+    "xyz_m": [
+      -435.091,
+      584.899,
+      10.244
+    ],
+    "model": "village-house",
+    "ue_actor_name": "StaticMeshActor_1177",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1177",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Building_007",
+    "category": "Building",
+    "kind": "House",
+    "inspection": false,
+    "state": "intact",
+    "visible_evidence": "intact exterior",
+    "xyz_m": [
+      -839.308,
+      206.684,
+      1.225
+    ],
+    "model": "village-house",
+    "ue_actor_name": "StaticMeshActor_1179",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1179",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Building_008",
+    "category": "Building",
+    "kind": "House",
+    "inspection": true,
+    "state": "intact",
+    "visible_evidence": "intact exterior",
+    "xyz_m": [
+      -532.92,
+      702.491,
+      17.22
+    ],
+    "model": "village-house",
+    "ue_actor_name": "StaticMeshActor_1181",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1181",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Building_009",
+    "category": "Building",
+    "kind": "House",
+    "inspection": false,
+    "state": "intact",
+    "visible_evidence": "intact exterior",
+    "xyz_m": [
+      280.764,
+      428.916,
+      16.49
+    ],
+    "model": "red-cottage",
+    "ue_actor_name": "StaticMeshActor_1183",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1183",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Building_010",
+    "category": "Building",
+    "kind": "House",
+    "inspection": false,
+    "state": "intact",
+    "visible_evidence": "intact exterior",
+    "xyz_m": [
+      433.671,
+      160.476,
+      4.093
+    ],
+    "model": "red-cottage",
+    "ue_actor_name": "StaticMeshActor_1185",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1185",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Building_011",
+    "category": "Building",
+    "kind": "House",
+    "inspection": false,
+    "state": "intact",
+    "visible_evidence": "intact exterior",
+    "xyz_m": [
+      -552.726,
+      402.089,
+      1.158
+    ],
+    "model": "red-cottage",
+    "ue_actor_name": "StaticMeshActor_1187",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1187",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Building_012",
+    "category": "Building",
+    "kind": "House",
+    "inspection": false,
+    "state": "intact",
+    "visible_evidence": "intact exterior",
+    "xyz_m": [
+      -455.62,
+      543.597,
+      7.198
+    ],
+    "model": "village-house",
+    "ue_actor_name": "StaticMeshActor_1189",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1189",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Building_013",
+    "category": "Building",
+    "kind": "House",
+    "inspection": true,
+    "state": "damaged",
+    "visible_evidence": "roof covering missing across adjacent bays with exposed rafters and battens; one roof corner lifted",
+    "xyz_m": [
+      -526.823,
+      849.481,
+      28.641
+    ],
+    "model": "VillageRoofBreach",
+    "ue_actor_name": "StaticMeshActor_1191",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1191",
+    "damage_status": "damaged"
+  },
+  {
+    "id": "Building_014",
+    "category": "Building",
+    "kind": "House",
+    "inspection": false,
+    "state": "intact",
+    "visible_evidence": "intact exterior",
+    "xyz_m": [
+      893.49,
+      720.2,
+      4.89
+    ],
+    "model": "village-house",
+    "ue_actor_name": "StaticMeshActor_1193",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1193",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Building_015",
+    "category": "Building",
+    "kind": "House",
+    "inspection": false,
+    "state": "intact",
+    "visible_evidence": "intact exterior",
+    "xyz_m": [
+      89.18,
+      464.776,
+      16.35
+    ],
+    "model": "red-cottage",
+    "ue_actor_name": "StaticMeshActor_1195",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1195",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Building_016",
+    "category": "Building",
+    "kind": "House",
+    "inspection": false,
+    "state": "intact",
+    "visible_evidence": "intact exterior",
+    "xyz_m": [
+      -441.262,
+      876.596,
+      33.548
+    ],
+    "model": "red-cottage",
+    "ue_actor_name": "StaticMeshActor_1197",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1197",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Building_017",
+    "category": "Building",
+    "kind": "House",
+    "inspection": false,
+    "state": "intact",
+    "visible_evidence": "intact exterior",
+    "xyz_m": [
+      -20.779,
+      221.198,
+      5.094
+    ],
+    "model": "red-cottage",
+    "ue_actor_name": "StaticMeshActor_1199",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1199",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Building_018",
+    "category": "Building",
+    "kind": "House",
+    "inspection": false,
+    "state": "intact",
+    "visible_evidence": "intact exterior",
+    "xyz_m": [
+      514.524,
+      663.619,
+      12.466
+    ],
+    "model": "village-house",
+    "ue_actor_name": "StaticMeshActor_1201",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1201",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Building_019",
+    "category": "Building",
+    "kind": "House",
+    "inspection": false,
+    "state": "intact",
+    "visible_evidence": "intact exterior",
+    "xyz_m": [
+      304.059,
+      259.313,
+      9.206
+    ],
+    "model": "village-house",
+    "ue_actor_name": "StaticMeshActor_1203",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1203",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Building_020",
+    "category": "Building",
+    "kind": "House",
+    "inspection": true,
+    "state": "intact",
+    "visible_evidence": "intact exterior",
+    "xyz_m": [
+      -795.895,
+      519.633,
+      5.495
+    ],
+    "model": "village-house",
+    "ue_actor_name": "StaticMeshActor_1205",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1205",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Building_021",
+    "category": "Building",
+    "kind": "House",
+    "inspection": false,
+    "state": "intact",
+    "visible_evidence": "intact exterior",
+    "xyz_m": [
+      -435.941,
+      681.277,
+      17.88
+    ],
+    "model": "red-cottage",
+    "ue_actor_name": "StaticMeshActor_1207",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1207",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Building_022",
+    "category": "Building",
+    "kind": "House",
+    "inspection": false,
+    "state": "intact",
+    "visible_evidence": "intact exterior",
+    "xyz_m": [
+      466.633,
+      695.04,
+      13.724
+    ],
+    "model": "red-cottage",
+    "ue_actor_name": "StaticMeshActor_1209",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1209",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Building_023",
+    "category": "Building",
+    "kind": "House",
+    "inspection": false,
+    "state": "intact",
+    "visible_evidence": "intact exterior",
+    "xyz_m": [
+      44.186,
+      258.191,
+      7.204
+    ],
+    "model": "red-cottage",
+    "ue_actor_name": "StaticMeshActor_1211",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1211",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Building_024",
+    "category": "Building",
+    "kind": "House",
+    "inspection": false,
+    "state": "intact",
+    "visible_evidence": "intact exterior",
+    "xyz_m": [
+      -826.205,
+      261.702,
+      1.388
+    ],
+    "model": "village-house",
+    "ue_actor_name": "StaticMeshActor_1213",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1213",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Building_025",
+    "category": "Building",
+    "kind": "House",
+    "inspection": false,
+    "state": "intact",
+    "visible_evidence": "intact exterior",
+    "xyz_m": [
+      804.663,
+      687.344,
+      5.316
+    ],
+    "model": "village-house",
+    "ue_actor_name": "StaticMeshActor_1215",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1215",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Building_026",
+    "category": "Building",
+    "kind": "House",
+    "inspection": false,
+    "state": "intact",
+    "visible_evidence": "intact exterior",
+    "xyz_m": [
+      140.783,
+      888.913,
+      33.946
+    ],
+    "model": "village-house",
+    "ue_actor_name": "StaticMeshActor_1217",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1217",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Building_027",
+    "category": "Building",
+    "kind": "House",
+    "inspection": false,
+    "state": "intact",
+    "visible_evidence": "intact exterior",
+    "xyz_m": [
+      57.888,
+      794.031,
+      32.211
+    ],
+    "model": "red-cottage",
+    "ue_actor_name": "StaticMeshActor_1219",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1219",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Building_028",
+    "category": "Building",
+    "kind": "House",
+    "inspection": false,
+    "state": "intact",
+    "visible_evidence": "intact exterior",
+    "xyz_m": [
+      275.796,
+      269.663,
+      9.577
+    ],
+    "model": "red-cottage",
+    "ue_actor_name": "StaticMeshActor_1221",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1221",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Building_029",
+    "category": "Building",
+    "kind": "House",
+    "inspection": false,
+    "state": "intact",
+    "visible_evidence": "intact exterior",
+    "xyz_m": [
+      -499.545,
+      727.648,
+      20.191
+    ],
+    "model": "red-cottage",
+    "ue_actor_name": "StaticMeshActor_1223",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1223",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Building_030",
+    "category": "Building",
+    "kind": "House",
+    "inspection": false,
+    "state": "intact",
+    "visible_evidence": "intact exterior",
+    "xyz_m": [
+      -303.978,
+      291.273,
+      3.001
+    ],
+    "model": "village-house",
+    "ue_actor_name": "StaticMeshActor_1225",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1225",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Building_031",
+    "category": "Building",
+    "kind": "House",
+    "inspection": false,
+    "state": "intact",
+    "visible_evidence": "intact exterior",
+    "xyz_m": [
+      409.629,
+      165.825,
+      4.333
+    ],
+    "model": "village-house",
+    "ue_actor_name": "StaticMeshActor_1227",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1227",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Building_032",
+    "category": "Building",
+    "kind": "House",
+    "inspection": false,
+    "state": "intact",
+    "visible_evidence": "intact exterior",
+    "xyz_m": [
+      -484.292,
+      689.76,
+      17.282
+    ],
+    "model": "village-house",
+    "ue_actor_name": "StaticMeshActor_1229",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1229",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Building_033",
+    "category": "Building",
+    "kind": "House",
+    "inspection": false,
+    "state": "intact",
+    "visible_evidence": "intact exterior",
+    "xyz_m": [
+      -189.084,
+      427.365,
+      8.819
+    ],
+    "model": "red-cottage",
+    "ue_actor_name": "StaticMeshActor_1231",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1231",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Building_034",
+    "category": "Building",
+    "kind": "House",
+    "inspection": false,
+    "state": "intact",
+    "visible_evidence": "intact exterior",
+    "xyz_m": [
+      -603.895,
+      282.282,
+      0.424
+    ],
+    "model": "red-cottage",
+    "ue_actor_name": "StaticMeshActor_1233",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1233",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Building_035",
+    "category": "Building",
+    "kind": "House",
+    "inspection": false,
+    "state": "intact",
+    "visible_evidence": "intact exterior",
+    "xyz_m": [
+      -632.924,
+      371.512,
+      0.552
+    ],
+    "model": "red-cottage",
+    "ue_actor_name": "StaticMeshActor_1235",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1235",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Building_036",
+    "category": "Building",
+    "kind": "House",
+    "inspection": true,
+    "state": "damaged",
+    "visible_evidence": "roof covering missing across adjacent bays with exposed rafters and battens; one roof corner lifted",
+    "xyz_m": [
+      384.601,
+      353.446,
+      13.563
+    ],
+    "model": "VillageRoofBreach",
+    "ue_actor_name": "StaticMeshActor_1237",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1237",
+    "damage_status": "damaged"
+  },
+  {
+    "id": "Building_037",
+    "category": "Building",
+    "kind": "House",
+    "inspection": false,
+    "state": "intact",
+    "visible_evidence": "intact exterior",
+    "xyz_m": [
+      -566.971,
+      298.61,
+      0.477
+    ],
+    "model": "village-house",
+    "ue_actor_name": "StaticMeshActor_1239",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1239",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Building_038",
+    "category": "Building",
+    "kind": "House",
+    "inspection": false,
+    "state": "intact",
+    "visible_evidence": "intact exterior",
+    "xyz_m": [
+      -472.683,
+      578.081,
+      9.09
+    ],
+    "model": "village-house",
+    "ue_actor_name": "StaticMeshActor_1241",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1241",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Building_039",
+    "category": "Building",
+    "kind": "House",
+    "inspection": false,
+    "state": "intact",
+    "visible_evidence": "intact exterior",
+    "xyz_m": [
+      235.622,
+      452.582,
+      17.091
+    ],
+    "model": "red-cottage",
+    "ue_actor_name": "StaticMeshActor_1243",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1243",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Building_040",
+    "category": "Building",
+    "kind": "House",
+    "inspection": false,
+    "state": "intact",
+    "visible_evidence": "intact exterior",
+    "xyz_m": [
+      -408.828,
+      622.303,
+      13.72
+    ],
+    "model": "red-cottage",
+    "ue_actor_name": "StaticMeshActor_1245",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1245",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Building_041",
+    "category": "Building",
+    "kind": "House",
+    "inspection": false,
+    "state": "intact",
+    "visible_evidence": "intact exterior",
+    "xyz_m": [
+      -751.221,
+      382.655,
+      1.396
+    ],
+    "model": "red-cottage",
+    "ue_actor_name": "StaticMeshActor_1247",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1247",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Building_042",
+    "category": "Building",
+    "kind": "House",
+    "inspection": false,
+    "state": "intact",
+    "visible_evidence": "intact exterior",
+    "xyz_m": [
+      187.649,
+      824.448,
+      29.232
+    ],
+    "model": "village-house",
+    "ue_actor_name": "StaticMeshActor_1249",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1249",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Building_043",
+    "category": "Building",
+    "kind": "House",
+    "inspection": false,
+    "state": "intact",
+    "visible_evidence": "intact exterior",
+    "xyz_m": [
+      -146.994,
+      207.004,
+      3.295
+    ],
+    "model": "village-house",
+    "ue_actor_name": "StaticMeshActor_1251",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1251",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Building_044",
+    "category": "Building",
+    "kind": "House",
+    "inspection": false,
+    "state": "intact",
+    "visible_evidence": "intact exterior",
+    "xyz_m": [
+      -742.926,
+      421.124,
+      1.837
+    ],
+    "model": "village-house",
+    "ue_actor_name": "StaticMeshActor_1253",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1253",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Building_045",
+    "category": "Building",
+    "kind": "House",
+    "inspection": false,
+    "state": "intact",
+    "visible_evidence": "intact exterior",
+    "xyz_m": [
+      35.66,
+      220.384,
+      5.538
+    ],
+    "model": "red-cottage",
+    "ue_actor_name": "StaticMeshActor_1255",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1255",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Building_046",
+    "category": "Building",
+    "kind": "House",
+    "inspection": false,
+    "state": "intact",
+    "visible_evidence": "intact exterior",
+    "xyz_m": [
+      -605.441,
+      836.136,
+      24.839
+    ],
+    "model": "red-cottage",
+    "ue_actor_name": "StaticMeshActor_1257",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1257",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Building_047",
+    "category": "Building",
+    "kind": "House",
+    "inspection": false,
+    "state": "intact",
+    "visible_evidence": "intact exterior",
+    "xyz_m": [
+      -267.51,
+      351.165,
+      4.727
+    ],
+    "model": "red-cottage",
+    "ue_actor_name": "StaticMeshActor_1259",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1259",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Building_048",
+    "category": "Building",
+    "kind": "House",
+    "inspection": false,
+    "state": "intact",
+    "visible_evidence": "intact exterior",
+    "xyz_m": [
+      66.338,
+      468.404,
+      16.176
+    ],
+    "model": "village-house",
+    "ue_actor_name": "StaticMeshActor_1261",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1261",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Building_049",
+    "category": "Building",
+    "kind": "House",
+    "inspection": true,
+    "state": "intact",
+    "visible_evidence": "intact exterior",
+    "xyz_m": [
+      318.451,
+      397.7,
+      15.359
+    ],
+    "model": "village-house",
+    "ue_actor_name": "StaticMeshActor_1263",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1263",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Building_050",
+    "category": "Building",
+    "kind": "House",
+    "inspection": false,
+    "state": "intact",
+    "visible_evidence": "intact exterior",
+    "xyz_m": [
+      -266.044,
+      225.418,
+      2.487
+    ],
+    "model": "village-house",
+    "ue_actor_name": "StaticMeshActor_1265",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1265",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Building_051",
+    "category": "Building",
+    "kind": "House",
+    "inspection": false,
+    "state": "intact",
+    "visible_evidence": "intact exterior",
+    "xyz_m": [
+      -470.393,
+      904.516,
+      33.824
+    ],
+    "model": "red-cottage",
+    "ue_actor_name": "StaticMeshActor_1267",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1267",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Building_052",
+    "category": "Building",
+    "kind": "House",
+    "inspection": false,
+    "state": "intact",
+    "visible_evidence": "intact exterior",
+    "xyz_m": [
+      -577.613,
+      730.406,
+      18.307
+    ],
+    "model": "red-cottage",
+    "ue_actor_name": "StaticMeshActor_1269",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1269",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Building_053",
+    "category": "Building",
+    "kind": "House",
+    "inspection": false,
+    "state": "intact",
+    "visible_evidence": "intact exterior",
+    "xyz_m": [
+      -172.881,
+      664.906,
+      23.137
+    ],
+    "model": "red-cottage",
+    "ue_actor_name": "StaticMeshActor_1271",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1271",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Building_054",
+    "category": "Building",
+    "kind": "House",
+    "inspection": false,
+    "state": "intact",
+    "visible_evidence": "intact exterior",
+    "xyz_m": [
+      212.818,
+      462.449,
+      17.328
+    ],
+    "model": "village-house",
+    "ue_actor_name": "StaticMeshActor_1273",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1273",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Building_055",
+    "category": "Building",
+    "kind": "House",
+    "inspection": false,
+    "state": "intact",
+    "visible_evidence": "intact exterior",
+    "xyz_m": [
+      -582.511,
+      270.894,
+      0.47
+    ],
+    "model": "village-house",
+    "ue_actor_name": "StaticMeshActor_1275",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1275",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Building_056",
+    "category": "Building",
+    "kind": "House",
+    "inspection": false,
+    "state": "intact",
+    "visible_evidence": "intact exterior",
+    "xyz_m": [
+      -9.633,
+      774.362,
+      32.201
+    ],
+    "model": "village-house",
+    "ue_actor_name": "StaticMeshActor_1277",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1277",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Building_057",
+    "category": "Building",
+    "kind": "House",
+    "inspection": false,
+    "state": "intact",
+    "visible_evidence": "intact exterior",
+    "xyz_m": [
+      826.71,
+      696.07,
+      5.004
+    ],
+    "model": "red-cottage",
+    "ue_actor_name": "StaticMeshActor_1279",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1279",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Building_058",
+    "category": "Building",
+    "kind": "House",
+    "inspection": false,
+    "state": "intact",
+    "visible_evidence": "intact exterior",
+    "xyz_m": [
+      311.095,
+      282.81,
+      10.355
+    ],
+    "model": "red-cottage",
+    "ue_actor_name": "StaticMeshActor_1281",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1281",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Building_059",
+    "category": "Building",
+    "kind": "House",
+    "inspection": false,
+    "state": "intact",
+    "visible_evidence": "intact exterior",
+    "xyz_m": [
+      -514.423,
+      387.943,
+      1.27
+    ],
+    "model": "red-cottage",
+    "ue_actor_name": "StaticMeshActor_1283",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1283",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Building_060",
+    "category": "Building",
+    "kind": "House",
+    "inspection": false,
+    "state": "intact",
+    "visible_evidence": "intact exterior",
+    "xyz_m": [
+      -310.547,
+      416.493,
+      5.415
+    ],
+    "model": "village-house",
+    "ue_actor_name": "StaticMeshActor_1285",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1285",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Building_061",
+    "category": "Building",
+    "kind": "House",
+    "inspection": false,
+    "state": "intact",
+    "visible_evidence": "intact exterior",
+    "xyz_m": [
+      -368.053,
+      903.542,
+      37.479
+    ],
+    "model": "village-house",
+    "ue_actor_name": "StaticMeshActor_1287",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1287",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Building_062",
+    "category": "Building",
+    "kind": "House",
+    "inspection": false,
+    "state": "intact",
+    "visible_evidence": "intact exterior",
+    "xyz_m": [
+      -357.418,
+      428.597,
+      4.635
+    ],
+    "model": "village-house",
+    "ue_actor_name": "StaticMeshActor_1289",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1289",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Building_063",
+    "category": "Building",
+    "kind": "House",
+    "inspection": false,
+    "state": "intact",
+    "visible_evidence": "intact exterior",
+    "xyz_m": [
+      244.47,
+      415.597,
+      15.879
+    ],
+    "model": "red-cottage",
+    "ue_actor_name": "StaticMeshActor_1291",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1291",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Building_064",
+    "category": "Building",
+    "kind": "House",
+    "inspection": false,
+    "state": "intact",
+    "visible_evidence": "intact exterior",
+    "xyz_m": [
+      315.064,
+      826.177,
+      22.643
+    ],
+    "model": "red-cottage",
+    "ue_actor_name": "StaticMeshActor_1293",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1293",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Building_065",
+    "category": "Building",
+    "kind": "House",
+    "inspection": false,
+    "state": "intact",
+    "visible_evidence": "intact exterior",
+    "xyz_m": [
+      574.199,
+      848.178,
+      9.908
+    ],
+    "model": "red-cottage",
+    "ue_actor_name": "StaticMeshActor_1295",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1295",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Building_066",
+    "category": "Building",
+    "kind": "House",
+    "inspection": false,
+    "state": "intact",
+    "visible_evidence": "intact exterior",
+    "xyz_m": [
+      -194.109,
+      214.7,
+      3.014
+    ],
+    "model": "village-house",
+    "ue_actor_name": "StaticMeshActor_1297",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1297",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Building_067",
+    "category": "Building",
+    "kind": "House",
+    "inspection": false,
+    "state": "intact",
+    "visible_evidence": "intact exterior",
+    "xyz_m": [
+      324.076,
+      331.772,
+      12.745
+    ],
+    "model": "village-house",
+    "ue_actor_name": "StaticMeshActor_1299",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1299",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Building_068",
+    "category": "Building",
+    "kind": "House",
+    "inspection": false,
+    "state": "intact",
+    "visible_evidence": "intact exterior",
+    "xyz_m": [
+      -541.627,
+      878.935,
+      29.49
+    ],
+    "model": "village-house",
+    "ue_actor_name": "StaticMeshActor_1301",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1301",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Building_069",
+    "category": "Building",
+    "kind": "House",
+    "inspection": false,
+    "state": "intact",
+    "visible_evidence": "intact exterior",
+    "xyz_m": [
+      -84.313,
+      247.926,
+      5.168
+    ],
+    "model": "red-cottage",
+    "ue_actor_name": "StaticMeshActor_1303",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1303",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Building_070",
+    "category": "Building",
+    "kind": "House",
+    "inspection": false,
+    "state": "intact",
+    "visible_evidence": "intact exterior",
+    "xyz_m": [
+      -533.476,
+      374.217,
+      0.958
+    ],
+    "model": "red-cottage",
+    "ue_actor_name": "StaticMeshActor_1305",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1305",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Building_071",
+    "category": "Building",
+    "kind": "Shop",
+    "inspection": true,
+    "state": "damaged",
+    "visible_evidence": "one end of striped shop awning torn loose and hanging from facade",
+    "xyz_m": [
+      -666.882,
+      -39.855,
+      0.035
+    ],
+    "ue_actor_name": "StaticMeshActor_479",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_479",
+    "damage_status": "damaged",
+    "model": "ShopFishMarket"
+  },
+  {
+    "id": "Building_072",
+    "category": "Building",
+    "kind": "Shop",
+    "inspection": false,
+    "state": "intact",
+    "visible_evidence": "intact exterior",
+    "xyz_m": [
+      76.701,
+      526.813,
+      18.695
+    ],
+    "ue_actor_name": "StaticMeshActor_480",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_480",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Building_073",
+    "category": "Building",
+    "kind": "Shop",
+    "inspection": false,
+    "state": "intact",
+    "visible_evidence": "intact exterior",
+    "xyz_m": [
+      496.944,
+      759.393,
+      12.286
+    ],
+    "model": "harbour-office",
+    "ue_actor_name": "StaticMeshActor_1307",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1307",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Building_074",
+    "category": "Building",
+    "kind": "Shop",
+    "inspection": false,
+    "state": "intact",
+    "visible_evidence": "intact exterior",
+    "xyz_m": [
+      -334.163,
+      156.085,
+      1.05
+    ],
+    "ue_actor_name": "B_Building_S_09_C_4",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.B_Building_S_09_C_4",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Building_075",
+    "category": "Building",
+    "kind": "Shop",
+    "inspection": false,
+    "state": "intact",
+    "visible_evidence": "intact exterior",
+    "xyz_m": [
+      -445.06,
+      189.871,
+      0.904
+    ],
+    "model": "harbour-office",
+    "ue_actor_name": "StaticMeshActor_1308",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1308",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Building_076",
+    "category": "Building",
+    "kind": "Shop",
+    "inspection": false,
+    "state": "intact",
+    "visible_evidence": "intact exterior",
+    "xyz_m": [
+      61.648,
+      738.68,
+      29.471
+    ],
+    "ue_actor_name": "B_Building_S_11_C_4",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.B_Building_S_11_C_4",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Building_077",
+    "category": "Building",
+    "kind": "Shop",
+    "inspection": false,
+    "state": "intact",
+    "visible_evidence": "intact exterior",
+    "xyz_m": [
+      2.649,
+      710.999,
+      27.784
+    ],
+    "model": "harbour-office",
+    "ue_actor_name": "StaticMeshActor_1309",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1309",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Building_078",
+    "category": "Building",
+    "kind": "Shop",
+    "inspection": true,
+    "state": "intact",
+    "visible_evidence": "intact exterior",
+    "xyz_m": [
+      -273.251,
+      196.287,
+      2.025
+    ],
+    "ue_actor_name": "StaticMeshActor_482",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_482",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Building_079",
+    "category": "Building",
+    "kind": "Shop",
+    "inspection": false,
+    "state": "intact",
+    "visible_evidence": "intact exterior",
+    "xyz_m": [
+      -252.926,
+      835.392,
+      36.023
+    ],
+    "model": "harbour-office",
+    "ue_actor_name": "StaticMeshActor_1310",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1310",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Building_080",
+    "category": "Building",
+    "kind": "Shop",
+    "inspection": false,
+    "state": "intact",
+    "visible_evidence": "intact exterior",
+    "xyz_m": [
+      523.562,
+      837.623,
+      12.185
+    ],
+    "ue_actor_name": "B_Building_S_04a_C_4",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.B_Building_S_04a_C_4",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Building_081",
+    "category": "Building",
+    "kind": "Shop",
+    "inspection": false,
+    "state": "intact",
+    "visible_evidence": "intact exterior",
+    "xyz_m": [
+      -347.187,
+      868.985,
+      35.976
+    ],
+    "model": "harbour-office",
+    "ue_actor_name": "StaticMeshActor_1311",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1311",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Building_082",
+    "category": "Building",
+    "kind": "Shop",
+    "inspection": false,
+    "state": "intact",
+    "visible_evidence": "intact exterior",
+    "xyz_m": [
+      550.709,
+      772.997,
+      10.28
+    ],
+    "ue_actor_name": "B_Building_S_06a_C_4",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.B_Building_S_06a_C_4",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Building_083",
+    "category": "Building",
+    "kind": "Shop",
+    "inspection": false,
+    "state": "intact",
+    "visible_evidence": "intact exterior",
+    "xyz_m": [
+      419.898,
+      796.694,
+      16.411
+    ],
+    "model": "harbour-office",
+    "ue_actor_name": "StaticMeshActor_1312",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1312",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Building_084",
+    "category": "Building",
+    "kind": "Shop",
+    "inspection": false,
+    "state": "intact",
+    "visible_evidence": "intact exterior",
+    "xyz_m": [
+      -823.125,
+      650.158,
+      12.077
+    ],
+    "ue_actor_name": "StaticMeshActor_484",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_484",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Building_085",
+    "category": "Building",
+    "kind": "Shop",
+    "inspection": true,
+    "state": "damaged",
+    "visible_evidence": "one end of striped shop awning torn loose and hanging from facade",
+    "xyz_m": [
+      -410.956,
+      50.638,
+      0.166
+    ],
+    "ue_actor_name": "StaticMeshActor_485",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_485",
+    "damage_status": "damaged",
+    "model": "ShopFishMarket"
+  },
+  {
+    "id": "Building_086",
+    "category": "Building",
+    "kind": "Shop",
+    "inspection": false,
+    "state": "intact",
+    "visible_evidence": "intact exterior",
+    "xyz_m": [
+      -409.248,
+      242.247,
+      1.268
+    ],
+    "ue_actor_name": "B_Building_S_10_C_4",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.B_Building_S_10_C_4",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Building_087",
+    "category": "Building",
+    "kind": "Shop",
+    "inspection": false,
+    "state": "intact",
+    "visible_evidence": "intact exterior",
+    "xyz_m": [
+      -324.297,
+      886.9,
+      37.806
+    ],
+    "model": "harbour-office",
+    "ue_actor_name": "StaticMeshActor_1313",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1313",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Building_088",
+    "category": "Building",
+    "kind": "Shop",
+    "inspection": false,
+    "state": "intact",
+    "visible_evidence": "intact exterior",
+    "xyz_m": [
+      196.337,
+      166.781,
+      4.954
+    ],
+    "ue_actor_name": "B_Building_S_01a_C_5",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.B_Building_S_01a_C_5",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Building_089",
+    "category": "Building",
+    "kind": "Shop",
+    "inspection": false,
+    "state": "intact",
+    "visible_evidence": "intact exterior",
+    "xyz_m": [
+      -186.927,
+      834.572,
+      37.098
+    ],
+    "model": "harbour-office",
+    "ue_actor_name": "StaticMeshActor_1314",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1314",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Building_090",
+    "category": "Building",
+    "kind": "Shop",
+    "inspection": false,
+    "state": "intact",
+    "visible_evidence": "intact exterior",
+    "xyz_m": [
+      -739.092,
+      699.665,
+      14.183
+    ],
+    "ue_actor_name": "StaticMeshActor_487",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_487",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Building_091",
+    "category": "Building",
+    "kind": "Shop",
+    "inspection": false,
+    "state": "intact",
+    "visible_evidence": "intact exterior",
+    "xyz_m": [
+      53.946,
+      541.533,
+      18.927
+    ],
+    "model": "harbour-office",
+    "ue_actor_name": "StaticMeshActor_1315",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1315",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Building_092",
+    "category": "Building",
+    "kind": "Shop",
+    "inspection": false,
+    "state": "intact",
+    "visible_evidence": "intact exterior",
+    "xyz_m": [
+      -157.532,
+      318.77,
+      7.004
+    ],
+    "ue_actor_name": "B_Building_S_05a_C_5",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.B_Building_S_05a_C_5",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Building_093",
+    "category": "Building",
+    "kind": "Shop",
+    "inspection": false,
+    "state": "intact",
+    "visible_evidence": "intact exterior",
+    "xyz_m": [
+      112.701,
+      568.573,
+      20.315
+    ],
+    "model": "harbour-office",
+    "ue_actor_name": "StaticMeshActor_1316",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1316",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Building_094",
+    "category": "Building",
+    "kind": "Shop",
+    "inspection": false,
+    "state": "intact",
+    "visible_evidence": "intact exterior",
+    "xyz_m": [
+      -130.571,
+      748.409,
+      32.126
+    ],
+    "ue_actor_name": "B_Building_S_07_C_5",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.B_Building_S_07_C_5",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Building_095",
+    "category": "Building",
+    "kind": "Shed",
+    "inspection": true,
+    "state": "damaged",
+    "visible_evidence": "lifted and missing roof panels, exposed rafters",
+    "xyz_m": [
+      -365.411,
+      -98.957,
+      0.035
+    ],
+    "ue_actor_name": "StaticMeshActor_489",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_489",
+    "damage_status": "damaged"
+  },
+  {
+    "id": "Building_096",
+    "category": "Building",
+    "kind": "Shed",
+    "inspection": false,
+    "state": "intact",
+    "visible_evidence": "intact exterior",
+    "xyz_m": [
+      -596.804,
+      -95.215,
+      0.035
+    ],
+    "model": "boathouse",
+    "ue_actor_name": "StaticMeshActor_1317",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1317",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Building_097",
+    "category": "Building",
+    "kind": "Shed",
+    "inspection": false,
+    "state": "intact",
+    "visible_evidence": "intact exterior",
+    "xyz_m": [
+      -53.959,
+      -57.99,
+      0.035
+    ],
+    "model": "warehouse",
+    "ue_actor_name": "StaticMeshActor_1318",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1318",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Building_098",
+    "category": "Building",
+    "kind": "Shed",
+    "inspection": true,
+    "state": "damaged",
+    "visible_evidence": "lifted and missing roof panels, exposed rafters",
+    "xyz_m": [
+      -781.581,
+      -96.687,
+      0.035
+    ],
+    "ue_actor_name": "StaticMeshActor_492",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_492",
+    "damage_status": "damaged"
+  },
+  {
+    "id": "Building_099",
+    "category": "Building",
+    "kind": "Shed",
+    "inspection": false,
+    "state": "intact",
+    "visible_evidence": "intact exterior",
+    "xyz_m": [
+      -88.134,
+      -2.475,
+      0.04
+    ],
+    "model": "boathouse",
+    "ue_actor_name": "StaticMeshActor_1319",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1319",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Building_100",
+    "category": "Building",
+    "kind": "Shed",
+    "inspection": false,
+    "state": "intact",
+    "visible_evidence": "intact exterior",
+    "xyz_m": [
+      -901.22,
+      -89.71,
+      0.035
+    ],
+    "model": "warehouse",
+    "ue_actor_name": "StaticMeshActor_1320",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1320",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Building_101",
+    "category": "Building",
+    "kind": "Shed",
+    "inspection": false,
+    "state": "intact",
+    "visible_evidence": "intact exterior",
+    "xyz_m": [
+      -377.883,
+      17.229,
+      0.082
+    ],
+    "model": "warehouse",
+    "ue_actor_name": "StaticMeshActor_1321",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1321",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Building_102",
+    "category": "Building",
+    "kind": "Shed",
+    "inspection": false,
+    "state": "intact",
+    "visible_evidence": "intact exterior",
+    "xyz_m": [
+      -712.278,
+      -97.526,
+      0.035
+    ],
+    "model": "boathouse",
+    "ue_actor_name": "StaticMeshActor_1322",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1322",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Building_103",
+    "category": "Building",
+    "kind": "Shed",
+    "inspection": false,
+    "state": "intact",
+    "visible_evidence": "intact exterior",
+    "xyz_m": [
+      -227.117,
+      8.962,
+      0.073
+    ],
+    "model": "warehouse",
+    "ue_actor_name": "StaticMeshActor_1323",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1323",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Building_104",
+    "category": "Building",
+    "kind": "Shed",
+    "inspection": false,
+    "state": "intact",
+    "visible_evidence": "intact exterior",
+    "xyz_m": [
+      -190.518,
+      -65.725,
+      0.035
+    ],
+    "model": "warehouse",
+    "ue_actor_name": "StaticMeshActor_1324",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1324",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Building_105",
+    "category": "Building",
+    "kind": "Shed",
+    "inspection": false,
+    "state": "intact",
+    "visible_evidence": "intact exterior",
+    "xyz_m": [
+      -673.787,
+      -98.671,
+      0.035
+    ],
+    "model": "boathouse",
+    "ue_actor_name": "StaticMeshActor_1325",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1325",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Building_106",
+    "category": "Building",
+    "kind": "Shed",
+    "inspection": false,
+    "state": "intact",
+    "visible_evidence": "intact exterior",
+    "xyz_m": [
+      -614.324,
+      10.334,
+      0.049
+    ],
+    "model": "warehouse",
+    "ue_actor_name": "StaticMeshActor_1326",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1326",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Building_107",
+    "category": "Building",
+    "kind": "Shed",
+    "inspection": false,
+    "state": "intact",
+    "visible_evidence": "intact exterior",
+    "xyz_m": [
+      -327.165,
+      -97.836,
+      0.035
+    ],
+    "model": "warehouse",
+    "ue_actor_name": "StaticMeshActor_1327",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1327",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Building_108",
+    "category": "Building",
+    "kind": "Shed",
+    "inspection": false,
+    "state": "intact",
+    "visible_evidence": "intact exterior",
+    "xyz_m": [
+      -457.829,
+      -99.614,
+      0.035
+    ],
+    "model": "boathouse",
+    "ue_actor_name": "StaticMeshActor_1328",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1328",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Building_109",
+    "category": "Building",
+    "kind": "Shed",
+    "inspection": false,
+    "state": "intact",
+    "visible_evidence": "intact exterior",
+    "xyz_m": [
+      -138.173,
+      -90.32,
+      0.035
+    ],
+    "model": "warehouse",
+    "ue_actor_name": "StaticMeshActor_1329",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1329",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Building_110",
+    "category": "Building",
+    "kind": "Shed",
+    "inspection": false,
+    "state": "intact",
+    "visible_evidence": "intact exterior",
+    "xyz_m": [
+      -258.707,
+      -99.711,
+      0.035
+    ],
+    "model": "warehouse",
+    "ue_actor_name": "StaticMeshActor_1330",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1330",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Building_111",
+    "category": "Building",
+    "kind": "Civic",
+    "inspection": false,
+    "state": "intact",
+    "visible_evidence": "intact exterior",
+    "xyz_m": [
+      682.542,
+      873.531,
+      7.317
+    ],
+    "model": "village-house",
+    "ue_actor_name": "StaticMeshActor_1331",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1331",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Building_112",
+    "category": "Building",
+    "kind": "Civic",
+    "inspection": true,
+    "state": "damaged",
+    "visible_evidence": "locally lifted roof edge",
+    "xyz_m": [
+      646.426,
+      648.041,
+      9.195
+    ],
+    "model": "harbour-office_Storm",
+    "ue_actor_name": "StaticMeshActor_1332",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1332",
+    "damage_status": "damaged"
+  },
+  {
+    "id": "Building_113",
+    "category": "Building",
+    "kind": "Civic",
+    "inspection": false,
+    "state": "intact",
+    "visible_evidence": "intact exterior",
+    "xyz_m": [
+      -700.344,
+      723.32,
+      15.842
+    ],
+    "model": "harbour-office",
+    "ue_actor_name": "StaticMeshActor_1333",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1333",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Building_114",
+    "category": "Building",
+    "kind": "Civic",
+    "inspection": false,
+    "state": "intact",
+    "visible_evidence": "intact exterior",
+    "xyz_m": [
+      -283.399,
+      371.761,
+      4.965
+    ],
+    "model": "village-house",
+    "ue_actor_name": "StaticMeshActor_1334",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1334",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Building_115",
+    "category": "Building",
+    "kind": "Civic",
+    "inspection": false,
+    "state": "intact",
+    "visible_evidence": "intact exterior",
+    "xyz_m": [
+      361.862,
+      840.815,
+      20.619
+    ],
+    "model": "harbour-office",
+    "ue_actor_name": "StaticMeshActor_1335",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1335",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Building_116",
+    "category": "Building",
+    "kind": "Civic",
+    "inspection": false,
+    "state": "intact",
+    "visible_evidence": "intact exterior",
+    "xyz_m": [
+      -501.569,
+      473.406,
+      3.462
+    ],
+    "model": "harbour-office",
+    "ue_actor_name": "StaticMeshActor_1336",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1336",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Building_117",
+    "category": "Building",
+    "kind": "Civic",
+    "inspection": false,
+    "state": "intact",
+    "visible_evidence": "intact exterior",
+    "xyz_m": [
+      747.197,
+      853.01,
+      5.456
+    ],
+    "model": "village-house",
+    "ue_actor_name": "StaticMeshActor_1337",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1337",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Building_118",
+    "category": "Building",
+    "kind": "Civic",
+    "inspection": false,
+    "state": "intact",
+    "visible_evidence": "intact exterior",
+    "xyz_m": [
+      -577.094,
+      387.615,
+      0.866
+    ],
+    "model": "harbour-office",
+    "ue_actor_name": "StaticMeshActor_1338",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1338",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Building_119",
+    "category": "Building",
+    "kind": "Civic",
+    "inspection": false,
+    "state": "intact",
+    "visible_evidence": "intact exterior",
+    "xyz_m": [
+      -116.44,
+      274.235,
+      5.602
+    ],
+    "model": "harbour-office",
+    "ue_actor_name": "StaticMeshActor_1339",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1339",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Building_120",
+    "category": "Building",
+    "kind": "Civic",
+    "inspection": false,
+    "state": "intact",
+    "visible_evidence": "intact exterior",
+    "xyz_m": [
+      -313.911,
+      848.585,
+      35.733
+    ],
+    "model": "village-house",
+    "ue_actor_name": "StaticMeshActor_1340",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1340",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Vessel_001",
+    "category": "Vessel",
+    "kind": "Fishing",
+    "inspection": false,
+    "state": "afloat",
+    "visible_evidence": "intact visible hull",
+    "xyz_m": [
+      -792.0,
+      -311.0,
+      -3.21
+    ],
+    "model": "skiff",
+    "ue_actor_name": "StaticMeshActor_1341",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1341",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Vessel_002",
+    "category": "Vessel",
+    "kind": "Fishing",
+    "inspection": true,
+    "state": "afloat",
+    "visible_evidence": "locally indented hull side and bent rail",
+    "xyz_m": [
+      -808.015,
+      -333.0,
+      -3.21
+    ],
+    "model": "skiff_Storm",
+    "ue_actor_name": "StaticMeshActor_1342",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1342",
+    "damage_status": "damaged"
+  },
+  {
+    "id": "Vessel_003",
+    "category": "Vessel",
+    "kind": "Fishing",
+    "inspection": false,
+    "state": "afloat",
+    "visible_evidence": "intact visible hull",
+    "xyz_m": [
+      -792.0,
+      -355.0,
+      -4.28
+    ],
+    "model": "fishing-trawler",
+    "ue_actor_name": "StaticMeshActor_1343",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1343",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Vessel_004",
+    "category": "Vessel",
+    "kind": "Fishing",
+    "inspection": false,
+    "state": "afloat",
+    "visible_evidence": "intact visible hull",
+    "xyz_m": [
+      -808.0,
+      -377.0,
+      -3.21
+    ],
+    "model": "skiff",
+    "ue_actor_name": "StaticMeshActor_1344",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1344",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Vessel_005",
+    "category": "Vessel",
+    "kind": "Fishing",
+    "inspection": false,
+    "state": "afloat",
+    "visible_evidence": "intact visible hull",
+    "xyz_m": [
+      -792.0,
+      -399.0,
+      -3.21
+    ],
+    "model": "skiff",
+    "ue_actor_name": "StaticMeshActor_1345",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1345",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Vessel_006",
+    "category": "Vessel",
+    "kind": "Fishing",
+    "inspection": true,
+    "state": "afloat",
+    "visible_evidence": "intact visible hull",
+    "xyz_m": [
+      -646.0,
+      -311.0,
+      -4.28
+    ],
+    "model": "fishing-trawler",
+    "ue_actor_name": "StaticMeshActor_1346",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1346",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Vessel_007",
+    "category": "Vessel",
+    "kind": "Fishing",
+    "inspection": false,
+    "state": "afloat",
+    "visible_evidence": "intact visible hull",
+    "xyz_m": [
+      -630.0,
+      -333.0,
+      -3.21
+    ],
+    "model": "skiff",
+    "ue_actor_name": "StaticMeshActor_1347",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1347",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Vessel_008",
+    "category": "Vessel",
+    "kind": "Fishing",
+    "inspection": false,
+    "state": "afloat",
+    "visible_evidence": "intact visible hull",
+    "xyz_m": [
+      -646.0,
+      -355.0,
+      -3.21
+    ],
+    "model": "skiff",
+    "ue_actor_name": "StaticMeshActor_1348",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1348",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Vessel_009",
+    "category": "Vessel",
+    "kind": "Fishing",
+    "inspection": false,
+    "state": "afloat",
+    "visible_evidence": "intact visible hull",
+    "xyz_m": [
+      -630.0,
+      -377.0,
+      -4.28
+    ],
+    "model": "fishing-trawler",
+    "ue_actor_name": "StaticMeshActor_1349",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1349",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Vessel_010",
+    "category": "Vessel",
+    "kind": "Fishing",
+    "inspection": false,
+    "state": "afloat",
+    "visible_evidence": "intact visible hull",
+    "xyz_m": [
+      -646.0,
+      -399.0,
+      -3.21
+    ],
+    "model": "skiff",
+    "ue_actor_name": "StaticMeshActor_1350",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1350",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Vessel_011",
+    "category": "Vessel",
+    "kind": "Fishing",
+    "inspection": false,
+    "state": "afloat",
+    "visible_evidence": "intact visible hull",
+    "xyz_m": [
+      -468.0,
+      -311.0,
+      -3.21
+    ],
+    "model": "skiff",
+    "ue_actor_name": "StaticMeshActor_1351",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1351",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Vessel_012",
+    "category": "Vessel",
+    "kind": "Fishing",
+    "inspection": false,
+    "state": "afloat",
+    "visible_evidence": "intact visible hull",
+    "xyz_m": [
+      -484.0,
+      -333.0,
+      -4.28
+    ],
+    "model": "fishing-trawler",
+    "ue_actor_name": "StaticMeshActor_1352",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1352",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Vessel_013",
+    "category": "Vessel",
+    "kind": "Fishing",
+    "inspection": false,
+    "state": "afloat",
+    "visible_evidence": "intact visible hull",
+    "xyz_m": [
+      -468.0,
+      -355.0,
+      -3.21
+    ],
+    "model": "skiff",
+    "ue_actor_name": "StaticMeshActor_1353",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1353",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Vessel_014",
+    "category": "Vessel",
+    "kind": "Fishing",
+    "inspection": false,
+    "state": "afloat",
+    "visible_evidence": "intact visible hull",
+    "xyz_m": [
+      -484.0,
+      -377.0,
+      -3.21
+    ],
+    "model": "skiff",
+    "ue_actor_name": "StaticMeshActor_1354",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1354",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Vessel_015",
+    "category": "Vessel",
+    "kind": "Fishing",
+    "inspection": true,
+    "state": "afloat",
+    "visible_evidence": "intact visible hull",
+    "xyz_m": [
+      -468.0,
+      -399.0,
+      -4.28
+    ],
+    "model": "fishing-trawler",
+    "ue_actor_name": "StaticMeshActor_1355",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1355",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Vessel_016",
+    "category": "Vessel",
+    "kind": "Fishing",
+    "inspection": false,
+    "state": "afloat",
+    "visible_evidence": "intact visible hull",
+    "xyz_m": [
+      -322.0,
+      -311.0,
+      -3.21
+    ],
+    "model": "skiff",
+    "ue_actor_name": "StaticMeshActor_1356",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1356",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Vessel_017",
+    "category": "Vessel",
+    "kind": "Fishing",
+    "inspection": false,
+    "state": "afloat",
+    "visible_evidence": "intact visible hull",
+    "xyz_m": [
+      -306.0,
+      -333.0,
+      -3.21
+    ],
+    "model": "skiff",
+    "ue_actor_name": "StaticMeshActor_1357",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1357",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Vessel_018",
+    "category": "Vessel",
+    "kind": "Fishing",
+    "inspection": false,
+    "state": "afloat",
+    "visible_evidence": "intact visible hull",
+    "xyz_m": [
+      -322.0,
+      -355.0,
+      -4.28
+    ],
+    "model": "fishing-trawler",
+    "ue_actor_name": "StaticMeshActor_1358",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1358",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Vessel_019",
+    "category": "Vessel",
+    "kind": "Fishing",
+    "inspection": false,
+    "state": "afloat",
+    "visible_evidence": "intact visible hull",
+    "xyz_m": [
+      -306.0,
+      -377.0,
+      -3.21
+    ],
+    "model": "skiff",
+    "ue_actor_name": "StaticMeshActor_1359",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1359",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Vessel_020",
+    "category": "Vessel",
+    "kind": "Fishing",
+    "inspection": false,
+    "state": "afloat",
+    "visible_evidence": "intact visible hull",
+    "xyz_m": [
+      -322.0,
+      -399.0,
+      -3.21
+    ],
+    "model": "skiff",
+    "ue_actor_name": "StaticMeshActor_1360",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1360",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Vessel_021",
+    "category": "Vessel",
+    "kind": "Launch",
+    "inspection": false,
+    "state": "afloat",
+    "visible_evidence": "intact visible hull",
+    "xyz_m": [
+      -144.0,
+      -311.0,
+      -3.07
+    ],
+    "model": "speedboat",
+    "ue_actor_name": "StaticMeshActor_1361",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1361",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Vessel_022",
+    "category": "Vessel",
+    "kind": "Launch",
+    "inspection": false,
+    "state": "afloat",
+    "visible_evidence": "intact visible hull",
+    "xyz_m": [
+      -160.0,
+      -333.0,
+      -3.07
+    ],
+    "model": "speedboat",
+    "ue_actor_name": "StaticMeshActor_1362",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1362",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Vessel_023",
+    "category": "Vessel",
+    "kind": "Launch",
+    "inspection": false,
+    "state": "afloat",
+    "visible_evidence": "intact visible hull",
+    "xyz_m": [
+      -144.0,
+      -355.0,
+      -3.07
+    ],
+    "model": "speedboat",
+    "ue_actor_name": "StaticMeshActor_1363",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1363",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Vessel_024",
+    "category": "Vessel",
+    "kind": "Launch",
+    "inspection": false,
+    "state": "afloat",
+    "visible_evidence": "intact visible hull",
+    "xyz_m": [
+      -160.0,
+      -377.0,
+      -3.07
+    ],
+    "model": "speedboat",
+    "ue_actor_name": "StaticMeshActor_1364",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1364",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Vessel_025",
+    "category": "Vessel",
+    "kind": "Launch",
+    "inspection": false,
+    "state": "afloat",
+    "visible_evidence": "intact visible hull",
+    "xyz_m": [
+      -144.0,
+      -399.0,
+      -3.07
+    ],
+    "model": "speedboat",
+    "ue_actor_name": "StaticMeshActor_1365",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1365",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Vessel_026",
+    "category": "Vessel",
+    "kind": "Launch",
+    "inspection": true,
+    "state": "afloat",
+    "visible_evidence": "locally indented hull side and bent rail",
+    "xyz_m": [
+      -860.0,
+      -530.0,
+      -3.07
+    ],
+    "model": "speedboat_Storm",
+    "ue_actor_name": "StaticMeshActor_1366",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1366",
+    "damage_status": "damaged"
+  },
+  {
+    "id": "Vessel_027",
+    "category": "Vessel",
+    "kind": "Workboat",
+    "inspection": false,
+    "state": "afloat",
+    "visible_evidence": "intact visible hull",
+    "xyz_m": [
+      -620.0,
+      -665.0,
+      -3.77
+    ],
+    "model": "tugboat",
+    "ue_actor_name": "StaticMeshActor_1367",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1367",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Vessel_028",
+    "category": "Vessel",
+    "kind": "Workboat",
+    "inspection": false,
+    "state": "afloat",
+    "visible_evidence": "intact visible hull",
+    "xyz_m": [
+      -380.0,
+      -800.0,
+      -3.77
+    ],
+    "model": "tugboat",
+    "ue_actor_name": "StaticMeshActor_1368",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1368",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Vessel_029",
+    "category": "Vessel",
+    "kind": "Workboat",
+    "inspection": false,
+    "state": "afloat",
+    "visible_evidence": "intact visible hull",
+    "xyz_m": [
+      -140.0,
+      -530.0,
+      -3.77
+    ],
+    "model": "tugboat",
+    "ue_actor_name": "StaticMeshActor_1369",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1369",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Vessel_030",
+    "category": "Vessel",
+    "kind": "Workboat",
+    "inspection": false,
+    "state": "afloat",
+    "visible_evidence": "intact visible hull",
+    "xyz_m": [
+      100.0,
+      -665.0,
+      -3.77
+    ],
+    "model": "tugboat",
+    "ue_actor_name": "StaticMeshActor_1370",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1370",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Vessel_031",
+    "category": "Vessel",
+    "kind": "Offshore trawler",
+    "inspection": false,
+    "state": "afloat",
+    "visible_evidence": "intact visible hull",
+    "xyz_m": [
+      340.0,
+      -800.0,
+      -4.991
+    ],
+    "model": "fishing-trawler",
+    "ue_actor_name": "StaticMeshActor_1371",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1371",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Vessel_032",
+    "category": "Vessel",
+    "kind": "Offshore trawler",
+    "inspection": false,
+    "state": "afloat",
+    "visible_evidence": "intact visible hull",
+    "xyz_m": [
+      580.0,
+      -530.0,
+      -4.991
+    ],
+    "model": "fishing-trawler",
+    "ue_actor_name": "StaticMeshActor_1372",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1372",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Vessel_033",
+    "category": "Vessel",
+    "kind": "Launch",
+    "inspection": true,
+    "state": "aground",
+    "visible_evidence": "intact visible hull",
+    "xyz_m": [
+      88.052,
+      -189.897,
+      -0.801
+    ],
+    "model": "speedboat",
+    "ue_actor_name": "StaticMeshActor_1373",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1373",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Vessel_034",
+    "category": "Vessel",
+    "kind": "Fishing",
+    "inspection": false,
+    "state": "aground",
+    "visible_evidence": "intact visible hull",
+    "xyz_m": [
+      205.506,
+      -236.124,
+      -2.087
+    ],
+    "model": "skiff",
+    "ue_actor_name": "StaticMeshActor_1374",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1374",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Vessel_035",
+    "category": "Vessel",
+    "kind": "Workboat",
+    "inspection": true,
+    "state": "aground",
+    "visible_evidence": "upper mast folded sideways above the wheelhouse; locally indented hull side and bent rail",
+    "xyz_m": [
+      322.57,
+      -207.271,
+      -1.035
+    ],
+    "model": "TugBentMast",
+    "ue_actor_name": "StaticMeshActor_1375",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1375",
+    "damage_status": "damaged"
+  },
+  {
+    "id": "Vessel_036",
+    "category": "Vessel",
+    "kind": "Launch",
+    "inspection": false,
+    "state": "aground",
+    "visible_evidence": "intact visible hull",
+    "xyz_m": [
+      441.879,
+      -187.902,
+      -0.977
+    ],
+    "model": "speedboat",
+    "ue_actor_name": "StaticMeshActor_1376",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1376",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Vessel_037",
+    "category": "Vessel",
+    "kind": "Fishing",
+    "inspection": true,
+    "state": "aground",
+    "visible_evidence": "locally indented hull side and bent rail",
+    "xyz_m": [
+      560.291,
+      -227.919,
+      -2.099
+    ],
+    "model": "skiff_Storm",
+    "ue_actor_name": "StaticMeshActor_1377",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1377",
+    "damage_status": "damaged"
+  },
+  {
+    "id": "Vessel_038",
+    "category": "Vessel",
+    "kind": "Workboat",
+    "inspection": false,
+    "state": "aground",
+    "visible_evidence": "intact visible hull",
+    "xyz_m": [
+      678.79,
+      -185.707,
+      -1.241
+    ],
+    "model": "tugboat",
+    "ue_actor_name": "StaticMeshActor_1378",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1378",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Vessel_039",
+    "category": "Vessel",
+    "kind": "Launch",
+    "inspection": false,
+    "state": "aground",
+    "visible_evidence": "intact visible hull",
+    "xyz_m": [
+      795.986,
+      -164.362,
+      -0.621
+    ],
+    "model": "speedboat",
+    "ue_actor_name": "StaticMeshActor_1379",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1379",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Vessel_040",
+    "category": "Vessel",
+    "kind": "Fishing",
+    "inspection": true,
+    "state": "aground",
+    "visible_evidence": "intact visible hull",
+    "xyz_m": [
+      914.27,
+      -190.084,
+      -2.19
+    ],
+    "model": "skiff",
+    "ue_actor_name": "StaticMeshActor_1380",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1380",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Vehicle_001",
+    "category": "Vehicle",
+    "kind": "SUV",
+    "inspection": false,
+    "state": "intact",
+    "visible_evidence": "intact exterior",
+    "xyz_m": [
+      -726.002,
+      -203.015,
+      0.166
+    ],
+    "ue_actor_name": "SkeletalMeshActor_0",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.SkeletalMeshActor_0",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Vehicle_002",
+    "category": "Vehicle",
+    "kind": "family-sedan",
+    "inspection": true,
+    "state": "damaged",
+    "visible_evidence": "local roof and upper body indentation",
+    "xyz_m": [
+      -718.745,
+      -202.991,
+      0.18
+    ],
+    "model": "family-sedan_Storm",
+    "ue_actor_name": "StaticMeshActor_1381",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1381",
+    "damage_status": "damaged"
+  },
+  {
+    "id": "Vehicle_003",
+    "category": "Vehicle",
+    "kind": "family-sedan",
+    "inspection": false,
+    "state": "intact",
+    "visible_evidence": "intact exterior",
+    "xyz_m": [
+      -711.8,
+      -203.0,
+      0.18
+    ],
+    "model": "family-sedan",
+    "ue_actor_name": "StaticMeshActor_1382",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1382",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Vehicle_004",
+    "category": "Vehicle",
+    "kind": "pickup-truck",
+    "inspection": false,
+    "state": "intact",
+    "visible_evidence": "intact exterior",
+    "xyz_m": [
+      -704.7,
+      -203.0,
+      0.18
+    ],
+    "model": "pickup-truck",
+    "ue_actor_name": "StaticMeshActor_1383",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1383",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Vehicle_005",
+    "category": "Vehicle",
+    "kind": "SUV",
+    "inspection": false,
+    "state": "intact",
+    "visible_evidence": "intact exterior",
+    "xyz_m": [
+      -697.601,
+      -203.015,
+      0.165
+    ],
+    "ue_actor_name": "SkeletalMeshActor_1",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.SkeletalMeshActor_1",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Vehicle_006",
+    "category": "Vehicle",
+    "kind": "family-sedan",
+    "inspection": false,
+    "state": "intact",
+    "visible_evidence": "intact exterior",
+    "xyz_m": [
+      -690.5,
+      -203.0,
+      0.18
+    ],
+    "model": "family-sedan",
+    "ue_actor_name": "StaticMeshActor_1384",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1384",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Vehicle_007",
+    "category": "Vehicle",
+    "kind": "family-sedan",
+    "inspection": false,
+    "state": "intact",
+    "visible_evidence": "intact exterior",
+    "xyz_m": [
+      -683.4,
+      -203.0,
+      0.18
+    ],
+    "model": "family-sedan",
+    "ue_actor_name": "StaticMeshActor_1385",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1385",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Vehicle_008",
+    "category": "Vehicle",
+    "kind": "pickup-truck",
+    "inspection": true,
+    "state": "intact",
+    "visible_evidence": "intact exterior",
+    "xyz_m": [
+      -676.3,
+      -203.0,
+      0.18
+    ],
+    "model": "pickup-truck",
+    "ue_actor_name": "StaticMeshActor_1386",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1386",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Vehicle_009",
+    "category": "Vehicle",
+    "kind": "SUV",
+    "inspection": false,
+    "state": "intact",
+    "visible_evidence": "intact exterior",
+    "xyz_m": [
+      -669.201,
+      -203.015,
+      0.165
+    ],
+    "ue_actor_name": "SkeletalMeshActor_2",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.SkeletalMeshActor_2",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Vehicle_010",
+    "category": "Vehicle",
+    "kind": "family-sedan",
+    "inspection": false,
+    "state": "intact",
+    "visible_evidence": "intact exterior",
+    "xyz_m": [
+      -662.1,
+      -203.0,
+      0.18
+    ],
+    "model": "family-sedan",
+    "ue_actor_name": "StaticMeshActor_1387",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1387",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Vehicle_011",
+    "category": "Vehicle",
+    "kind": "family-sedan",
+    "inspection": false,
+    "state": "intact",
+    "visible_evidence": "intact exterior",
+    "xyz_m": [
+      -655.0,
+      -203.0,
+      0.18
+    ],
+    "model": "family-sedan",
+    "ue_actor_name": "StaticMeshActor_1388",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1388",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Vehicle_012",
+    "category": "Vehicle",
+    "kind": "pickup-truck",
+    "inspection": false,
+    "state": "intact",
+    "visible_evidence": "intact exterior",
+    "xyz_m": [
+      -647.9,
+      -203.0,
+      0.18
+    ],
+    "model": "pickup-truck",
+    "ue_actor_name": "StaticMeshActor_1389",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1389",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Vehicle_013",
+    "category": "Vehicle",
+    "kind": "SUV",
+    "inspection": false,
+    "state": "intact",
+    "visible_evidence": "intact exterior",
+    "xyz_m": [
+      -726.002,
+      -194.015,
+      0.165
+    ],
+    "ue_actor_name": "SkeletalMeshActor_3",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.SkeletalMeshActor_3",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Vehicle_014",
+    "category": "Vehicle",
+    "kind": "family-sedan",
+    "inspection": false,
+    "state": "intact",
+    "visible_evidence": "intact exterior",
+    "xyz_m": [
+      -718.9,
+      -194.0,
+      0.18
+    ],
+    "model": "family-sedan",
+    "ue_actor_name": "StaticMeshActor_1390",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1390",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Vehicle_015",
+    "category": "Vehicle",
+    "kind": "family-sedan",
+    "inspection": false,
+    "state": "intact",
+    "visible_evidence": "intact exterior",
+    "xyz_m": [
+      -711.8,
+      -194.0,
+      0.18
+    ],
+    "model": "family-sedan",
+    "ue_actor_name": "StaticMeshActor_1391",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1391",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Vehicle_016",
+    "category": "Vehicle",
+    "kind": "pickup-truck",
+    "inspection": false,
+    "state": "intact",
+    "visible_evidence": "intact exterior",
+    "xyz_m": [
+      -704.7,
+      -194.0,
+      0.18
+    ],
+    "model": "pickup-truck",
+    "ue_actor_name": "StaticMeshActor_1392",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1392",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Vehicle_017",
+    "category": "Vehicle",
+    "kind": "family-sedan",
+    "inspection": true,
+    "state": "damaged",
+    "visible_evidence": "local roof and upper body indentation",
+    "xyz_m": [
+      -697.8,
+      -194.032,
+      0.18
+    ],
+    "model": "family-sedan_Storm",
+    "ue_actor_name": "StaticMeshActor_1393",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1393",
+    "damage_status": "damaged"
+  },
+  {
+    "id": "Vehicle_018",
+    "category": "Vehicle",
+    "kind": "family-sedan",
+    "inspection": false,
+    "state": "intact",
+    "visible_evidence": "intact exterior",
+    "xyz_m": [
+      -690.5,
+      -194.0,
+      0.18
+    ],
+    "model": "family-sedan",
+    "ue_actor_name": "StaticMeshActor_1394",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1394",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Vehicle_019",
+    "category": "Vehicle",
+    "kind": "family-sedan",
+    "inspection": false,
+    "state": "intact",
+    "visible_evidence": "intact exterior",
+    "xyz_m": [
+      -683.4,
+      -194.0,
+      0.18
+    ],
+    "model": "family-sedan",
+    "ue_actor_name": "StaticMeshActor_1395",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1395",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Vehicle_020",
+    "category": "Vehicle",
+    "kind": "pickup-truck",
+    "inspection": false,
+    "state": "intact",
+    "visible_evidence": "intact exterior",
+    "xyz_m": [
+      -676.3,
+      -194.0,
+      0.18
+    ],
+    "model": "pickup-truck",
+    "ue_actor_name": "StaticMeshActor_1396",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1396",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Vehicle_021",
+    "category": "Vehicle",
+    "kind": "SUV",
+    "inspection": false,
+    "state": "intact",
+    "visible_evidence": "intact exterior",
+    "xyz_m": [
+      -669.201,
+      -194.015,
+      0.165
+    ],
+    "ue_actor_name": "SkeletalMeshActor_4",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.SkeletalMeshActor_4",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Vehicle_022",
+    "category": "Vehicle",
+    "kind": "family-sedan",
+    "inspection": false,
+    "state": "intact",
+    "visible_evidence": "intact exterior",
+    "xyz_m": [
+      -662.1,
+      -194.0,
+      0.18
+    ],
+    "model": "family-sedan",
+    "ue_actor_name": "StaticMeshActor_1397",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1397",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Vehicle_023",
+    "category": "Vehicle",
+    "kind": "family-sedan",
+    "inspection": false,
+    "state": "intact",
+    "visible_evidence": "intact exterior",
+    "xyz_m": [
+      -655.0,
+      -194.0,
+      0.18
+    ],
+    "model": "family-sedan",
+    "ue_actor_name": "StaticMeshActor_1398",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1398",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Vehicle_024",
+    "category": "Vehicle",
+    "kind": "pickup-truck",
+    "inspection": false,
+    "state": "intact",
+    "visible_evidence": "intact exterior",
+    "xyz_m": [
+      -647.9,
+      -194.0,
+      0.18
+    ],
+    "model": "pickup-truck",
+    "ue_actor_name": "StaticMeshActor_1399",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1399",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Vehicle_025",
+    "category": "Vehicle",
+    "kind": "SUV",
+    "inspection": false,
+    "state": "intact",
+    "visible_evidence": "intact exterior",
+    "xyz_m": [
+      -726.0,
+      -185.015,
+      0.166
+    ],
+    "ue_actor_name": "SkeletalMeshActor_5",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.SkeletalMeshActor_5",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Vehicle_026",
+    "category": "Vehicle",
+    "kind": "family-sedan",
+    "inspection": true,
+    "state": "intact",
+    "visible_evidence": "intact exterior",
+    "xyz_m": [
+      -718.9,
+      -185.0,
+      0.18
+    ],
+    "model": "family-sedan",
+    "ue_actor_name": "StaticMeshActor_1400",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1400",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Vehicle_027",
+    "category": "Vehicle",
+    "kind": "family-sedan",
+    "inspection": false,
+    "state": "intact",
+    "visible_evidence": "intact exterior",
+    "xyz_m": [
+      -711.8,
+      -185.0,
+      0.18
+    ],
+    "model": "family-sedan",
+    "ue_actor_name": "StaticMeshActor_1401",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1401",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Vehicle_028",
+    "category": "Vehicle",
+    "kind": "pickup-truck",
+    "inspection": false,
+    "state": "intact",
+    "visible_evidence": "intact exterior",
+    "xyz_m": [
+      -704.7,
+      -185.0,
+      0.18
+    ],
+    "model": "pickup-truck",
+    "ue_actor_name": "StaticMeshActor_1402",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1402",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Vehicle_029",
+    "category": "Vehicle",
+    "kind": "SUV",
+    "inspection": false,
+    "state": "intact",
+    "visible_evidence": "intact exterior",
+    "xyz_m": [
+      -697.602,
+      -185.015,
+      0.166
+    ],
+    "ue_actor_name": "SkeletalMeshActor_6",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.SkeletalMeshActor_6",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Vehicle_030",
+    "category": "Vehicle",
+    "kind": "family-sedan",
+    "inspection": false,
+    "state": "intact",
+    "visible_evidence": "intact exterior",
+    "xyz_m": [
+      -690.5,
+      -185.0,
+      0.18
+    ],
+    "model": "family-sedan",
+    "ue_actor_name": "StaticMeshActor_1403",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1403",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Vehicle_031",
+    "category": "Vehicle",
+    "kind": "family-sedan",
+    "inspection": false,
+    "state": "intact",
+    "visible_evidence": "intact exterior",
+    "xyz_m": [
+      -683.4,
+      -185.0,
+      0.18
+    ],
+    "model": "family-sedan",
+    "ue_actor_name": "StaticMeshActor_1404",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1404",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Vehicle_032",
+    "category": "Vehicle",
+    "kind": "pickup-truck",
+    "inspection": false,
+    "state": "intact",
+    "visible_evidence": "intact exterior",
+    "xyz_m": [
+      -676.3,
+      -185.0,
+      0.18
+    ],
+    "model": "pickup-truck",
+    "ue_actor_name": "StaticMeshActor_1405",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1405",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Vehicle_033",
+    "category": "Vehicle",
+    "kind": "SUV",
+    "inspection": false,
+    "state": "intact",
+    "visible_evidence": "intact exterior",
+    "xyz_m": [
+      -669.202,
+      -185.015,
+      0.166
+    ],
+    "ue_actor_name": "SkeletalMeshActor_7",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.SkeletalMeshActor_7",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Vehicle_034",
+    "category": "Vehicle",
+    "kind": "family-sedan",
+    "inspection": false,
+    "state": "intact",
+    "visible_evidence": "intact exterior",
+    "xyz_m": [
+      -662.1,
+      -185.0,
+      0.18
+    ],
+    "model": "family-sedan",
+    "ue_actor_name": "StaticMeshActor_1406",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1406",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Vehicle_035",
+    "category": "Vehicle",
+    "kind": "family-sedan",
+    "inspection": false,
+    "state": "intact",
+    "visible_evidence": "intact exterior",
+    "xyz_m": [
+      -655.0,
+      -185.0,
+      0.18
+    ],
+    "model": "family-sedan",
+    "ue_actor_name": "StaticMeshActor_1407",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1407",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Vehicle_036",
+    "category": "Vehicle",
+    "kind": "pickup-truck",
+    "inspection": false,
+    "state": "intact",
+    "visible_evidence": "intact exterior",
+    "xyz_m": [
+      -647.9,
+      -185.0,
+      0.18
+    ],
+    "model": "pickup-truck",
+    "ue_actor_name": "StaticMeshActor_1408",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1408",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Vehicle_037",
+    "category": "Vehicle",
+    "kind": "SUV",
+    "inspection": false,
+    "state": "intact",
+    "visible_evidence": "intact exterior",
+    "xyz_m": [
+      -726.002,
+      -176.015,
+      0.166
+    ],
+    "ue_actor_name": "SkeletalMeshActor_8",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.SkeletalMeshActor_8",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Vehicle_038",
+    "category": "Vehicle",
+    "kind": "family-sedan",
+    "inspection": false,
+    "state": "intact",
+    "visible_evidence": "intact exterior",
+    "xyz_m": [
+      -718.9,
+      -176.0,
+      0.18
+    ],
+    "model": "family-sedan",
+    "ue_actor_name": "StaticMeshActor_1409",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1409",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Vehicle_039",
+    "category": "Vehicle",
+    "kind": "family-sedan",
+    "inspection": true,
+    "state": "damaged",
+    "visible_evidence": "local roof and upper body indentation",
+    "xyz_m": [
+      -711.795,
+      -175.981,
+      0.18
+    ],
+    "model": "family-sedan_Storm",
+    "ue_actor_name": "StaticMeshActor_1410",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1410",
+    "damage_status": "damaged"
+  },
+  {
+    "id": "Vehicle_040",
+    "category": "Vehicle",
+    "kind": "pickup-truck",
+    "inspection": false,
+    "state": "intact",
+    "visible_evidence": "intact exterior",
+    "xyz_m": [
+      -704.7,
+      -176.0,
+      0.18
+    ],
+    "model": "pickup-truck",
+    "ue_actor_name": "StaticMeshActor_1411",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1411",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Vehicle_041",
+    "category": "Vehicle",
+    "kind": "SUV",
+    "inspection": false,
+    "state": "intact",
+    "visible_evidence": "intact exterior",
+    "xyz_m": [
+      -697.6,
+      -176.015,
+      0.166
+    ],
+    "ue_actor_name": "SkeletalMeshActor_9",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.SkeletalMeshActor_9",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Vehicle_042",
+    "category": "Vehicle",
+    "kind": "family-sedan",
+    "inspection": false,
+    "state": "intact",
+    "visible_evidence": "intact exterior",
+    "xyz_m": [
+      -690.5,
+      -176.0,
+      0.18
+    ],
+    "model": "family-sedan",
+    "ue_actor_name": "StaticMeshActor_1412",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1412",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Vehicle_043",
+    "category": "Vehicle",
+    "kind": "family-sedan",
+    "inspection": false,
+    "state": "intact",
+    "visible_evidence": "intact exterior",
+    "xyz_m": [
+      -683.4,
+      -176.0,
+      0.18
+    ],
+    "model": "family-sedan",
+    "ue_actor_name": "StaticMeshActor_1413",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1413",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Vehicle_044",
+    "category": "Vehicle",
+    "kind": "pickup-truck",
+    "inspection": false,
+    "state": "intact",
+    "visible_evidence": "intact exterior",
+    "xyz_m": [
+      -676.3,
+      -176.0,
+      0.18
+    ],
+    "model": "pickup-truck",
+    "ue_actor_name": "StaticMeshActor_1414",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1414",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Vehicle_045",
+    "category": "Vehicle",
+    "kind": "SUV",
+    "inspection": false,
+    "state": "intact",
+    "visible_evidence": "intact exterior",
+    "xyz_m": [
+      -669.201,
+      -176.015,
+      0.165
+    ],
+    "ue_actor_name": "SkeletalMeshActor_10",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.SkeletalMeshActor_10",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Vehicle_046",
+    "category": "Vehicle",
+    "kind": "family-sedan",
+    "inspection": false,
+    "state": "intact",
+    "visible_evidence": "intact exterior",
+    "xyz_m": [
+      -662.1,
+      -176.0,
+      0.18
+    ],
+    "model": "family-sedan",
+    "ue_actor_name": "StaticMeshActor_1415",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1415",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Vehicle_047",
+    "category": "Vehicle",
+    "kind": "family-sedan",
+    "inspection": false,
+    "state": "intact",
+    "visible_evidence": "intact exterior",
+    "xyz_m": [
+      -655.0,
+      -176.0,
+      0.18
+    ],
+    "model": "family-sedan",
+    "ue_actor_name": "StaticMeshActor_1416",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1416",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Vehicle_048",
+    "category": "Vehicle",
+    "kind": "pickup-truck",
+    "inspection": false,
+    "state": "intact",
+    "visible_evidence": "intact exterior",
+    "xyz_m": [
+      -647.9,
+      -176.0,
+      0.18
+    ],
+    "model": "pickup-truck",
+    "ue_actor_name": "StaticMeshActor_1417",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1417",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Vehicle_049",
+    "category": "Vehicle",
+    "kind": "SUV",
+    "inspection": false,
+    "state": "intact",
+    "visible_evidence": "intact exterior",
+    "xyz_m": [
+      -432.698,
+      733.43,
+      21.944
+    ],
+    "ue_actor_name": "SkeletalMeshActor_11",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.SkeletalMeshActor_11",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Vehicle_050",
+    "category": "Vehicle",
+    "kind": "family-sedan",
+    "inspection": false,
+    "state": "intact",
+    "visible_evidence": "intact exterior",
+    "xyz_m": [
+      -831.287,
+      113.213,
+      0.634
+    ],
+    "model": "family-sedan",
+    "ue_actor_name": "StaticMeshActor_1418",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1418",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Vehicle_051",
+    "category": "Vehicle",
+    "kind": "family-sedan",
+    "inspection": false,
+    "state": "intact",
+    "visible_evidence": "intact exterior",
+    "xyz_m": [
+      -371.394,
+      413.756,
+      3.735
+    ],
+    "model": "family-sedan",
+    "ue_actor_name": "StaticMeshActor_1419",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1419",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Vehicle_052",
+    "category": "Vehicle",
+    "kind": "pickup-truck",
+    "inspection": false,
+    "state": "intact",
+    "visible_evidence": "intact exterior",
+    "xyz_m": [
+      -494.346,
+      710.547,
+      18.199
+    ],
+    "model": "pickup-truck",
+    "ue_actor_name": "StaticMeshActor_1420",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1420",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Vehicle_053",
+    "category": "Vehicle",
+    "kind": "SUV",
+    "inspection": true,
+    "state": "intact",
+    "visible_evidence": "intact exterior",
+    "xyz_m": [
+      -302.052,
+      156.019,
+      1.21
+    ],
+    "ue_actor_name": "SkeletalMeshActor_12",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.SkeletalMeshActor_12",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Vehicle_054",
+    "category": "Vehicle",
+    "kind": "family-sedan",
+    "inspection": false,
+    "state": "intact",
+    "visible_evidence": "intact exterior",
+    "xyz_m": [
+      81.294,
+      270.001,
+      7.82
+    ],
+    "model": "family-sedan",
+    "ue_actor_name": "StaticMeshActor_1421",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1421",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Vehicle_055",
+    "category": "Vehicle",
+    "kind": "family-sedan",
+    "inspection": false,
+    "state": "intact",
+    "visible_evidence": "intact exterior",
+    "xyz_m": [
+      367.033,
+      817.399,
+      19.154
+    ],
+    "model": "family-sedan",
+    "ue_actor_name": "StaticMeshActor_1422",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1422",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Vehicle_056",
+    "category": "Vehicle",
+    "kind": "pickup-truck",
+    "inspection": false,
+    "state": "intact",
+    "visible_evidence": "intact exterior",
+    "xyz_m": [
+      -445.564,
+      926.781,
+      35.414
+    ],
+    "model": "pickup-truck",
+    "ue_actor_name": "StaticMeshActor_1423",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1423",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Vehicle_057",
+    "category": "Vehicle",
+    "kind": "SUV",
+    "inspection": false,
+    "state": "intact",
+    "visible_evidence": "intact exterior",
+    "xyz_m": [
+      67.733,
+      536.324,
+      18.518
+    ],
+    "ue_actor_name": "SkeletalMeshActor_13",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.SkeletalMeshActor_13",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Vehicle_058",
+    "category": "Vehicle",
+    "kind": "family-sedan",
+    "inspection": false,
+    "state": "intact",
+    "visible_evidence": "intact exterior",
+    "xyz_m": [
+      495.555,
+      771.906,
+      11.952
+    ],
+    "model": "family-sedan",
+    "ue_actor_name": "StaticMeshActor_1424",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1424",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Vehicle_059",
+    "category": "Vehicle",
+    "kind": "family-sedan",
+    "inspection": false,
+    "state": "intact",
+    "visible_evidence": "intact exterior",
+    "xyz_m": [
+      503.353,
+      653.724,
+      12.817
+    ],
+    "model": "family-sedan",
+    "ue_actor_name": "StaticMeshActor_1425",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1425",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Vehicle_060",
+    "category": "Vehicle",
+    "kind": "pickup-truck",
+    "inspection": false,
+    "state": "intact",
+    "visible_evidence": "intact exterior",
+    "xyz_m": [
+      256.517,
+      856.718,
+      26.387
+    ],
+    "model": "pickup-truck",
+    "ue_actor_name": "StaticMeshActor_1426",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1426",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Vehicle_061",
+    "category": "Vehicle",
+    "kind": "SUV",
+    "inspection": false,
+    "state": "intact",
+    "visible_evidence": "intact exterior",
+    "xyz_m": [
+      578.37,
+      125.437,
+      2.146
+    ],
+    "ue_actor_name": "SkeletalMeshActor_14",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.SkeletalMeshActor_14",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Vehicle_062",
+    "category": "Vehicle",
+    "kind": "family-sedan",
+    "inspection": false,
+    "state": "intact",
+    "visible_evidence": "intact exterior",
+    "xyz_m": [
+      245.372,
+      179.818,
+      4.593
+    ],
+    "model": "family-sedan",
+    "ue_actor_name": "StaticMeshActor_1427",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1427",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Vehicle_063",
+    "category": "Vehicle",
+    "kind": "family-sedan",
+    "inspection": false,
+    "state": "intact",
+    "visible_evidence": "intact exterior",
+    "xyz_m": [
+      51.087,
+      705.65,
+      26.606
+    ],
+    "model": "family-sedan",
+    "ue_actor_name": "StaticMeshActor_1428",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1428",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Vehicle_064",
+    "category": "Vehicle",
+    "kind": "pickup-truck",
+    "inspection": false,
+    "state": "intact",
+    "visible_evidence": "intact exterior",
+    "xyz_m": [
+      -726.492,
+      -59.642,
+      0.107
+    ],
+    "model": "pickup-truck",
+    "ue_actor_name": "StaticMeshActor_1429",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1429",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Vehicle_065",
+    "category": "Vehicle",
+    "kind": "SUV",
+    "inspection": false,
+    "state": "intact",
+    "visible_evidence": "intact exterior",
+    "xyz_m": [
+      -30.913,
+      481.191,
+      14.549
+    ],
+    "ue_actor_name": "SkeletalMeshActor_15",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.SkeletalMeshActor_15",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Vehicle_066",
+    "category": "Vehicle",
+    "kind": "pickup-truck",
+    "inspection": false,
+    "state": "intact",
+    "visible_evidence": "intact exterior",
+    "xyz_m": [
+      671.346,
+      640.471,
+      8.468
+    ],
+    "model": "pickup-truck",
+    "ue_actor_name": "StaticMeshActor_1430",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1430",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Vehicle_067",
+    "category": "Vehicle",
+    "kind": "delivery-van",
+    "inspection": false,
+    "state": "intact",
+    "visible_evidence": "intact exterior",
+    "xyz_m": [
+      -300.211,
+      215.218,
+      1.964
+    ],
+    "model": "delivery-van",
+    "ue_actor_name": "StaticMeshActor_1431",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1431",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Vehicle_068",
+    "category": "Vehicle",
+    "kind": "delivery-van",
+    "inspection": false,
+    "state": "intact",
+    "visible_evidence": "intact exterior",
+    "xyz_m": [
+      579.536,
+      600.819,
+      11.946
+    ],
+    "model": "delivery-van",
+    "ue_actor_name": "StaticMeshActor_1432",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1432",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Vehicle_069",
+    "category": "Vehicle",
+    "kind": "delivery-van",
+    "inspection": true,
+    "state": "damaged",
+    "visible_evidence": "local roof and upper body indentation",
+    "xyz_m": [
+      -273.134,
+      307.454,
+      3.63
+    ],
+    "model": "delivery-van_Storm",
+    "ue_actor_name": "StaticMeshActor_1433",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1433",
+    "damage_status": "damaged"
+  },
+  {
+    "id": "Vehicle_070",
+    "category": "Vehicle",
+    "kind": "delivery-van",
+    "inspection": false,
+    "state": "intact",
+    "visible_evidence": "intact exterior",
+    "xyz_m": [
+      -101.194,
+      647.805,
+      22.45
+    ],
+    "model": "delivery-van",
+    "ue_actor_name": "StaticMeshActor_1434",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1434",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Vehicle_071",
+    "category": "Vehicle",
+    "kind": "delivery-van",
+    "inspection": false,
+    "state": "intact",
+    "visible_evidence": "intact exterior",
+    "xyz_m": [
+      689.812,
+      -5.651,
+      0.107
+    ],
+    "model": "delivery-van",
+    "ue_actor_name": "StaticMeshActor_1435",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1435",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Vehicle_072",
+    "category": "Vehicle",
+    "kind": "pickup-truck",
+    "inspection": false,
+    "state": "intact",
+    "visible_evidence": "intact exterior",
+    "xyz_m": [
+      -4.571,
+      504.079,
+      16.088
+    ],
+    "model": "pickup-truck",
+    "ue_actor_name": "StaticMeshActor_1436",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1436",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Vehicle_073",
+    "category": "Vehicle",
+    "kind": "delivery-van",
+    "inspection": false,
+    "state": "intact",
+    "visible_evidence": "intact exterior",
+    "xyz_m": [
+      563.737,
+      112.649,
+      1.786
+    ],
+    "model": "delivery-van",
+    "ue_actor_name": "StaticMeshActor_1437",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1437",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Vehicle_074",
+    "category": "Vehicle",
+    "kind": "delivery-van",
+    "inspection": false,
+    "state": "intact",
+    "visible_evidence": "intact exterior",
+    "xyz_m": [
+      -475.345,
+      934.796,
+      34.543
+    ],
+    "model": "delivery-van",
+    "ue_actor_name": "StaticMeshActor_1438",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1438",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Vehicle_075",
+    "category": "Vehicle",
+    "kind": "pickup-truck",
+    "inspection": true,
+    "state": "intact",
+    "visible_evidence": "intact exterior",
+    "xyz_m": [
+      -380.108,
+      252.275,
+      1.636
+    ],
+    "model": "pickup-truck",
+    "ue_actor_name": "StaticMeshActor_1439",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1439",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Vehicle_076",
+    "category": "Vehicle",
+    "kind": "delivery-van",
+    "inspection": false,
+    "state": "intact",
+    "visible_evidence": "intact exterior",
+    "xyz_m": [
+      -678.78,
+      8.864,
+      0.108
+    ],
+    "model": "delivery-van",
+    "ue_actor_name": "StaticMeshActor_1440",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1440",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Vehicle_077",
+    "category": "Vehicle",
+    "kind": "delivery-van",
+    "inspection": false,
+    "state": "intact",
+    "visible_evidence": "intact exterior",
+    "xyz_m": [
+      -709.097,
+      -47.011,
+      0.107
+    ],
+    "model": "delivery-van",
+    "ue_actor_name": "StaticMeshActor_1441",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1441",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Vehicle_078",
+    "category": "Vehicle",
+    "kind": "pickup-truck",
+    "inspection": false,
+    "state": "intact",
+    "visible_evidence": "intact exterior",
+    "xyz_m": [
+      -177.678,
+      415.56,
+      8.369
+    ],
+    "model": "pickup-truck",
+    "ue_actor_name": "StaticMeshActor_1442",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1442",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Vehicle_079",
+    "category": "Vehicle",
+    "kind": "delivery-van",
+    "inspection": false,
+    "state": "intact",
+    "visible_evidence": "intact exterior",
+    "xyz_m": [
+      -673.779,
+      52.222,
+      0.209
+    ],
+    "model": "delivery-van",
+    "ue_actor_name": "StaticMeshActor_1443",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1443",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Vehicle_080",
+    "category": "Vehicle",
+    "kind": "delivery-van",
+    "inspection": false,
+    "state": "intact",
+    "visible_evidence": "intact exterior",
+    "xyz_m": [
+      -715.823,
+      77.508,
+      0.33
+    ],
+    "model": "delivery-van",
+    "ue_actor_name": "StaticMeshActor_1444",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1444",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Vehicle_081",
+    "category": "Vehicle",
+    "kind": "pickup-truck",
+    "inspection": false,
+    "state": "intact",
+    "visible_evidence": "intact exterior",
+    "xyz_m": [
+      568.177,
+      823.439,
+      9.269
+    ],
+    "model": "pickup-truck",
+    "ue_actor_name": "StaticMeshActor_1445",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1445",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Vehicle_082",
+    "category": "Vehicle",
+    "kind": "delivery-van",
+    "inspection": false,
+    "state": "intact",
+    "visible_evidence": "intact exterior",
+    "xyz_m": [
+      -745.129,
+      -61.121,
+      0.107
+    ],
+    "model": "delivery-van",
+    "ue_actor_name": "StaticMeshActor_1446",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1446",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Vehicle_083",
+    "category": "Vehicle",
+    "kind": "delivery-van",
+    "inspection": false,
+    "state": "intact",
+    "visible_evidence": "intact exterior",
+    "xyz_m": [
+      -304.69,
+      169.641,
+      1.375
+    ],
+    "model": "delivery-van",
+    "ue_actor_name": "StaticMeshActor_1447",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1447",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Vehicle_084",
+    "category": "Vehicle",
+    "kind": "delivery-van",
+    "inspection": true,
+    "state": "damaged",
+    "visible_evidence": "local roof and upper body indentation",
+    "xyz_m": [
+      -109.824,
+      226.966,
+      4.048
+    ],
+    "model": "delivery-van_Storm",
+    "ue_actor_name": "StaticMeshActor_1448",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1448",
+    "damage_status": "damaged"
+  },
+  {
+    "id": "Vehicle_085",
+    "category": "Vehicle",
+    "kind": "delivery-van",
+    "inspection": false,
+    "state": "intact",
+    "visible_evidence": "intact exterior",
+    "xyz_m": [
+      -506.753,
+      95.41,
+      0.388
+    ],
+    "model": "delivery-van",
+    "ue_actor_name": "StaticMeshActor_1449",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1449",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Vehicle_086",
+    "category": "Vehicle",
+    "kind": "delivery-van",
+    "inspection": false,
+    "state": "intact",
+    "visible_evidence": "intact exterior",
+    "xyz_m": [
+      52.414,
+      527.114,
+      17.981
+    ],
+    "model": "delivery-van",
+    "ue_actor_name": "StaticMeshActor_1450",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1450",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Vehicle_087",
+    "category": "Vehicle",
+    "kind": "pickup-truck",
+    "inspection": false,
+    "state": "intact",
+    "visible_evidence": "intact exterior",
+    "xyz_m": [
+      -4.483,
+      726.142,
+      28.435
+    ],
+    "model": "pickup-truck",
+    "ue_actor_name": "StaticMeshActor_1451",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1451",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Vehicle_088",
+    "category": "Vehicle",
+    "kind": "delivery-van",
+    "inspection": false,
+    "state": "intact",
+    "visible_evidence": "intact exterior",
+    "xyz_m": [
+      674.11,
+      852.864,
+      6.379
+    ],
+    "model": "delivery-van",
+    "ue_actor_name": "StaticMeshActor_1452",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1452",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Vehicle_089",
+    "category": "Vehicle",
+    "kind": "delivery-van",
+    "inspection": false,
+    "state": "intact",
+    "visible_evidence": "intact exterior",
+    "xyz_m": [
+      -497.415,
+      934.179,
+      33.547
+    ],
+    "model": "delivery-van",
+    "ue_actor_name": "StaticMeshActor_1453",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1453",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Vehicle_090",
+    "category": "Vehicle",
+    "kind": "pickup-truck",
+    "inspection": false,
+    "state": "intact",
+    "visible_evidence": "intact exterior",
+    "xyz_m": [
+      -676.327,
+      150.474,
+      0.593
+    ],
+    "model": "pickup-truck",
+    "ue_actor_name": "StaticMeshActor_1454",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1454",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Vehicle_091",
+    "category": "Vehicle",
+    "kind": "dump-truck",
+    "inspection": false,
+    "state": "intact",
+    "visible_evidence": "intact exterior",
+    "xyz_m": [
+      136.361,
+      615.421,
+      21.672
+    ],
+    "model": "dump-truck",
+    "ue_actor_name": "StaticMeshActor_1455",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1455",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Vehicle_092",
+    "category": "Vehicle",
+    "kind": "dump-truck",
+    "inspection": true,
+    "state": "overturned",
+    "visible_evidence": "truck resting on its side with localized body deformation",
+    "xyz_m": [
+      -675.816,
+      331.676,
+      1.964
+    ],
+    "model": "dump-truck_Storm",
+    "ue_actor_name": "StaticMeshActor_1456",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1456",
+    "damage_status": "damaged"
+  },
+  {
+    "id": "Vehicle_093",
+    "category": "Vehicle",
+    "kind": "semi-truck",
+    "inspection": false,
+    "state": "intact",
+    "visible_evidence": "intact exterior",
+    "xyz_m": [
+      524.275,
+      116.726,
+      1.977
+    ],
+    "model": "semi-truck",
+    "ue_actor_name": "StaticMeshActor_1457",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1457",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Vehicle_094",
+    "category": "Vehicle",
+    "kind": "dump-truck",
+    "inspection": false,
+    "state": "intact",
+    "visible_evidence": "intact exterior",
+    "xyz_m": [
+      674.44,
+      917.004,
+      8.805
+    ],
+    "model": "dump-truck",
+    "ue_actor_name": "StaticMeshActor_1458",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1458",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Vehicle_095",
+    "category": "Vehicle",
+    "kind": "dump-truck",
+    "inspection": false,
+    "state": "intact",
+    "visible_evidence": "intact exterior",
+    "xyz_m": [
+      93.885,
+      291.694,
+      8.944
+    ],
+    "model": "dump-truck",
+    "ue_actor_name": "StaticMeshActor_1459",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1459",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Vehicle_096",
+    "category": "Vehicle",
+    "kind": "semi-truck",
+    "inspection": false,
+    "state": "intact",
+    "visible_evidence": "intact exterior",
+    "xyz_m": [
+      -112.04,
+      53.274,
+      0.331
+    ],
+    "model": "semi-truck",
+    "ue_actor_name": "StaticMeshActor_1460",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1460",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Vehicle_097",
+    "category": "Vehicle",
+    "kind": "dump-truck",
+    "inspection": false,
+    "state": "intact",
+    "visible_evidence": "intact exterior",
+    "xyz_m": [
+      -419.812,
+      716.142,
+      20.768
+    ],
+    "model": "dump-truck",
+    "ue_actor_name": "StaticMeshActor_1461",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1461",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Vehicle_098",
+    "category": "Vehicle",
+    "kind": "dump-truck",
+    "inspection": false,
+    "state": "intact",
+    "visible_evidence": "intact exterior",
+    "xyz_m": [
+      -64.161,
+      469.487,
+      13.311
+    ],
+    "model": "dump-truck",
+    "ue_actor_name": "StaticMeshActor_1462",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1462",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Vehicle_099",
+    "category": "Vehicle",
+    "kind": "dump-truck",
+    "inspection": true,
+    "state": "overturned",
+    "visible_evidence": "truck resting on its side with localized body deformation",
+    "xyz_m": [
+      -781.172,
+      131.991,
+      2.089
+    ],
+    "model": "dump-truck_Storm",
+    "ue_actor_name": "StaticMeshActor_1463",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1463",
+    "damage_status": "damaged"
+  },
+  {
+    "id": "Vehicle_100",
+    "category": "Vehicle",
+    "kind": "dump-truck",
+    "inspection": false,
+    "state": "intact",
+    "visible_evidence": "intact exterior",
+    "xyz_m": [
+      -434.746,
+      920.148,
+      35.516
+    ],
+    "model": "dump-truck",
+    "ue_actor_name": "StaticMeshActor_1464",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1464",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Vehicle_101",
+    "category": "Vehicle",
+    "kind": "dump-truck",
+    "inspection": false,
+    "state": "intact",
+    "visible_evidence": "intact exterior",
+    "xyz_m": [
+      -545.566,
+      202.467,
+      0.656
+    ],
+    "model": "dump-truck",
+    "ue_actor_name": "StaticMeshActor_1465",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1465",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Vehicle_102",
+    "category": "Vehicle",
+    "kind": "semi-truck",
+    "inspection": false,
+    "state": "intact",
+    "visible_evidence": "intact exterior",
+    "xyz_m": [
+      -412.724,
+      265.854,
+      1.428
+    ],
+    "model": "semi-truck",
+    "ue_actor_name": "StaticMeshActor_1466",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1466",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Vehicle_103",
+    "category": "Vehicle",
+    "kind": "dump-truck",
+    "inspection": false,
+    "state": "intact",
+    "visible_evidence": "intact exterior",
+    "xyz_m": [
+      -605.206,
+      304.324,
+      0.443
+    ],
+    "model": "dump-truck",
+    "ue_actor_name": "StaticMeshActor_1467",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1467",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Vehicle_104",
+    "category": "Vehicle",
+    "kind": "dump-truck",
+    "inspection": false,
+    "state": "intact",
+    "visible_evidence": "intact exterior",
+    "xyz_m": [
+      -371.056,
+      890.236,
+      36.178
+    ],
+    "model": "dump-truck",
+    "ue_actor_name": "StaticMeshActor_1468",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1468",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Vehicle_105",
+    "category": "Vehicle",
+    "kind": "semi-truck",
+    "inspection": false,
+    "state": "intact",
+    "visible_evidence": "intact exterior",
+    "xyz_m": [
+      -636.881,
+      160.173,
+      0.582
+    ],
+    "model": "semi-truck",
+    "ue_actor_name": "StaticMeshActor_1469",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1469",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Vehicle_106",
+    "category": "Vehicle",
+    "kind": "dump-truck",
+    "inspection": false,
+    "state": "intact",
+    "visible_evidence": "intact exterior",
+    "xyz_m": [
+      491.338,
+      685.077,
+      12.64
+    ],
+    "model": "dump-truck",
+    "ue_actor_name": "StaticMeshActor_1470",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1470",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Vehicle_107",
+    "category": "Vehicle",
+    "kind": "dump-truck",
+    "inspection": false,
+    "state": "intact",
+    "visible_evidence": "intact exterior",
+    "xyz_m": [
+      366.315,
+      106.619,
+      1.768
+    ],
+    "model": "dump-truck",
+    "ue_actor_name": "StaticMeshActor_1471",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1471",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Vehicle_108",
+    "category": "Vehicle",
+    "kind": "semi-truck",
+    "inspection": false,
+    "state": "intact",
+    "visible_evidence": "intact exterior",
+    "xyz_m": [
+      -544.216,
+      -122.06,
+      0.107
+    ],
+    "model": "semi-truck",
+    "ue_actor_name": "StaticMeshActor_1472",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1472",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Vehicle_109",
+    "category": "Vehicle",
+    "kind": "forklift",
+    "inspection": false,
+    "state": "intact",
+    "visible_evidence": "intact exterior",
+    "xyz_m": [
+      -459.0,
+      -175.0,
+      0.17
+    ],
+    "model": "forklift",
+    "ue_actor_name": "StaticMeshActor_1473",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1473",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Vehicle_110",
+    "category": "Vehicle",
+    "kind": "forklift",
+    "inspection": false,
+    "state": "intact",
+    "visible_evidence": "intact exterior",
+    "xyz_m": [
+      -448.0,
+      -175.0,
+      0.17
+    ],
+    "model": "forklift",
+    "ue_actor_name": "StaticMeshActor_1474",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1474",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Vehicle_111",
+    "category": "Vehicle",
+    "kind": "forklift",
+    "inspection": false,
+    "state": "intact",
+    "visible_evidence": "intact exterior",
+    "xyz_m": [
+      -437.0,
+      -175.0,
+      0.17
+    ],
+    "model": "forklift",
+    "ue_actor_name": "StaticMeshActor_1475",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1475",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Vehicle_112",
+    "category": "Vehicle",
+    "kind": "forklift",
+    "inspection": false,
+    "state": "intact",
+    "visible_evidence": "intact exterior",
+    "xyz_m": [
+      -426.0,
+      -175.0,
+      0.17
+    ],
+    "model": "forklift",
+    "ue_actor_name": "StaticMeshActor_1476",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1476",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Vehicle_113",
+    "category": "Vehicle",
+    "kind": "forklift",
+    "inspection": true,
+    "state": "intact",
+    "visible_evidence": "intact exterior",
+    "xyz_m": [
+      -459.0,
+      -166.0,
+      0.17
+    ],
+    "model": "forklift",
+    "ue_actor_name": "StaticMeshActor_1477",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1477",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Vehicle_114",
+    "category": "Vehicle",
+    "kind": "forklift",
+    "inspection": false,
+    "state": "intact",
+    "visible_evidence": "intact exterior",
+    "xyz_m": [
+      -448.0,
+      -166.0,
+      0.17
+    ],
+    "model": "forklift",
+    "ue_actor_name": "StaticMeshActor_1478",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1478",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Vehicle_115",
+    "category": "Vehicle",
+    "kind": "forklift",
+    "inspection": false,
+    "state": "intact",
+    "visible_evidence": "intact exterior",
+    "xyz_m": [
+      -437.0,
+      -166.0,
+      0.17
+    ],
+    "model": "forklift",
+    "ue_actor_name": "StaticMeshActor_1479",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1479",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Vehicle_116",
+    "category": "Vehicle",
+    "kind": "forklift",
+    "inspection": false,
+    "state": "intact",
+    "visible_evidence": "intact exterior",
+    "xyz_m": [
+      -426.0,
+      -166.0,
+      0.17
+    ],
+    "model": "forklift",
+    "ue_actor_name": "StaticMeshActor_1480",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1480",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Vehicle_117",
+    "category": "Vehicle",
+    "kind": "tow-truck",
+    "inspection": false,
+    "state": "intact",
+    "visible_evidence": "intact exterior",
+    "xyz_m": [
+      -311.01,
+      869.698,
+      36.69
+    ],
+    "model": "tow-truck",
+    "ue_actor_name": "StaticMeshActor_1481",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1481",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Vehicle_118",
+    "category": "Vehicle",
+    "kind": "tow-truck",
+    "inspection": false,
+    "state": "intact",
+    "visible_evidence": "intact exterior",
+    "xyz_m": [
+      272.326,
+      222.015,
+      6.725
+    ],
+    "model": "tow-truck",
+    "ue_actor_name": "StaticMeshActor_1482",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1482",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Vehicle_119",
+    "category": "Vehicle",
+    "kind": "tow-truck",
+    "inspection": false,
+    "state": "intact",
+    "visible_evidence": "intact exterior",
+    "xyz_m": [
+      413.307,
+      -3.446,
+      0.107
+    ],
+    "model": "tow-truck",
+    "ue_actor_name": "StaticMeshActor_1483",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1483",
+    "damage_status": "intact"
+  },
+  {
+    "id": "Vehicle_120",
+    "category": "Vehicle",
+    "kind": "tow-truck",
+    "inspection": false,
+    "state": "intact",
+    "visible_evidence": "intact exterior",
+    "xyz_m": [
+      -492.31,
+      191.016,
+      0.762
+    ],
+    "model": "tow-truck",
+    "ue_actor_name": "StaticMeshActor_1484",
+    "ue_actor_path": "/Game/CoastalHarbor/Maps/CoastalHarbor.CoastalHarbor:PersistentLevel.StaticMeshActor_1484",
+    "damage_status": "intact"
+  }
+]

@@ -1,0 +1,18 @@
+{
+  "before": {
+    "sampled_frames": 561,
+    "gpu_median_ms": 9.803,
+    "gpu_p95_ms": 19.2324,
+    "frame_median_ms": 33.3191,
+    "draw_calls_median": 888.0
+  },
+  "after": {
+    "sampled_frames": 561,
+    "gpu_median_ms": 9.7918,
+    "gpu_p95_ms": 19.7485,
+    "frame_median_ms": 33.3274,
+    "draw_calls_median": 1117.0
+  },
+  "gpu_median_difference_ms": -0.0112,
+  "gpu_median_difference_pct": -0.11
+}

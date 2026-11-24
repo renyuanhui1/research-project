@@ -1,0 +1,24 @@
+{
+  "map_sha256": "f5c54462a8c7a52023135e3253123fc7cdd1f3ee66d38772e74715416c7d7fbe",
+  "facade_display_luma_median": {
+    "auto_far": 58.8,
+    "auto_near": 90.2,
+    "fixed_far": 96.7,
+    "fixed_near": 91.9
+  },
+  "facade_roi_near_far_px": [
+    54,
+    12
+  ],
+  "overview_p90_minus_p10": {
+    "overview_fog": 47.8,
+    "overview_clear": 55.6
+  },
+  "overview_roi_xyxy": [
+    320,
+    170,
+    880,
+    550
+  ],
+  "unit": "8-bit output RGB luma, weighted R/G/B .2126/.7152/.0722; not illuminance"
+}
