@@ -7,8 +7,8 @@
   "crop_margin": 1.15,
   "primary_protocol": "appearance",
   "categories": {
-    "F-14 飞机": "aircraft",
-    "F-35 飞机": "aircraft",
+    "固定翼飞机A": "aircraft",
+    "固定翼飞机B": "aircraft",
     "机库": "hangar",
     "塔台": "tower"
   },

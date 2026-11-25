@@ -168,9 +168,9 @@
 
 见[首轮中断](../runs/opening-entry/20261112-oblique-hangar2019/control-stopped-dino/report.json)、[中断分析](../runs/opening-entry/20261112-oblique-hangar2019/control-stopped-dino/failure-analysis.json)、[平移超时](../runs/opening-entry/20261112-oblique-hangar2019/reposition/report.json)、[恢复悬停](../runs/opening-entry/20261112-oblique-hangar2019/recovery/report.json)、[交接核验](../runs/opening-entry/20261112-oblique-hangar2019/handoff-validation.json)、[正式报告](../runs/opening-entry/20261112-oblique-hangar2019/control/report.json)、[完整核验](../runs/opening-entry/20261112-oblique-hangar2019/control/validation.json)、[内部图](../runs/opening-entry/20261112-oblique-hangar2019/control/interior-observation.png)、[回放核验](../runs/opening-entry/20261112-oblique-hangar2019/control/rviz/validation.json)、[离线核验](../runs/opening-entry/20261112-oblique-hangar2019/offline-validation.json)、[视野诊断](../runs/opening-entry/20261112-oblique-hangar2019/visibility-diagnostic.json)、[测试日志](../runs/opening-entry/20261112-oblique-hangar2019/tests.log)、[操作说明](../docs/USAGE.md#斜俯视抵近与入室)。
 
-## F-14部位抵近（StaticMeshActor_7888）
+## 飞机A部位抵近（StaticMeshActor_7888）
 
-以下五项共用的设置：WSL经`172.21.192.1`连接，相机下俯35°，远段前向上限1.5米/秒，12米内合速度上限0.35米/秒，6米深度停车并要求3张独立深度帧确认。终点评价在实际相机姿态下采一张新图，从DINO中心发出射线，与飞机三角面求交，判断是否命中所选部位，这项几何只用于事后评价。共同起点的状态准入容差为位置0.35米、航向0.75°、速度0.08米/秒、倾斜1°。表中起点一致性是仿真记录的一致性，不是定位精度。部位选取与两级匹配见[架构说明](../docs/ARCHITECTURE.md#f-14部位抵近)，命令见[使用手册](../docs/USAGE.md#同一f-14起点抵近不同部位)。
+以下五项共用的设置：WSL经`172.21.192.1`连接，相机下俯35°，远段前向上限1.5米/秒，12米内合速度上限0.35米/秒，6米深度停车并要求3张独立深度帧确认。终点评价在实际相机姿态下采一张新图，从DINO中心发出射线，与飞机三角面求交，判断是否命中所选部位，这项几何只用于事后评价。共同起点的状态准入容差为位置0.35米、航向0.75°、速度0.08米/秒、倾斜1°。表中起点一致性是仿真记录的一致性，不是定位精度。部位选取与两级匹配见[架构说明](../docs/ARCHITECTURE.md#aircraft-a部位抵近)，命令见[使用手册](../docs/USAGE.md#同一aircraft-a起点抵近不同部位)。
 
 ### 2026-11-12：按部位分别准备
 
@@ -182,7 +182,7 @@
 | 主翼 | 366 | 5.817 | 4.865（任意表面4.861） | 12.11 |
 | 垂尾 | 358 | 5.704 | 5.457 | 14.13 |
 
-RGB与深度最大时差为84—110毫秒，39项测试通过。离线复核命令：`python runs/approach/20261112-f14-parts/evaluate_part.py nose --offline`（`wing`、`tail`同理）。见[汇总](../runs/approach/20261112-f14-parts/summary.json)、[三处核验图](../runs/approach/20261112-f14-parts/summary.png)、[轨迹图](../runs/approach/20261112-f14-parts/trajectories.png)、[部位选区](../runs/approach/20261112-f14-parts/part-definitions.json)、[场景核验](../runs/approach/20261112-f14-parts/preflight.json)、[测试日志](../runs/approach/20261112-f14-parts/tests.log)；各部位的报告、终点核验与录像在`nose/`、`wing/`、`tail/`子目录中。
+RGB与深度最大时差为84—110毫秒，39项测试通过。离线复核命令：`python runs/approach/20261112-aircraft-a-parts/evaluate_part.py nose --offline`（`wing`、`tail`同理）。见[汇总](../runs/approach/20261112-aircraft-a-parts/summary.json)、[三处核验图](../runs/approach/20261112-aircraft-a-parts/summary.png)、[轨迹图](../runs/approach/20261112-aircraft-a-parts/trajectories.png)、[部位选区](../runs/approach/20261112-aircraft-a-parts/part-definitions.json)、[场景核验](../runs/approach/20261112-aircraft-a-parts/preflight.json)、[测试日志](../runs/approach/20261112-aircraft-a-parts/tests.log)；各部位的报告、终点核验与录像在`nose/`、`wing/`、`tail/`子目录中。
 
 ### 2026-11-13：侧前方共同起点
 
@@ -200,7 +200,7 @@ RGB与深度最大时差为84—110毫秒，39项测试通过。离线复核命�
 
 结论：从共同起点出发，改变部位选择会产生不同的抵近轨迹。参考图与机头预检用的是同一张采集图，不属于独立测试。
 
-见[汇总](../runs/approach/20261113-f14-common-start/summary.json)、[轨迹图](../runs/approach/20261113-f14-common-start/summary.png)、[三列DINO视频](../runs/approach/20261113-f14-common-start/matching-comparison.mp4)、[几何预检](../runs/approach/20261113-f14-common-start/geometry.json)、[参考ROI](../runs/approach/20261113-f14-common-start/reference/template-location.png)、[参数退出日志](../runs/approach/20261113-f14-common-start/nose/preflight-argument-failed.log)、[匹配重建核验](../runs/approach/20261113-f14-common-start/matching-reconstruction.json)、[测试日志](../runs/approach/20261113-f14-common-start/tests.log)；各部位的报告与终点核验在子目录中。
+见[汇总](../runs/approach/20261113-aircraft-a-common-start/summary.json)、[轨迹图](../runs/approach/20261113-aircraft-a-common-start/summary.png)、[三列DINO视频](../runs/approach/20261113-aircraft-a-common-start/matching-comparison.mp4)、[几何预检](../runs/approach/20261113-aircraft-a-common-start/geometry.json)、[参考ROI](../runs/approach/20261113-aircraft-a-common-start/reference/template-location.png)、[参数退出日志](../runs/approach/20261113-aircraft-a-common-start/nose/preflight-argument-failed.log)、[匹配重建核验](../runs/approach/20261113-aircraft-a-common-start/matching-reconstruction.json)、[测试日志](../runs/approach/20261113-aircraft-a-common-start/tests.log)；各部位的报告与终点核验在子目录中。
 
 ### 2026-11-13：正前上方起点
 
@@ -214,9 +214,9 @@ RGB与深度最大时差为84—110毫秒，39项测试通过。离线复核命�
 
 表中“a / b米”为停车滤波深度和到所选部位表面的距离。完成的各项均以`range_threshold`停止，正式控制中没有新碰撞或其他保护介入。被拒绝的垂尾没有抵近轨迹、终点或录像，但准备阶段的起飞和复位飞行已经执行。
 
-**A 跨视角**。默认的全部位预检中，垂尾落点错误，导致整次被拒绝。为了独立评价每个部位，新增`--preflight-selected-part-only`：三个部位的诊断都保存，但只要求所选部位通过，阈值不变；44项测试通过。在同一张起始图上，机头、主翼、垂尾的峰值分别约为0.649、0.694、0.610，垂尾的响应点落在选区下方，可见单看峰值不能判断匹配是否正确。垂尾投影宽约6.31像素，只占约0.285个特征格。这里的困难与正面薄边成像和跨视角外观变化都相符，两者的影响未分离。实际独立帧率为19.55和18.37FPS。见[汇总](../runs/approach/20261113-f14-front-start/summary.json)、[轨迹图](../runs/approach/20261113-f14-front-start/summary.png)、[起始响应](../runs/approach/20261113-f14-front-start/start-matching.png)、[全部位拒绝日志](../runs/approach/20261113-f14-front-start/nose/preflight-all-parts-rejected.log)、[垂尾预检](../runs/approach/20261113-f14-front-start/tail/matching-preflight.json)、[输入来源](../runs/approach/20261113-f14-front-start/experiment.json)、[测试日志](../runs/approach/20261113-f14-front-start/tests.log)。
+**A 跨视角**。默认的全部位预检中，垂尾落点错误，导致整次被拒绝。为了独立评价每个部位，新增`--preflight-selected-part-only`：三个部位的诊断都保存，但只要求所选部位通过，阈值不变；44项测试通过。在同一张起始图上，机头、主翼、垂尾的峰值分别约为0.649、0.694、0.610，垂尾的响应点落在选区下方，可见单看峰值不能判断匹配是否正确。垂尾投影宽约6.31像素，只占约0.285个特征格。这里的困难与正面薄边成像和跨视角外观变化都相符，两者的影响未分离。实际独立帧率为19.55和18.37FPS。见[汇总](../runs/approach/20261113-aircraft-a-front-start/summary.json)、[轨迹图](../runs/approach/20261113-aircraft-a-front-start/summary.png)、[起始响应](../runs/approach/20261113-aircraft-a-front-start/start-matching.png)、[全部位拒绝日志](../runs/approach/20261113-aircraft-a-front-start/nose/preflight-all-parts-rejected.log)、[垂尾预检](../runs/approach/20261113-aircraft-a-front-start/tail/matching-preflight.json)、[输入来源](../runs/approach/20261113-aircraft-a-front-start/experiment.json)、[测试日志](../runs/approach/20261113-aircraft-a-front-start/tests.log)。
 
-**B 同视角模板**。在起点悬停时采6帧参考，过程中未发飞行指令。整机裁剪`[797,385,1123,726]`；统计文件与A逐字节相同，避免同时改变两个因素。机头、主翼、垂尾的ROI分别选中18、24、0个特征格：垂尾框太窄，没有包含任何格中心，原实现在构造它的原型时会抛异常，连带阻断其他部位。修改为把这种部位记为`no_reference_patches`，单独拒绝，其他部位照常运行；未扩大ROI或降低阈值。45项测试通过，用旧输入回归的结果差为0。主翼到所选表面3.700米、到任意表面3.546米，都小于6米，说明测距阈值不等于机体到所有表面的净距。实际独立帧率只有约2.92FPS，重复帧约90%，原因未定位，所以不能比较模板视角对收敛速度的影响。见[同视角模板](../runs/approach/20261113-f14-front-matched-template/reference/aircraft-template.png)、[ROI与特征格](../runs/approach/20261113-f14-front-matched-template/reference-feature-grid.png)、[汇总](../runs/approach/20261113-f14-front-matched-template/summary.json)、[轨迹图](../runs/approach/20261113-f14-front-matched-template/summary.png)、[垂尾预检](../runs/approach/20261113-f14-front-matched-template/tail/matching-preflight.json)、[数值回归](../runs/approach/20261113-f14-front-matched-template/baseline-regression.json)、[测试日志](../runs/approach/20261113-f14-front-matched-template/tests.log)。
+**B 同视角模板**。在起点悬停时采6帧参考，过程中未发飞行指令。整机裁剪`[797,385,1123,726]`；统计文件与A逐字节相同，避免同时改变两个因素。机头、主翼、垂尾的ROI分别选中18、24、0个特征格：垂尾框太窄，没有包含任何格中心，原实现在构造它的原型时会抛异常，连带阻断其他部位。修改为把这种部位记为`no_reference_patches`，单独拒绝，其他部位照常运行；未扩大ROI或降低阈值。45项测试通过，用旧输入回归的结果差为0。主翼到所选表面3.700米、到任意表面3.546米，都小于6米，说明测距阈值不等于机体到所有表面的净距。实际独立帧率只有约2.92FPS，重复帧约90%，原因未定位，所以不能比较模板视角对收敛速度的影响。见[同视角模板](../runs/approach/20261113-aircraft-a-front-matched-template/reference/aircraft-template.png)、[ROI与特征格](../runs/approach/20261113-aircraft-a-front-matched-template/reference-feature-grid.png)、[汇总](../runs/approach/20261113-aircraft-a-front-matched-template/summary.json)、[轨迹图](../runs/approach/20261113-aircraft-a-front-matched-template/summary.png)、[垂尾预检](../runs/approach/20261113-aircraft-a-front-matched-template/tail/matching-preflight.json)、[数值回归](../runs/approach/20261113-aircraft-a-front-matched-template/baseline-regression.json)、[测试日志](../runs/approach/20261113-aircraft-a-front-matched-template/tests.log)。
 
 **C 窄ROI原型与局部配准**。离线比较了五种原型方法，用6张同场景图。其中“补一格”只有在额外加0.02框容差时才全部通过，但这个容差约19像素，远大于约6像素的垂尾宽度，而且没有一张图的粗DINO中心落在原始框内，因此不采用。最终方案是：以DINO候选为中心，在1.5格半径内做原图相关配准。6张图的精修点都落在原始框内；擦除目标的合成图全部被拒绝；8项缩放与旋转变换中7项通过（+5°因峰差0.146被拒）。阈值（相关分数0.85、峰差0.15）是用这批开发图选的，未独立校准。实现为显式选项`--thin-roi-refinement`，只作用于中心选格为空的部位；50项测试通过，不启用时回归差为0。
 
@@ -224,7 +224,7 @@ RGB与深度最大时差为84—110毫秒，39项测试通过。离线复核命�
 
 **终点核验（冷启动失败）**：重新初始化匹配器时，粗DINO候选落在垂尾下方，配准分数0.796，低于0.85，被拒绝。用第192步的配准状态继续跟踪（`--offline --continue-tracking`）时，分数0.869，射线命中所选垂尾。延续跟踪通过不能代替冷启动重新截获。
 
-见[原型比较](../runs/approach/20261113-f14-tail-roi-study/pooling-comparison.json)、[配准初验](../runs/approach/20261113-f14-tail-roi-study/refinement-verification.json)、[精修示意](../runs/approach/20261113-f14-tail-roi-study/proposal.png)、[汇总](../runs/approach/20261113-f14-tail-local-refinement/summary.json)、[轨迹图](../runs/approach/20261113-f14-tail-local-refinement/summary.png)、[控制报告](../runs/approach/20261113-f14-tail-local-refinement/tail/report.json)、[配准诊断](../runs/approach/20261113-f14-tail-local-refinement/tail/control-signals.json)、[延续跟踪核验](../runs/approach/20261113-f14-tail-local-refinement/tail/evaluation/part-surface-validation.json)、[冷启动失败](../runs/approach/20261113-f14-tail-local-refinement/tail/evaluation/cold-start-validation.json)、[冷启动日志](../runs/approach/20261113-f14-tail-local-refinement/tail/evaluation-cold-start.log)、[协议检查](../runs/approach/20261113-f14-tail-local-refinement/protocol-check.json)、[测试日志](../runs/approach/20261113-f14-tail-local-refinement/tests.log)。
+见[原型比较](../runs/approach/20261113-aircraft-a-tail-roi-study/pooling-comparison.json)、[配准初验](../runs/approach/20261113-aircraft-a-tail-roi-study/refinement-verification.json)、[精修示意](../runs/approach/20261113-aircraft-a-tail-roi-study/proposal.png)、[汇总](../runs/approach/20261113-aircraft-a-tail-local-refinement/summary.json)、[轨迹图](../runs/approach/20261113-aircraft-a-tail-local-refinement/summary.png)、[控制报告](../runs/approach/20261113-aircraft-a-tail-local-refinement/tail/report.json)、[配准诊断](../runs/approach/20261113-aircraft-a-tail-local-refinement/tail/control-signals.json)、[延续跟踪核验](../runs/approach/20261113-aircraft-a-tail-local-refinement/tail/evaluation/part-surface-validation.json)、[冷启动失败](../runs/approach/20261113-aircraft-a-tail-local-refinement/tail/evaluation/cold-start-validation.json)、[冷启动日志](../runs/approach/20261113-aircraft-a-tail-local-refinement/tail/evaluation-cold-start.log)、[协议检查](../runs/approach/20261113-aircraft-a-tail-local-refinement/protocol-check.json)、[测试日志](../runs/approach/20261113-aircraft-a-tail-local-refinement/tests.log)。
 
 **三项结论**：在正前上方起点，机头和主翼在跨视角和同视角模板下都完成了抵近。垂尾先因跨视角落点错误被拒，再因特征格为空被拒，最后通过局部配准完成了一次连续抵近，但近景冷启动重新截获没有通过。未测试的项：更高的特征分辨率、主动调整视角、低空平视正面、其他飞机。
 
@@ -258,13 +258,13 @@ RGB与深度最大时差为84—110毫秒，39项测试通过。离线复核命�
 
 **结论与下一步**：形成了可复现的失败归因，以及不依赖历史位置的条件扩展候选方案。下一步应冻结该方案与阈值，补采不同起点和观察方向的原生RGB-D，加入相似部位与真实遮挡负例，先做独立冷启动评价，再决定是否接入在线重新截获。
 
-见[评价入口](../src/evaluation/eval_part_reacquisition.py)、[复现命令](../docs/USAGE.md#部位冷启动离线对照)、[报告与距离分组](../runs/approach/20261113-f14-tail-reacquisition/report.json)、[逐项数值](../runs/approach/20261113-f14-tail-reacquisition/records.json)、[汇总表](../runs/approach/20261113-f14-tail-reacquisition/summary.csv)、[落点对照图](../runs/approach/20261113-f14-tail-reacquisition/comparison.png)、[合成擦除示例](../runs/approach/20261113-f14-tail-reacquisition/negative-examples.png)、[首轮筛选](../runs/approach/20261113-f14-tail-reacquisition/screening.json)、[首轮日志](../runs/approach/20261113-f14-tail-reacquisition/screening.log)、[完整评价日志](../runs/approach/20261113-f14-tail-reacquisition/evaluation.log)、[数值与重复核验](../runs/approach/20261113-f14-tail-reacquisition/validation.json)、[测试日志](../runs/approach/20261113-f14-tail-reacquisition/tests.log)。
+见[评价入口](../src/evaluation/eval_part_reacquisition.py)、[复现命令](../docs/USAGE.md#部位冷启动离线对照)、[报告与距离分组](../runs/approach/20261113-aircraft-a-tail-reacquisition/report.json)、[逐项数值](../runs/approach/20261113-aircraft-a-tail-reacquisition/records.json)、[汇总表](../runs/approach/20261113-aircraft-a-tail-reacquisition/summary.csv)、[落点对照图](../runs/approach/20261113-aircraft-a-tail-reacquisition/comparison.png)、[合成擦除示例](../runs/approach/20261113-aircraft-a-tail-reacquisition/negative-examples.png)、[首轮筛选](../runs/approach/20261113-aircraft-a-tail-reacquisition/screening.json)、[首轮日志](../runs/approach/20261113-aircraft-a-tail-reacquisition/screening.log)、[完整评价日志](../runs/approach/20261113-aircraft-a-tail-reacquisition/evaluation.log)、[数值与重复核验](../runs/approach/20261113-aircraft-a-tail-reacquisition/validation.json)、[测试日志](../runs/approach/20261113-aircraft-a-tail-reacquisition/tests.log)。
 
 ### 2026-11-13：垂尾重新截获的独立视角验证
 
 **目的**：在不参与阈值调整的新起点和新观察方向上评价三种冻结方法，检验上一轮"条件扩展恢复5张失败图"能否在独立视角上复现。
 
-**环境与参数**：同上一轮的UE机场F-14（`StaticMeshActor_7888`）与WSL `airsim`环境。采集18个条件×3帧共54帧：水平距离45/30/18米、侧向角−12/0/+12°、航向偏移−8/+8°，相机下俯35°、速度2 m/s。评价离线：Python 3.10.20、PyTorch 2.6.0+cu124、OpenCV 4.13.0、RTX 4060 Ti，CUDA。冻结阈值分数0.85、峰差0.15、扩展半径3倍，方法`cold`、`radius_3x`、`cold_then_radius_3x`。采集前把源文件SHA-256、源运行与参考资产写进`protocol.json`，评价入口逐项校验采集完成、协议哈希和冻结源，任一不符即中止。
+**环境与参数**：同上一轮的UE机场飞机A（`StaticMeshActor_7888`）与WSL `airsim`环境。采集18个条件×3帧共54帧：水平距离45/30/18米、侧向角−12/0/+12°、航向偏移−8/+8°，相机下俯35°、速度2 m/s。评价离线：Python 3.10.20、PyTorch 2.6.0+cu124、OpenCV 4.13.0、RTX 4060 Ti，CUDA。冻结阈值分数0.85、峰差0.15、扩展半径3倍，方法`cold`、`radius_3x`、`cold_then_radius_3x`。采集前把源文件SHA-256、源运行与参考资产写进`protocol.json`，评价入口逐项校验采集完成、协议哈希和冻结源，任一不符即中止。
 
 **方法**：每帧清空匹配器状态，从DINO整机候选冷启动；扩展方法只在冷启动拒绝后按3倍半径重搜。每帧另用投影框填中值生成一张合成负例。坐标仅用于采集和事后射线核验，不提供搜索中心或尺度。
 
@@ -284,13 +284,13 @@ RGB与深度最大时差为84—110毫秒，39项测试通过。离线复核命�
 
 **结论与下一步**：冻结方法在新视角上精度可用（0误接受、7/7命中）但召回低（最好7/54），条件扩展不是有效修复。下一步先定位近距（<20米）下整机候选与模板尺度失配，补真实遮挡与相似部位负例；召回提升前不接入在线重新截获。
 
-见[采集协议](../data/captures/f14_tail/20261113-independent-views/protocol.json)、[采集报告](../data/captures/f14_tail/20261113-independent-views/report.json)、[采集日志](../runs/approach/20261113-f14-tail-independent-validation/capture.log)、[评价入口](../src/evaluation/eval_part_reacquisition.py)、[采集入口](../src/capture/collect_part_views.py)、[采集配置](../configs/missions/f14_tail_reacquisition_validation.json)、[复现命令](../docs/USAGE.md#固定方案的新视角采集)、[评价报告](../runs/approach/20261113-f14-tail-independent-validation/report.json)、[逐项数值](../runs/approach/20261113-f14-tail-independent-validation/records.json)、[汇总表](../runs/approach/20261113-f14-tail-independent-validation/summary.csv)、[距离分组对照图](../runs/approach/20261113-f14-tail-independent-validation/comparison.png)、[视角总览](../runs/approach/20261113-f14-tail-independent-validation/view-overview.png)、[合成擦除示例](../runs/approach/20261113-f14-tail-independent-validation/negative-examples.png)、[测试日志](../runs/approach/20261113-f14-tail-independent-validation/tests.log)。
+见[采集协议](../data/captures/aircraft_a_tail/20261113-independent-views/protocol.json)、[采集报告](../data/captures/aircraft_a_tail/20261113-independent-views/report.json)、[采集日志](../runs/approach/20261113-aircraft-a-tail-independent-validation/capture.log)、[评价入口](../src/evaluation/eval_part_reacquisition.py)、[采集入口](../src/capture/collect_part_views.py)、[采集配置](../configs/missions/aircraft_a_tail_reacquisition_validation.json)、[复现命令](../docs/USAGE.md#固定方案的新视角采集)、[评价报告](../runs/approach/20261113-aircraft-a-tail-independent-validation/report.json)、[逐项数值](../runs/approach/20261113-aircraft-a-tail-independent-validation/records.json)、[汇总表](../runs/approach/20261113-aircraft-a-tail-independent-validation/summary.csv)、[距离分组对照图](../runs/approach/20261113-aircraft-a-tail-independent-validation/comparison.png)、[视角总览](../runs/approach/20261113-aircraft-a-tail-independent-validation/view-overview.png)、[合成擦除示例](../runs/approach/20261113-aircraft-a-tail-independent-validation/negative-examples.png)、[测试日志](../runs/approach/20261113-aircraft-a-tail-independent-validation/tests.log)。
 
 ### 2026-11-14：冻结匹配器特征上的学习型接受层
 
 **目的**：冻结匹配器的召回瓶颈在固定接受阈值（分数0.85、峰差0.15），大量配准点其实落在部位内却被拒。用同一批冻结特征训练接受层，检验在保持高精度的前提下能否把召回从约7%提升上去。
 
-**环境与参数**：UE机场F-14（`StaticMeshActor_7888`）、WSL `airsim`环境采集；特征提取与训练在服务器（RTX PRO 6000 Blackwell 96 GB、PyTorch 2.11.0+cu128、scikit-learn 1.7.2）。采集5000个位姿：水平距离70%取12–60米、30%取60–150米，侧向角±40°、航向偏移±20°、固定−35°相机，每帧保存原生RGB、深度与机头/主翼/垂尾/整机掩码。匹配器与上一轮冻结版本一致（DINOv2 ViT-S/14、448输入、瘦ROI原型、局部NCC细化，阈值分数0.85/峰差0.15）。
+**环境与参数**：UE机场飞机A（`StaticMeshActor_7888`）、WSL `airsim`环境采集；特征提取与训练在服务器（RTX PRO 6000 Blackwell 96 GB、PyTorch 2.11.0+cu128、scikit-learn 1.7.2）。采集5000个位姿：水平距离70%取12–60米、30%取60–150米，侧向角±40°、航向偏移±20°、固定−35°相机，每帧保存原生RGB、深度与机头/主翼/垂尾/整机掩码。匹配器与上一轮冻结版本一致（DINOv2 ViT-S/14、448输入、瘦ROI原型、局部NCC细化，阈值分数0.85/峰差0.15）。
 
 **采集核验与预热**：场景加载后相机自动曝光从纯白逐帧收敛，前19帧全白（`std`<5）、第20–29帧均值248→179，第30帧起稳定在164–185。提取时跳过前30帧，其余4970帧全部可用；`report.json`状态`completed`，位置最大偏差与RGB-深度时差均满足采集协议。掩码由目标网格按相机元数据射线投射，抽查近距（19米）与远距（134米）帧均与机体对齐。
 
@@ -310,7 +310,7 @@ RGB与深度最大时差为84—110毫秒，39项测试通过。离线复核命�
 
 **结论与下一步**：学习型接受层把95%精度下的召回从7.1%提到57.7%，说明固定阈值损失了大量正确配准，路径1成立。下一步实现路径2（可学习的局部匹配器），在同一批帧上比较端到端局部定位精度；接受层暂不接入在线链路。
 
-见[特征提取入口](../src/training/extract_part_features.py)、[训练入口](../src/training/train_acceptance.py)、[采集报告](../data/captures/f14_tail/20261114-training-views/report.json)、[特征与标签](../runs/training/f14_tail_acceptance/patches-all/features.jsonl)。 本节对照实验的权重和逐帧数据已于2026-11-16清理，汇总结果保留在本节。
+见[特征提取入口](../src/training/extract_part_features.py)、[训练入口](../src/training/train_acceptance.py)、[采集报告](../data/captures/aircraft_a_tail/20261114-training-views/report.json)、[特征与标签](../runs/training/aircraft_a_tail_acceptance/patches-all/features.jsonl)。 本节对照实验的权重和逐帧数据已于2026-11-16清理，汇总结果保留在本节。
 
 ### 2026-11-14：学习型局部匹配器（路径2）
 
@@ -335,7 +335,7 @@ RGB与深度最大时差为84—110毫秒，39项测试通过。离线复核命�
 
 **结论与下一步**：学习型局部匹配器把3像素内定位从38.6%提到88.2%；在95%精度约束下，可信且正确的帧覆盖率从23.4%提到42.4%，90%精度下可达93.4%。路径2优于路径1，且合并两者的接受层是最佳配置。下一步把该局部匹配器与接受层接入离线重新截获评价，在独立视角上复核。
 
-见[裁剪块与特征导出](../src/training/extract_part_features.py)、[局部匹配器训练](../src/training/train_local_matcher.py)、[接受层训练](../src/training/train_acceptance.py)、[裁剪块数据](../runs/training/f14_tail_acceptance/patches-all/features.jsonl)。 本节对照实验的权重和逐帧数据已于2026-11-16清理，汇总结果保留在本节。
+见[裁剪块与特征导出](../src/training/extract_part_features.py)、[局部匹配器训练](../src/training/train_local_matcher.py)、[接受层训练](../src/training/train_acceptance.py)、[裁剪块数据](../runs/training/aircraft_a_tail_acceptance/patches-all/features.jsonl)。 本节对照实验的权重和逐帧数据已于2026-11-16清理，汇总结果保留在本节。
 
 ### 2026-11-14：局部匹配器的数据量学习曲线
 
@@ -388,21 +388,21 @@ RGB与深度最大时差为84—110毫秒，39项测试通过。离线复核命�
 
 **结论与下一步**：部位标签错误已修正，此前的多部位机头结果无效；共享模型可行，垂尾与单部位持平，机头明显更难。下一步先定义面积归一化的部位定位指标，再沿用组合接受层（NCC特征+热图统计量）重做可信工作点。
 
-见[掩码重渲染入口](../src/capture/rerender_part_masks.py)、[部位配置](../configs/scenes/airport_f14.json)、[三分支指标](../runs/training/f14_tail_acceptance/local-matcher-allparts-fixed/metrics.json)、[逐帧OOF](../runs/training/f14_tail_acceptance/local-matcher-allparts-fixed/oof.jsonl)、[训练日志](../runs/training/f14_tail_acceptance/local-matcher-allparts-fixed/train.log)。
+见[掩码重渲染入口](../src/capture/rerender_part_masks.py)、[部位配置](../configs/scenes/airport_aircraft_a.json)、[三分支指标](../runs/training/aircraft_a_tail_acceptance/local-matcher-allparts-fixed/metrics.json)、[逐帧OOF](../runs/training/aircraft_a_tail_acceptance/local-matcher-allparts-fixed/oof.jsonl)、[训练日志](../runs/training/aircraft_a_tail_acceptance/local-matcher-allparts-fixed/train.log)。
 
-## F-35部位数据与三分支训练（StaticMeshActor_7890）
+## 飞机B部位数据与三分支训练（StaticMeshActor_7890）
 
-### 2026-11-15：F-35采集与共享匹配器
+### 2026-11-15：飞机B采集与共享匹配器
 
-**目的**：在第二架飞机上复现部位定义、准备、采集和三分支共享训练链路，判断前一轮方法是否依赖F-14的具体外形，并为跨模板泛化提供第二份数据。
+**目的**：在第二架飞机上复现部位定义、准备、采集和三分支共享训练链路，判断前一轮方法是否依赖飞机A的具体外形，并为跨模板泛化提供第二份数据。
 
-**环境与参数**：UE机场F-35（`StaticMeshActor_7890`），采集在WSL `airsim`环境，训练在服务器（RTX PRO 6000、PyTorch 2.11.0+cu128）。部位区域按网格分析写入`configs/scenes/airport.json`：机头前向10.0—13.9米、横向±2.5米、高度1.0—4.6米、半径3.5米；主翼横向3.5—7.4米、前向−6.2—2.0米、高度2.2—3.1米、半径30米；垂尾横向2.0—3.6米、前向−8.4—−3.4米、高度4.0—6.3米、半径30米。共同参考点取机头（`prepare_scene.py --common-start`），任务为`f35_approach.json`（斜俯视35度、起点距参考点60米）。采集方案`f35_training_views.json`：5000个位姿，70%取12—60米、30%取60—150米，侧向角±40度、航向±20度、固定−35度相机、掩码步长2。
+**环境与参数**：UE机场飞机B（`StaticMeshActor_7890`），采集在WSL `airsim`环境，训练在服务器（RTX PRO 6000、PyTorch 2.11.0+cu128）。部位区域按网格分析写入`configs/scenes/airport.json`：机头前向10.0—13.9米、横向±2.5米、高度1.0—4.6米、半径3.5米；主翼横向3.5—7.4米、前向−6.2—2.0米、高度2.2—3.1米、半径30米；垂尾横向2.0—3.6米、前向−8.4—−3.4米、高度4.0—6.3米、半径30米。共同参考点取机头（`prepare_scene.py --common-start`），任务为`aircraft_b_approach.json`（斜俯视35度、起点距参考点60米）。采集方案`aircraft_b_training_views.json`：5000个位姿，70%取12—60米、30%取60—150米，侧向角±40度、航向±20度、固定−35度相机、掩码步长2。
 
 **参考过曝与修正**：首次准备的参考图平均亮度242.4，来自场景加载后自动曝光尚未收敛。`prepare_scene.py`加入与采集器相同的等待判据（连续3帧均值<220且标准差>5，上限120秒）后重做准备，参考图均值169.7、标准差36.0；首次目录未用于后续步骤。
 
 **采集核验**：5000帧、18 GB。预热34帧后收敛，帧亮度119.9—220.1，无全白或过暗帧被跳过；机头、主翼、垂尾掩码非空的帧分别为4991、4678、4454。`report.json`状态`completed`，参考图的三个部位ROI叠加检查通过。
 
-**方法**：网络、损失、优化器和分组与F-14三分支相同。整机DINO粗候选外扩25%取搜索块，缩放到256×256；目标为各部位网格掩码在64×64上的面积下采样、高斯平滑并归一化；4级卷积热图网络，空间softmax负对数似然，Adam 1e-3、30轮、批32，水平翻转与亮度抖动；按（15度侧向扇区×距离分层）5折分组；峰值映射回原图后到部位掩码的有符号距离≤3像素记为正确。
+**方法**：网络、损失、优化器和分组与飞机A三分支相同。整机DINO粗候选外扩25%取搜索块，缩放到256×256；目标为各部位网格掩码在64×64上的面积下采样、高斯平滑并归一化；4级卷积热图网络，空间softmax负对数似然，Adam 1e-3、30轮、批32，水平翻转与亮度抖动；按（15度侧向扇区×距离分层）5折分组；峰值映射回原图后到部位掩码的有符号距离≤3像素记为正确。
 
 **冻结匹配器特征缺失**：特征提取摘要显示5000帧全部`no_candidate`。本次参考图以机头为中心，三个部位ROI都覆盖整机裁剪中心，`thin_roi_refinement`没有产生局部参考点，冻结匹配器未给出候选，也没有NCC细化特征。因此这批数据只能训练局部匹配器（路径2），路径1的接受层没有可用的特征。
 
@@ -422,71 +422,71 @@ RGB与深度最大时差为84—110毫秒，39项测试通过。离线复核命�
 | 主翼 | 97.3% | 96.0% | 93.1% | 91.6% |
 | 垂尾 | 85.6% | 75.6% | 81.0% | 76.4% |
 
-**与F-14对比**：F-14同口径为机头74.3%、主翼98.7%、垂尾86.5%。机头差距不能归因于机型：F-35的参考点就是机头，搜索块以机头为中心，且机头掩码是3.9米长的锥体，中位−12.8像素说明预测落在机头内部；F-14机头在3968帧参与评价且远离参考点。主翼两机都在95%以上，p90仍在掩码内3像素以上，属于大掩码下3像素容差的宽容度问题。垂尾是唯一可直接比较的小掩码部位：F-35 79.2%低于F-14 86.5%，p90为+6.1像素，是真实的几像素级偏移；30—60米档75.6%为最低点，与F-14同距离档84.8%的下降趋势一致。95%精度下机头、主翼召回100%仍是基率高于95%的假象，垂尾0.4%说明网络内部置信度不可用作接受判据，与F-14结论一致。
+**与飞机A对比**：飞机A同口径为机头74.3%、主翼98.7%、垂尾86.5%。机头差距不能归因于机型：飞机B的参考点就是机头，搜索块以机头为中心，且机头掩码是3.9米长的锥体，中位−12.8像素说明预测落在机头内部；飞机A机头在3968帧参与评价且远离参考点。主翼两机都在95%以上，p90仍在掩码内3像素以上，属于大掩码下3像素容差的宽容度问题。垂尾是唯一可直接比较的小掩码部位：飞机B 79.2%低于飞机A 86.5%，p90为+6.1像素，是真实的几像素级偏移；30—60米档75.6%为最低点，与飞机A同距离档84.8%的下降趋势一致。95%精度下机头、主翼召回100%仍是基率高于95%的假象，垂尾0.4%说明网络内部置信度不可用作接受判据，与飞机A结论一致。
 
-**失败与限制**：只有一架F-35、一个场景、一个模板，且只有路径2指标，接受层无法与F-14对齐评价。3像素容差在大掩码上不等价，跨部位、跨机型比较仍需面积归一化指标（上一节已提出，尚未实现）。采集为一次连续瞬移采样，没有独立飞行或新视角复核；除参考ROI外没有逐帧人工检查掩码。两机的差异同时混有外形、参考点位置和采集中心的区别，不能单独归因于机型。
+**失败与限制**：只有一架飞机B、一个场景、一个模板，且只有路径2指标，接受层无法与飞机A对齐评价。3像素容差在大掩码上不等价，跨部位、跨机型比较仍需面积归一化指标（上一节已提出，尚未实现）。采集为一次连续瞬移采样，没有独立飞行或新视角复核；除参考ROI外没有逐帧人工检查掩码。两机的差异同时混有外形、参考点位置和采集中心的区别，不能单独归因于机型。
 
-**结论与下一步**：部位定义、准备、采集和训练链路在第二架飞机上直接复用，不需要改训练代码；垂尾是最能暴露误差的部位，F-35上为79.2%。下一步做跨模板评价：用F-14训练的模型直接推理F-35搜索块，再与各自训练的模型比较，检验共享模型能否跨机型使用。
+**结论与下一步**：部位定义、准备、采集和训练链路在第二架飞机上直接复用，不需要改训练代码；垂尾是最能暴露误差的部位，飞机B上为79.2%。下一步做跨模板评价：用飞机A训练的模型直接推理飞机B搜索块，再与各自训练的模型比较，检验共享模型能否跨机型使用。
 
-见[F-35部位配置](../configs/scenes/airport.json)、[准备任务](../configs/missions/f35_approach.json)、[采集方案](../configs/missions/f35_training_views.json)、[准备入口](../src/capture/prepare_scene.py)、[采集报告](../data/captures/f35/20261115-training-views/report.json)、[参考目录](../runs/approach/20261115-f35-training-v2/nose/)、[特征提取摘要](../runs/training/f35/patches-all/features.jsonl)、[训练指标](../runs/training/f35/local-matcher/metrics.json)、[逐帧OOF](../runs/training/f35/local-matcher/oof.jsonl)、[训练日志](../runs/training/f35/local-matcher/train.log)。
+见[飞机B部位配置](../configs/scenes/airport.json)、[准备任务](../configs/missions/aircraft_b_approach.json)、[采集方案](../configs/missions/aircraft_b_training_views.json)、[准备入口](../src/capture/prepare_scene.py)、[采集报告](../data/captures/aircraft_b/20261115-training-views/report.json)、[参考目录](../runs/approach/20261115-aircraft-b-training-v2/nose/)、[特征提取摘要](../runs/training/aircraft_b/patches-all/features.jsonl)、[训练指标](../runs/training/aircraft_b/local-matcher/metrics.json)、[逐帧OOF](../runs/training/aircraft_b/local-matcher/oof.jsonl)、[训练日志](../runs/training/aircraft_b/local-matcher/train.log)。
 
 ## 2026-11-16：跨机型权重迁移与面积归一化指标
 
-**目的**：检验F-14三分支局部匹配器不做微调、直接推理F-35数据时的定位能力，并把3像素指标与面积归一化指标并列，确定阶段3模板条件化模型要超过的基线。
+**目的**：检验飞机A三分支局部匹配器不做微调、直接推理飞机B数据时的定位能力，并把3像素指标与面积归一化指标并列，确定阶段3模板条件化模型要超过的基线。
 
-**环境与输入**：本地WSL，RTX 4060 Ti 8 GB，Python来自conda `airsim`（PyTorch 2.6.0+cu124、OpenCV 4.13.0）；全程离线，未连接UE或发送飞行指令。F-14使用`patches-all`（4970帧）与三分支5折权重，F-35使用`patches-all`（4991帧）与三分支5折权重。评价入口[src/evaluation/eval_cross_template.py](../src/evaluation/eval_cross_template.py)按训练相同的（15度侧向扇区×距离档）分组重建5折。
+**环境与输入**：本地WSL，RTX 4060 Ti 8 GB，Python来自conda `airsim`（PyTorch 2.6.0+cu124、OpenCV 4.13.0）；全程离线，未连接UE或发送飞行指令。飞机A使用`patches-all`（4970帧）与三分支5折权重，飞机B使用`patches-all`（4991帧）与三分支5折权重。评价入口[src/evaluation/eval_cross_template.py](../src/evaluation/eval_cross_template.py)按训练相同的（15度侧向扇区×距离档）分组重建5折。
 
-**方法**：`--mode self`只用各折留出帧，复现训练时的OOF；`--mode transfer`用F-14全部5折模型推理F-35全部帧，报5个模型均值±标准差。标签与训练一致，为峰值到全分辨率部位掩码的有符号距离，过滤搜索块内该部位像素少于20的样本。指标包括3像素正确率、峰值落在掩码内的比例、面积归一化距离（除以掩码等效半径）不超过1个半径的比例。
+**方法**：`--mode self`只用各折留出帧，复现训练时的OOF；`--mode transfer`用飞机A全部5折模型推理飞机B全部帧，报5个模型均值±标准差。标签与训练一致，为峰值到全分辨率部位掩码的有符号距离，过滤搜索块内该部位像素少于20的样本。指标包括3像素正确率、峰值落在掩码内的比例、面积归一化距离（除以掩码等效半径）不超过1个半径的比例。
 
 | 评估 | 机头3px | 主翼3px | 垂尾3px | 机头掩码内 | 主翼掩码内 | 垂尾掩码内 |
 |---|---:|---:|---:|---:|---:|---:|
-| F-14自评 | 74.4% | 98.7% | 86.5% | 35.9% | 97.2% | 65.0% |
-| F-14→F-35迁移 | 46.9%±9.3 | 52.2%±12.5 | 9.4%±4.2 | 33.4% | 46.7% | 3.6% |
-| F-35自评 | 95.7% | 95.4% | 79.2% | 94.2% | 93.9% | 59.0% |
+| 飞机A自评 | 74.4% | 98.7% | 86.5% | 35.9% | 97.2% | 65.0% |
+| 飞机A→飞机B迁移 | 46.9%±9.3 | 52.2%±12.5 | 9.4%±4.2 | 33.4% | 46.7% | 3.6% |
+| 飞机B自评 | 95.7% | 95.4% | 79.2% | 94.2% | 93.9% | 59.0% |
 
-面积归一化距离不超过1个等效半径的比例：F-14自评为90.8%、99.8%、95.9%（机头、主翼、垂尾），迁移为80.5%、80.8%、28.4%，F-35自评为97.8%、98.0%、92.2%。
+面积归一化距离不超过1个等效半径的比例：飞机A自评为90.8%、99.8%、95.9%（机头、主翼、垂尾），迁移为80.5%、80.8%、28.4%，飞机B自评为97.8%、98.0%、92.2%。
 
-**复现**：两轮自评的pooled结果与[F-14三分支指标](../runs/training/f14_tail_acceptance/local-matcher-allparts-fixed/metrics.json)和[F-35三分支指标](../runs/training/f35/local-matcher/metrics.json)逐项一致（F-14为0.7437/0.9873/0.8647，F-35为0.9573/0.9538/0.7924），确认权重与patches管线正确。
+**复现**：两轮自评的pooled结果与[飞机A三分支指标](../runs/training/aircraft_a_tail_acceptance/local-matcher-allparts-fixed/metrics.json)和[飞机B三分支指标](../runs/training/aircraft_b/local-matcher/metrics.json)逐项一致（飞机A为0.7437/0.9873/0.8647，飞机B为0.9573/0.9538/0.7924），确认权重与patches管线正确。
 
-**迁移的分组表现**：F-14→F-35的主翼随距离快速下降，12—30米93.3%、30—60米42.9%、60—100米26.1%、100—150米22.7%，近距高值由大掩码基率造成；垂尾各档为8.9%、8.3%、12.4%、12.3%，没有可用档位；机头各档为46.3%、46.8%、44.6%、50.7%。5折波动较大，主翼35.6%—73.7%，机头37.5%—62.0%。
+**迁移的分组表现**：飞机A→飞机B的主翼随距离快速下降，12—30米93.3%、30—60米42.9%、60—100米26.1%、100—150米22.7%，近距高值由大掩码基率造成；垂尾各档为8.9%、8.3%、12.4%、12.3%，没有可用档位；机头各档为46.3%、46.8%、44.6%、50.7%。5折波动较大，主翼35.6%—73.7%，机头37.5%—62.0%。
 
-**结论**：固定通道的局部匹配器不能跨机型使用。垂尾只剩9.4%，是小掩码部位最干净的失败证据；机头、主翼的约一半不能当作可用，主翼近距结果被掩码面积抬高。迁移时同时改变飞机外观、部位边界定义和搜索块中心（F-35以机头为参考中心），掉分不能单独归因于外观。面积归一化结果表明3像素正确里很大一部分只是落在掩码边界附近：F-14机头3像素正确74.4%，但落在掩码内只有35.9%。
+**结论**：固定通道的局部匹配器不能跨机型使用。垂尾只剩9.4%，是小掩码部位最干净的失败证据；机头、主翼的约一半不能当作可用，主翼近距结果被掩码面积抬高。迁移时同时改变飞机外观、部位边界定义和搜索块中心（飞机B以机头为参考中心），掉分不能单独归因于外观。面积归一化结果表明3像素正确里很大一部分只是落在掩码边界附近：飞机A机头3像素正确74.4%，但落在掩码内只有35.9%。
 
-**限制**：每类只有一架飞机、一个场景、固定−35度相机；F-35数据来自一次连续瞬移采集，没有独立飞行或新视角复核；迁移结果只覆盖定位，没有接受层，因为F-35的冻结匹配器5000帧全部`no_candidate`。迁移模式的pooled统计每个样本有5个折模型预测，不能当作独立样本，结论以每折均值±标准差为准。
+**限制**：每类只有一架飞机、一个场景、固定−35度相机；飞机B数据来自一次连续瞬移采集，没有独立飞行或新视角复核；迁移结果只覆盖定位，没有接受层，因为飞机B的冻结匹配器5000帧全部`no_candidate`。迁移模式的pooled统计每个样本有5个折模型预测，不能当作独立样本，结论以每折均值±标准差为准。
 
-见[评价入口](../src/evaluation/eval_cross_template.py)、[F-14自评指标](../runs/evaluation/20261116-f14-self-allparts/metrics.json)、[F-14自评逐帧](../runs/evaluation/20261116-f14-self-allparts/oof.jsonl)、[迁移指标](../runs/evaluation/20261116-f14-to-f35-transfer/metrics.json)、[迁移逐帧](../runs/evaluation/20261116-f14-to-f35-transfer/oof.jsonl)、[F-35自评指标](../runs/evaluation/20261116-f35-self-allparts/metrics.json)、[F-14自评日志](../runs/evaluation/20261116-f14-self-allparts/run.log)、[迁移日志](../runs/evaluation/20261116-f14-to-f35-transfer/run.log)、[F-35自评日志](../runs/evaluation/20261116-f35-self-allparts/run.log)。
+见[评价入口](../src/evaluation/eval_cross_template.py)、[飞机A自评指标](../runs/evaluation/20261116-aircraft-a-self-allparts/metrics.json)、[飞机A自评逐帧](../runs/evaluation/20261116-aircraft-a-self-allparts/oof.jsonl)、[迁移指标](../runs/evaluation/20261116-aircraft-a-to-aircraft-b-transfer/metrics.json)、[迁移逐帧](../runs/evaluation/20261116-aircraft-a-to-aircraft-b-transfer/oof.jsonl)、[飞机B自评指标](../runs/evaluation/20261116-aircraft-b-self-allparts/metrics.json)、[飞机A自评日志](../runs/evaluation/20261116-aircraft-a-self-allparts/run.log)、[迁移日志](../runs/evaluation/20261116-aircraft-a-to-aircraft-b-transfer/run.log)、[飞机B自评日志](../runs/evaluation/20261116-aircraft-b-self-allparts/run.log)。
 
 ## 2026-11-16：俯视模板与斜视模板的离线跨视角基线
 
 **目的**：新主线要求用高空俯视图裁出的目标模板驱动抵近，因此先回答两个问题：整机俯视模板能否作为粗定位模板；它与传统斜视模板在相同指标下差多少。全程离线，不连接仿真。
 
-**环境与输入**：本地WSL，RTX 4060 Ti 8 GB，conda `airsim`（PyTorch 2.6.0+cu124、OpenCV 4.13.0）。F-35取`data/captures/f35/20261115-training-views`（4970帧，跳过前30帧曝光未收敛帧），F-14取`data/captures/f14_tail/20261114-training-views`（同样4970帧）。俯视模板由`src/evaluation/eval_nadir_template.py`按记录的相机位姿投影目标网格顶点、外扩1.15倍裁出（F-35 319×319，F-14 322×322）；斜视模板分别用`data/templates/airport_7890/oblique/aircraft-template.png`与`data/templates/airport_7888/tail/aircraft-template.png`。冻结DINOv2 ViT-S/14，输入448，32×32 patch。
+**环境与输入**：本地WSL，RTX 4060 Ti 8 GB，conda `airsim`（PyTorch 2.6.0+cu124、OpenCV 4.13.0）。飞机B取`data/captures/aircraft_b/20261115-training-views`（4970帧，跳过前30帧曝光未收敛帧），飞机A取`data/captures/aircraft_a_tail/20261114-training-views`（同样4970帧）。俯视模板由`src/evaluation/eval_nadir_template.py`按记录的相机位姿投影目标网格顶点、外扩1.15倍裁出（飞机B 319×319，飞机A 322×322）；斜视模板分别用`data/templates/airport_7890/oblique/aircraft-template.png`与`data/templates/airport_7888/tail/aircraft-template.png`。冻结DINOv2 ViT-S/14，输入448，32×32 patch。
 
 **方法**：模板编码后对全部patch取归一化均值得到整机原型。标准化统计量取被评采集自身等间隔32帧的DINO token均值与标准差，两个模板共用，以隔离视角因素；统计不使用任何标签。每帧计算响应图，峰值为最大响应patch的中心，质心为温度0.005的softmax加权中心；命中定义为落点位于整机掩码内。整机原型对朝向敏感，因此每个模板再取0/90/180/270度四个旋转，逐帧按峰分选最高者，记为`best_of_4`；该选择不使用真值。
 
 | 评估 | 模板 | 原方向峰命中 | 4方向峰命中 | 原方向质心命中 | 4方向质心命中 |
 |---|---|---:|---:|---:|---:|
-| F-35 | 俯视 | 59.3% | 57.7% | 78.7% | 77.2% |
-| F-35 | 斜视 | 45.5% | 46.3% | 62.0% | 62.2% |
-| F-14 | 俯视 | 26.1% | 48.9% | 55.9% | 65.7% |
-| F-14 | 斜视 | 56.7% | 54.3% | 69.4% | 69.6% |
+| 飞机B | 俯视 | 59.3% | 57.7% | 78.7% | 77.2% |
+| 飞机B | 斜视 | 45.5% | 46.3% | 62.0% | 62.2% |
+| 飞机A | 俯视 | 26.1% | 48.9% | 55.9% | 65.7% |
+| 飞机A | 斜视 | 56.7% | 54.3% | 69.4% | 69.6% |
 
-4方向峰命中按距离档（12–30 / 30–60 / 60–100 / 100–150米）：F-35俯视85.9 / 58.3 / 39.2 / 27.5%，F-35斜视64.3 / 50.8 / 30.5 / 19.7%，F-14俯视69.3 / 52.7 / 31.1 / 21.2%，F-14斜视69.0 / 62.2 / 36.8 / 23.9%。所选旋转：F-35俯视r0占84.8%，F-14俯视r0仅1.0%、r180占47.0%、r270占38.6%。
+4方向峰命中按距离档（12–30 / 30–60 / 60–100 / 100–150米）：飞机B俯视85.9 / 58.3 / 39.2 / 27.5%，飞机B斜视64.3 / 50.8 / 30.5 / 19.7%，飞机A俯视69.3 / 52.7 / 31.1 / 21.2%，飞机A斜视69.0 / 62.2 / 36.8 / 23.9%。所选旋转：飞机B俯视r0占84.8%，飞机A俯视r0仅1.0%、r180占47.0%、r270占38.6%。
 
-**复现**：200帧冒烟结果与逐帧诊断一致（F-14俯视best_of_4峰命中0.48、质心0.665），全量两套各4970帧。指标见[F-35结果](../runs/evaluation/20261116-nadir-template-f35/metrics.json)与[F-14结果](../runs/evaluation/20261116-nadir-template-f14/metrics.json)，逐帧记录为同目录`records.jsonl`，日志为`run.log`。
+**复现**：200帧冒烟结果与逐帧诊断一致（飞机A俯视best_of_4峰命中0.48、质心0.665），全量两套各4970帧。指标见[飞机B结果](../runs/evaluation/20261116-nadir-template-aircraft-b/metrics.json)与[飞机A结果](../runs/evaluation/20261116-nadir-template-aircraft-a/metrics.json)，逐帧记录为同目录`records.jsonl`，日志为`run.log`。
 
-**结论**：俯视模板可作为粗定位模板，不弱于斜视模板。F-35上俯视在峰命中、质心命中两项均高约11–17个百分点；F-14上经4方向搜索后俯视峰命中低约5个百分点、质心低约4个百分点，而斜视模板来自同一架飞机、同一接近方式，俯视模板没有这种视角便利。整机原型对朝向很敏感：F-14俯视不做旋转搜索时峰命中只有26.1%，搜索后升至48.9%，说明单朝向评价会误判模板可用性。峰值分数不能跨模板比较：F-35斜视峰分更高（0.507对0.423）但命中率更低。
+**结论**：俯视模板可作为粗定位模板，不弱于斜视模板。飞机B上俯视在峰命中、质心命中两项均高约11–17个百分点；飞机A上经4方向搜索后俯视峰命中低约5个百分点、质心低约4个百分点，而斜视模板来自同一架飞机、同一接近方式，俯视模板没有这种视角便利。整机原型对朝向很敏感：飞机A俯视不做旋转搜索时峰命中只有26.1%，搜索后升至48.9%，说明单朝向评价会误判模板可用性。峰值分数不能跨模板比较：飞机B斜视峰分更高（0.507对0.423）但命中率更低。
 
-**限制**：每类只有一架飞机、一个场景、一个模板，固定35度俯仰相机；指标只判断整机掩码命中，没有部位级定位和接受层。标准化统计来自被评采集本身，属离线可用、在线需改由抵近起始帧估计的做法。4方向搜索只覆盖90度倍数，其他朝向未验证。F-35采集首帧亮度220（曝光未收敛），已用跳过前30帧排除；稳定帧均值156，与F-14的163基本一致。
+**限制**：每类只有一架飞机、一个场景、一个模板，固定35度俯仰相机；指标只判断整机掩码命中，没有部位级定位和接受层。标准化统计来自被评采集本身，属离线可用、在线需改由抵近起始帧估计的做法。4方向搜索只覆盖90度倍数，其他朝向未验证。飞机B采集首帧亮度220（曝光未收敛），已用跳过前30帧排除；稳定帧均值156，与飞机A的163基本一致。
 
 **下一步**：模板条件化学习模型的最低基线是近距（12–30米）峰命中60–86%，并需在60–150米显著优于本基线的20–39%；同时验证单朝向模板不依赖人工选向。
 
-见[评价入口](../src/evaluation/eval_nadir_template.py)、[F-35俯视模板](../runs/evaluation/20261116-nadir-template-f35/template-nadir.png)、[F-14俯视模板](../runs/evaluation/20261116-nadir-template-f14/template-nadir.png)、[F-35日志](../runs/evaluation/20261116-nadir-template-f35/run.log)、[F-14日志](../runs/evaluation/20261116-nadir-template-f14/run.log)。
+见[评价入口](../src/evaluation/eval_nadir_template.py)、[飞机B俯视模板](../runs/evaluation/20261116-nadir-template-aircraft-b/template-nadir.png)、[飞机A俯视模板](../runs/evaluation/20261116-nadir-template-aircraft-a/template-nadir.png)、[飞机B日志](../runs/evaluation/20261116-nadir-template-aircraft-b/run.log)、[飞机A日志](../runs/evaluation/20261116-nadir-template-aircraft-a/run.log)。
 
 
-## 2026-11-16：F-14训练样本合并与重复输出清理
+## 2026-11-16：飞机A训练样本合并与重复输出清理
 
-**目的**：精简`runs/training/f14_tail_acceptance`的样本散文件和重复输出，保持样本、模型及实验结果一致。
+**目的**：精简`runs/training/aircraft_a_tail_acceptance`的样本散文件和重复输出，保持样本、模型及实验结果一致。
 
 **环境与方法**：本地WSL，conda `airsim`，Python 3.10.20、h5py 3.16.0、NumPy 2.2.6、OpenCV 4.13.0、PyTorch 2.6.0+cu124；预测检查使用CUDA，训练更新检查使用CPU。将4970张256×256 RGB图像和14910份64×64 float16标签合并到一个HDF5文件，RGB保存为无损PNG编码，标签用gzip压缩。逐项核对全部图像与标签的形状、类型和数值；核对两份特征表的共有字段、CSV内容及6份分数数组与对应JSONL的一致性，再删除原散文件和重复输出。
 
@@ -494,13 +494,13 @@ RGB与深度最大时差为84—110毫秒，39项测试通过。离线复核命�
 
 **结论与限制**：合并只改变存储和输出方式，没有重新训练或全量重跑评价，不据此报告精度提升。初次直接压缩RGB数组产生更大的HDF5，已改用无损PNG编码并重新全量校验；过程文件已清理。现有PNG/NPY目录仍可作为训练、评价和标签重建输入。后续特征导出只保存一份JSONL，接受层分数直接保存在逐帧JSONL中。
 
-见[样本数据](../runs/training/f14_tail_acceptance/patches-all/patches.h5)、[特征表](../runs/training/f14_tail_acceptance/patches-all/features.jsonl)、[使用命令](../docs/USAGE.md#训练样本与局部匹配器)。
+见[样本数据](../runs/training/aircraft_a_tail_acceptance/patches-all/patches.h5)、[特征表](../runs/training/aircraft_a_tail_acceptance/patches-all/features.jsonl)、[使用命令](../docs/USAGE.md#训练样本与局部匹配器)。
 
 样本合并校验摘要：4970张RGB与14910份标签逐值一致，特征共有字段、CSV和6份分数数组与JSONL一致；32帧×5折×3部位预测一致，种子7的两帧Adam更新后网络状态一致；真实单帧导出、2项回归测试和5个入口帮助检查通过。合并数据SHA256为`cd1368bf92edde853f80a522f4f4cfb871e897ee35586d69232fd9ea0a4f0a25`。独立存储校验文件的要点归入本节，不另保留过程文件。
 
-## 2026-11-16：F-14训练目录只保留样本与三部位模型
+## 2026-11-16：飞机A训练目录只保留样本与三部位模型
 
-**目的与范围**：按确认清单精简本地`runs/training/f14_tail_acceptance`，保留当前训练样本与三部位模型；不修改训练代码，不运行训练或评价。
+**目的与范围**：按确认清单精简本地`runs/training/aircraft_a_tail_acceptance`，保留当前训练样本与三部位模型；不修改训练代码，不运行训练或评价。
 
 **方法**：删除8个`lc-*`学习曲线目录、`acceptance-local`、`acceptance-tol3`、`local-matcher-v2`，以及已归纳到上一节的两个`storage-validation`文件。三部位训练日志移入模型目录，名称为`train.log`。实验汇总表保留，移除已删除数据的链接，方案中的现有权重清单同步移除单垂尾条目。
 
@@ -508,19 +508,19 @@ RGB与深度最大时差为84—110毫秒，39项测试通过。离线复核命�
 
 **结论与限制**：本地已删除对照实验的权重和逐帧数据，历史指标仍保存在本文对应小节；本次没有重训或复算指标。
 
-见[样本](../runs/training/f14_tail_acceptance/patches-all/patches.h5)、[三部位结果与权重](../runs/training/f14_tail_acceptance/local-matcher-allparts-fixed/)、[训练日志](../runs/training/f14_tail_acceptance/local-matcher-allparts-fixed/train.log)。
+见[样本](../runs/training/aircraft_a_tail_acceptance/patches-all/patches.h5)、[三部位结果与权重](../runs/training/aircraft_a_tail_acceptance/local-matcher-allparts-fixed/)、[训练日志](../runs/training/aircraft_a_tail_acceptance/local-matcher-allparts-fixed/train.log)。
 
-## 2026-11-16：F-35训练样本合并与目录精简
+## 2026-11-16：飞机B训练样本合并与目录精简
 
-**目的与环境**：精简本地`runs/training/f35`，沿用F-14的HDF5存储接口；WSL、conda `airsim`，NumPy 2.2.6、h5py 3.16.0、PyTorch 2.6.0+cu124。未修改训练代码，未重训或全量重跑评价。
+**目的与环境**：精简本地`runs/training/aircraft_b`，沿用飞机A的HDF5存储接口；WSL、conda `airsim`，NumPy 2.2.6、h5py 3.16.0、PyTorch 2.6.0+cu124。未修改训练代码，未重训或全量重跑评价。
 
-**方法**：把4991张PNG和14973份部位标签写入一个HDF5文件，图像保留PNG原始字节，float16标签使用gzip无损压缩。全量核对PNG字节以及图像、标签的类型、形状和数值；读取特征筛选后的样本顺序也保持一致。按特征行序等间隔选32帧，用F-35五折三部位模型在CUDA上比较两种存储的预测结果。全部通过后删除19964个样本散文件，将特征表移入样本目录、训练日志移入模型目录。
+**方法**：把4991张PNG和14973份部位标签写入一个HDF5文件，图像保留PNG原始字节，float16标签使用gzip无损压缩。全量核对PNG字节以及图像、标签的类型、形状和数值；读取特征筛选后的样本顺序也保持一致。按特征行序等间隔选32帧，用飞机B五折三部位模型在CUDA上比较两种存储的预测结果。全部通过后删除19964个样本散文件，将特征表移入样本目录、训练日志移入模型目录。
 
 **结果**：文件数19973→10，顶层只剩`patches-all`与`local-matcher`。文件分配空间约729.3→602.1 MiB，减少约127.2 MiB。全部样本逐值一致，32帧×5折×3部位预测完全一致；原有9个特征、权重、指标、逐帧预测及日志文件的SHA256保持不变。特征表完整保留5000行，其中9行原本没有裁剪框，不生成额外样本。数据文件SHA256：`e913a86e8b13be7235eabeb1f0604bf676c9b59aeab026ddb74fe4460d71c020`。
 
 **结论与限制**：仅改变存储与目录布局，未删模型或实验结果，未重新计算总体精度。校验要点直接记录在本节，不保留单独的过程脚本和校验输出文件。
 
-见[合并样本](../runs/training/f35/patches-all/patches.h5)、[完整特征表](../runs/training/f35/patches-all/features.jsonl)、[模型与指标](../runs/training/f35/local-matcher/)、[训练日志](../runs/training/f35/local-matcher/train.log)、[评价命令](../docs/USAGE.md#跨模板与跨机型评价)。
+见[合并样本](../runs/training/aircraft_b/patches-all/patches.h5)、[完整特征表](../runs/training/aircraft_b/patches-all/features.jsonl)、[模型与指标](../runs/training/aircraft_b/local-matcher/)、[训练日志](../runs/training/aircraft_b/local-matcher/train.log)、[评价命令](../docs/USAGE.md#跨模板与跨机型评价)。
 
 ## 2026-11-16：19个目标的在线核对与观察采图
 
@@ -534,7 +534,7 @@ RGB与深度最大时差为84—110毫秒，39项测试通过。离线复核命�
 
 **试跑清理**：此前多数试跑从首帧匹配整主体，未执行远端整目标→近端指定部位，曾有8项主体停车核验通过，但不计入分阶段实验。机库910、209高度保护停止，2019超时，3955中断，其余7项未执行。删除该批约24 GB原始数据，保留[结果摘要](../runs/validation/20261116-endpoint-projection/discarded-trials-summary.json)。
 
-**评价修复**：近景投影框因相机后方点和越界坐标导致绘图中断；改为仅绘制前方有限投影并裁剪图像坐标，射线及表面距离计算不变。离线复算中F-35仍为碰撞失败，F-14已通过样本各项数值差为0。另查F-35物理接触点距可见网格约3.37米，碰撞体与可见几何不一致的原因未确认。
+**评价修复**：近景投影框因相机后方点和越界坐标导致绘图中断；改为仅绘制前方有限投影并裁剪图像坐标，射线及表面距离计算不变。离线复算中飞机B仍为碰撞失败，飞机A已通过样本各项数值差为0。另查飞机B物理接触点距可见网格约3.37米，碰撞体与可见几何不一致的原因未确认。
 
 见[离线验证](../runs/validation/20261116-endpoint-projection/annotation-validation.json)、[复算日志](../runs/validation/20261116-endpoint-projection/annotation-replay.log)、[碰撞诊断](../runs/validation/20261116-endpoint-projection/collision-analysis.json)。
 
@@ -548,7 +548,7 @@ RGB与深度最大时差为84—110毫秒，39项测试通过。离线复核命�
 | 机库 | 9/9 | 入室并拍照，位于观测屋面下 7.92–8.11 米 |
 | 塔台 | 2/2 | 柱体命中，末帧滤波深度 5.31/5.88 米 |
 
-飞机曾出现预检失败和错部位。机库曾因交接未停稳、身份误关联或通道受阻中止。重损塔台有一次因机体距主体仅 1.75 米被排除，换方向完整重飞后通过。该批结果适用于同场景逐目标验收，重复成功率与留出泛化待测。见[逐目标结果](../runs/approach/20261116-coarse-to-fine/summary.json)、[独立审计](../runs/approach/20261116-coarse-to-fine/completed-result-audit.json)、[控制报告示例](../runs/approach/20261116-coarse-to-fine/05-f35-intact/control/report.json)和[测试日志](../runs/approach/20261116-coarse-to-fine/final-checks.log)。
+飞机曾出现预检失败和错部位。机库曾因交接未停稳、身份误关联或通道受阻中止。重损塔台有一次因机体距主体仅 1.75 米被排除，换方向完整重飞后通过。该批结果适用于同场景逐目标验收，重复成功率与留出泛化待测。见[逐目标结果](../runs/approach/20261116-coarse-to-fine/summary.json)、[独立审计](../runs/approach/20261116-coarse-to-fine/completed-result-audit.json)、[控制报告示例](../runs/approach/20261116-coarse-to-fine/05-aircraft-b-intact/control/report.json)和[测试日志](../runs/approach/20261116-coarse-to-fine/final-checks.log)。
 
 ## 2026-11-17：失败与重复试次数据清理
 
@@ -570,7 +570,7 @@ UE Airport 用无物理观察相机在 35° 俯角、12/35/75/125 米采集飞�
 
 ## 2026-11-17：模板身份判别与候选接受层开发
 
-237 离线比较同图模板监督、交叉拟合和候选后核验。单候选 DINO＋RGB 对应核验在 383 个开发验证配对中接受 40 个，38 个正确，召回 20%。两次错模板接受均为 F-35 不同损伤外观。验证集同时用于开发与校准，独立外观泛化、整图候选选择及闭环待验证。见[开发对照](../runs/training/20261117-template-verification-rgb/comparison.json)、[同图标签](../data/labels/airport_targets/20261117-context/report.json)和[训练日志](../runs/training/20261117-template-verification-rgb/training.log)。
+237 离线比较同图模板监督、交叉拟合和候选后核验。单候选 DINO＋RGB 对应核验在 383 个开发验证配对中接受 40 个，38 个正确，召回 20%。两次错模板接受均为 飞机B 不同损伤外观。验证集同时用于开发与校准，独立外观泛化、整图候选选择及闭环待验证。见[开发对照](../runs/training/20261117-template-verification-rgb/comparison.json)、[同图标签](../data/labels/airport_targets/20261117-context/report.json)和[训练日志](../runs/training/20261117-template-verification-rgb/training.log)。
 
 ## 2026-11-17：DINOv2与DINOv3冻结模板匹配对照
 
@@ -626,7 +626,7 @@ UE Airport 用无物理观察相机在 35° 俯角、12/35/75/125 米采集飞�
 
 ## 2026-11-19 新模型远端定位与分阶段接管验证
 
-目的为验证冻结新模型直接提供远段控制点，并在连续确认后交给近端部位 ROI。178 WSL 经网关 `172.21.192.1` 连接 UE，首轮选择完整型目标 `05-f35-intact` 的机头任务，水平起点 100 米，相机下俯 35 度，45 米切换、6 米连续三张深度确认停车。RGB 双路 1920×1080，深度 640×360，采集间隔 0.0167 秒。采用原冻结权重 `6fe119c4f32056021f0877de4b3554a494235674d2f4de7490a50cddbf0bb629`、阈值 0.9130731477441585 和连续三次确认规则。两阶段接入代码及全部输入另行登记哈希。
+目的为验证冻结新模型直接提供远段控制点，并在连续确认后交给近端部位 ROI。178 WSL 经网关 `172.21.192.1` 连接 UE，首轮选择完整型目标 `05-aircraft-b-intact` 的机头任务，水平起点 100 米，相机下俯 35 度，45 米切换、6 米连续三张深度确认停车。RGB 双路 1920×1080，深度 640×360，采集间隔 0.0167 秒。采用原冻结权重 `6fe119c4f32056021f0877de4b3554a494235674d2f4de7490a50cddbf0bb629`、阈值 0.9130731477441585 和连续三次确认规则。两阶段接入代码及全部输入另行登记哈希。
 
 首次控制启动止于旧整目标模板预检，近端参考已通过。随后按实际定位来源调整主动分阶段预检，远段由新模型运行时确认放行。此启动未发送抵近指令，日志保存在 `startup-preflight/`。两阶段接入及既有共同起点路径的 9 项回归检查通过。
 
@@ -764,7 +764,7 @@ WSL 经网关 `172.21.192.1` 连接 UE。非物理观察相机分别朝向 19 �
 
 **P2.1 离线诊断与 P2.5 控制端推理降延**。855 帧 11.18—11.19 在线序列已知命中率 **94.83%（734/774）**：80–120 m 命中 86.7%、自运动补偿重投影落框 96.4%、射线角误差中位 0.02°，但分数中位仅 0.6955、单帧接受 3.3%（4/120）；进入 45–80 m 后同一模型命中 100%、分数中位 0.9730、接受率 98.1%（51/52）。178 逐环节计时定位 411.1 ms 主瓶颈为单线程 SIFT（123.8 ms，30%）和 5 候选 × 4 朝向 RANSAC（151.0 ms，37%）。在 `MultiCandidateVerifier.prepare_query` 实现无填充 GPU 前向及线程池重叠 SIFT（保留 `TemplateVerifier.encode` 兼容），178 实测中位耗时 **414.5 ms → 286.3 ms**（p95 333.6 ms），与在线实录分数最大差 `3×10⁻⁷`。
 
-**P2.2—P2.4 + P4.2 分级门控与同类模板库离线回放**。按查询图实际观测主体距离（非缺席目标世界坐标距离）在 `appearance.train`（3,966 条折外请求）上拟合距离分档 PAVA 保序校准器，未参与拟合的 `appearance.validation`（383 条）正确正例均值 LLR `+0.426`、缺席负例均值 `-0.530`。在 237 缓存的 1,101 帧（11.19 全部 19 目标 + 6 条 100 m→6–14 m 飞机长航程，含验证集留出外观 06 号）及 32 帧塔台固定相机观测上评估：45–80 m 中距离同类模板库 Top-1 区分率 **94.7%**（F-35 四种损伤变体间 **109/114 = 95.6%**，正例 logit 裕量中位 `+1.47`，错同类 P90 `-1.09`），80–120 m 仅 64.1%。
+**P2.2—P2.4 + P4.2 分级门控与同类模板库离线回放**。按查询图实际观测主体距离（非缺席目标世界坐标距离）在 `appearance.train`（3,966 条折外请求）上拟合距离分档 PAVA 保序校准器，未参与拟合的 `appearance.validation`（383 条）正确正例均值 LLR `+0.426`、缺席负例均值 `-0.530`。在 237 缓存的 1,101 帧（11.19 全部 19 目标 + 6 条 100 m→6–14 m 飞机长航程，含验证集留出外观 06 号）及 32 帧塔台固定相机观测上评估：45–80 m 中距离同类模板库 Top-1 区分率 **94.7%**（飞机B 四种损伤变体间 **109/114 = 95.6%**，正例 logit 裕量中位 `+1.47`，错同类 P90 `-1.09`），80–120 m 仅 64.1%。
 
 | 门控策略 | 11.19 远段放行（19目标） | 长航程正例确认与近段放行（6条） | 同类错目标长航程误确认（42条） | 跨类错目标误动/误确认（26条） | 固定相机缺席误动/误确认（16帧） |
 |---|---:|---:|---:|---:|---:|
@@ -784,17 +784,17 @@ WSL 经网关 `172.21.192.1` 连接 UE。非物理观察相机分别朝向 19 �
 
 在 178 本机 WSL（`airsim`，RTX 4060 Ti 8 GB）经 `172.21.192.1:8989/8990` 联机 UE，使用复用 11.16 核验模板的批跑脚本执行全 19 目标第 1 轮复验，并全程挂载 `--shadow-verifier`（权重与阈值不变，仅更新 3 个已改源码哈希）同步录制连续飞行 RGB-D 与新模型影子预测供 P3 使用。修正项：04 号机恢复 `far_start` 统计、06 号机 `close_altitude_guard_m` 调为 `4.0 m`、9 座机库改为复用粗接近结束的 35° `runtime-scene.json` 并调用 `run_opening_alignment.py --execute --enter --vertical-entry --alignment-pulse 0.8 --entry-pulse 0.8 --min-roof-range 15.0 --max-duration 1200` 及 `eval_opening_entry.py`。
 
-**执行过程异常与说明**：先在 `06-f35-folded-wing` 单测联调（`runs/evaluation/20261119-p1-smoke/06-f35-folded-wing/`），停稳于 `5.26 m`、影子 123 帧零报错，但终态高度 `3.89 m` 处冻结 DINO 射线偏离机翼判 `part_not_verified`。正式批跑早期因平台 29 分钟后台命令超时中断两次（保留已完成的 `01–08`），且首版脚本漏传 `--alignment-pulse 0.8` 导致 `09` 号机库在垂直下降至 `11.04 m` 时触发 `900 s` 超时；补齐脉冲参数并改用 `IsDaemon=true` 常驻运行后从 `09` 重跑至 `19` 顺利完成。挂影子推理使实测 `input_fps` 较 11.18 无影子基线低约 1.5–3 FPS（飞机 10.7–17.0 FPS、机库 10.6–11.0 FPS），仍高于 5 Hz 控制周期且所有影子帧 `skipped_without_fresh_pair=0`。
+**执行过程异常与说明**：先在 `06-aircraft-b-folded-wing` 单测联调（`runs/evaluation/20261119-p1-smoke/06-aircraft-b-folded-wing/`），停稳于 `5.26 m`、影子 123 帧零报错，但终态高度 `3.89 m` 处冻结 DINO 射线偏离机翼判 `part_not_verified`。正式批跑早期因平台 29 分钟后台命令超时中断两次（保留已完成的 `01–08`），且首版脚本漏传 `--alignment-pulse 0.8` 导致 `09` 号机库在垂直下降至 `11.04 m` 时触发 `900 s` 超时；补齐脉冲参数并改用 `IsDaemon=true` 常驻运行后从 `09` 重跑至 `19` 顺利完成。挂影子推理使实测 `input_fps` 较 11.18 无影子基线低约 1.5–3 FPS（飞机 10.7–17.0 FPS、机库 10.6–11.0 FPS），仍高于 5 Hz 控制周期且所有影子帧 `skipped_without_fresh_pair=0`。
 
 **第 1 轮开发集单轮结果（14/19 通过，73.7%，Wilson 95% CI 51.2%–88.2%）**：该数字基于在这 19 个目标上排查后修正的配置，且机库验收口径已由 11.19 的屋顶外部对准恢复为完整入室，仅作修正配置后的开发集单轮基线参考，不能直接视为相对 11.19 `7/19` 的泛化提升幅度。
-- **飞机（7/8 通过）**：`01, 02, 04, 05, 06, 07, 08` 全部 `range_threshold` 稳停（终距 `5.69–5.90 m`）且独立部位核验 `passed`；`03-f14-nose-damage` 远端预检失败（`inside=true`，`peak=0.167 < 0.20`；结合 11.18 `0.186`，两次均低于 `0.20`，属可复现的远端预检失败，非随机抖动）。
+- **飞机（7/8 通过）**：`01, 02, 04, 05, 06, 07, 08` 全部 `range_threshold` 稳停（终距 `5.69–5.90 m`）且独立部位核验 `passed`；`03-aircraft-a-nose-damage` 远端预检失败（`inside=true`，`peak=0.167 < 0.20`；结合 11.18 `0.186`，两次均低于 `0.20`，属可复现的远端预检失败，非随机抖动）。
 - **机库（5/9 完整入室通过，7/9 粗交接通过）**：`10, 12, 15, 16, 17` 全部 `entered_and_stable_visual_hover` 且独立入室核验 `passed`；`09, 14` 完成粗交接与影子录制，但在近端斜视对准第 377/320 步触发 `opening_or_aperture_jump` 安全悬停；`11, 13` 远端预检失败（峰值稳定落在画面下缘 `cy=0.612 / 0.930`，超出目标框下界 `inside=false`）。
 - **塔台（2/2 通过）**：`18-tower-7889`（终距 `5.67 m`）、`19-tower-7892`（终距 `5.76 m`）均完整通过。
 - **在线并发负载下的影子推理实测耗时（未达 ≤0.3 s 目标）**：与 178 单跑基准（286.3 ms）不同，真实飞行并发负载（UE + 5 Hz 控制 DINO + 双路 1080p 录像 + `torch.set_num_threads(2)` / `cv2.setNumThreads(1)`）下，16 目标影子推理中位耗时为飞机 **0.50–0.72 s**（p95 `0.70–0.82 s`，实际采样间隔 `0.81–1.01 s`）、机库/塔台 **0.66–0.83 s**（p95 `0.77–1.04 s`，采样间隔 `1.01–1.21 s`）。旧单帧冻结阈值 `0.913` 在机库/塔台连续飞行上几乎零确认（16 目标中机库仅 `15` 号确认 3 帧，塔台 `18/19` 均为 0 帧）。
 - **P3 连续飞行影子采集与选择偏差**：16/19 目标完成录制，合计 **1,743 帧**零报错 RGB-D 与预测（飞机 794 帧、机库 680 帧、塔台 269 帧）；按 `appearance` 划分为训练目标 10/11（1,052 帧，缺 11）、验证目标 3/3（365 帧）、测试目标 3/5（326 帧，缺 3/13，封存至 P5）。注意该数据存在明显选择偏差：旧控制器远端最难的 `03/11/13` 未起飞而缺帧，且每目标仅 1 条轨迹、帧间高度自相关，有效独立样本远少于帧数。
 - **未完成项与关停状态**：本次完成了第 1 轮 `19×1`；收尾用 `SendKeys('{ESC}')` 自动关停返回 `PLAY_PORTS_STILL_LISTENING`（`closed=false`），由人工停止 Play；已将 Win32 `PostMessage(VK_ESCAPE)` 关停逻辑整合进 `run_p1_batch.py` 的 `finally` 块，但该实现尚未在运行中的 UE Play 上实测验证（仅在已关闭状态下返回 `ALREADY_STOPPED`）。
 
-[批跑脚本](../runs/evaluation/20261119-p1-revalidation/run_p1_batch.py) · [逐目标索引](../runs/evaluation/20261119-p1-revalidation/index.json) · [批跑日志](../runs/evaluation/20261119-p1-revalidation/batch.log) · [影子清单](../runs/evaluation/20261119-p1-shadow/frozen.json) · [关停记录](../runs/evaluation/20261119-p1-revalidation/shutdown.json) · [06 号单测目录](../runs/evaluation/20261119-p1-smoke/06-f35-folded-wing/report.json)
+[批跑脚本](../runs/evaluation/20261119-p1-revalidation/run_p1_batch.py) · [逐目标索引](../runs/evaluation/20261119-p1-revalidation/index.json) · [批跑日志](../runs/evaluation/20261119-p1-revalidation/batch.log) · [影子清单](../runs/evaluation/20261119-p1-shadow/frozen.json) · [关停记录](../runs/evaluation/20261119-p1-revalidation/shutdown.json) · [06 号单测目录](../runs/evaluation/20261119-p1-smoke/06-aircraft-b-folded-wing/report.json)
 
 ## 2026-11-20 推理二次降延、P3 连续飞行校准与 P2.6 分级门控离线集成
 
@@ -826,7 +826,7 @@ WSL 经网关 `172.21.192.1` 连接 UE。非物理观察相机分别朝向 19 �
 
 注：`val` 上 `16-hangar-7920` 已确认（`mid_llr=0.751`），`pos_near` 为 `2/3` 系其粗接近影子轨迹在屋顶交接前未跨越 `<=45 m` 候选深度；`train` 上 5 架飞机与 4 座机库全部确认，仅 `18-tower-7889` 因跨视角鸿沟未确认（`final_llr=-1.08`）。
 
-**P2.6 在线分级门控集成与离线烟测**：在 `src/perception/active_verification.py` 与 `src/control/run_approach.py` 接入可选的 `graded_gating` 模式（默认关闭，兼容原三连确认），按配置加载校准器与异 mesh 同类 peer 库，执行阶段限速、确认后方准近端/屋顶交接、身份拒绝停机。全量单元测试 **176/176 通过**（含新增 3 项分级门控用例）。生成冻结清单 `runs/evaluation/20261120-p26-graded-active/frozen.json` 并在 178 上加载真实清单烟测实飞帧：`06-f35-folded-wing`（7 peer）中位 `152.8 ms` 且进入 `MID_CONFIRMED`；`12-hangar-3955`（7 异 mesh peer，已排除 `16`）中位 `132.9 ms`。
+**P2.6 在线分级门控集成与离线烟测**：在 `src/perception/active_verification.py` 与 `src/control/run_approach.py` 接入可选的 `graded_gating` 模式（默认关闭，兼容原三连确认），按配置加载校准器与异 mesh 同类 peer 库，执行阶段限速、确认后方准近端/屋顶交接、身份拒绝停机。全量单元测试 **176/176 通过**（含新增 3 项分级门控用例）。生成冻结清单 `runs/evaluation/20261120-p26-graded-active/frozen.json` 并在 178 上加载真实清单烟测实飞帧：`06-aircraft-b-folded-wing`（7 peer）中位 `152.8 ms` 且进入 `MID_CONFIRMED`；`12-hangar-3955`（7 异 mesh peer，已排除 `16`）中位 `132.9 ms`。
 
 **结论与未验证项**：GPU 归约将 178 模拟并发推理压至 `157.8 ms`，`p26_blended_h160` 在验证集实现 `3/3` 正例确认与 `0/21` 异 mesh 同类误确认、`0/31` 跨类误确认。限制与待实测项：（1）`train` 上 `same_mesh_ws_confirmed=2/6` 表明仅靠裁剪外观无法区分同 mesh 机库副本；（2）`18-tower-7889` 仍未跨过确认门槛；（3）P3 仍存在 `03/11/13` 缺失造成的选择偏差与单轨自相关；（4）真实 UE 并发耗时、P2.6 `19×1` 联机闭环与 Win32 `PostMessage(VK_ESCAPE)` 自动关停均待下次开 UE 实测。
 
@@ -877,14 +877,14 @@ WSL 经网关 `172.21.192.1` 连接 UE。非物理观察相机分别朝向 19 �
 
 | 中性编号 | 事后真值（未送模型） | 首轮视图与耗时 | 是否派发复查 / 建议动作 | 次轮视图与耗时 | 复评判定 | 人工核验 |
 |---|---|---|---|---|---|---|
-| `OBJ-A` | `02-f14-wing-curl`（F-14 主翼上卷） | 正俯视模板 / 19.6 s | 否 / `none` | 未派发 | 无需复查 | **首轮正俯视漏检**：垂直俯视下上卷右翼透视缩短，模型误判外观对称完好 |
+| `OBJ-A` | `02-aircraft-a-wing-curl`（飞机A 主翼上卷） | 正俯视模板 / 19.6 s | 否 / `none` | 未派发 | 无需复查 | **首轮正俯视漏检**：垂直俯视下上卷右翼透视缩短，模型误判外观对称完好 |
 | `OBJ-B` | `09-hangar-910`（机库屋面单区破口） | 正俯视模板 / 11.6 s | 是 / `roof_entry` | 入室内部图 / 9.2 s | `confirmed` | 准确识别屋顶破洞并提出查内部梁柱；次轮区分了屋顶断裂与直立支撑柱 |
 | `OBJ-C` | `18-tower-7889`（塔台主柱剥落、屋檐破损） | 正俯视模板 / 14.4 s | 是 / `side_inspection` | 近距侧视柱体图 / 14.1 s | `confirmed` | 首轮指出屋顶蓝色异常及侧面盲区；次轮准确识别混凝土主柱纵向裂缝与底部坍塌缺口 |
 
 **结论与未验证项**：
 1. 集中式两阶段调度中心已跑通：乱序到达与重复回传均幂等处理，且机库与塔台两类目标展示了清晰的“初评提问 → 针对性补拍 → 依据次轮新证据确认”的协同闭环。
 2. 同日补充验证默认 `always_confirm` 派发策略（无论初评是否发现损伤均派发第二批近距复核，离线单测增至 4/4 通过）：重跑 `20261121-qwen35-9b-always-confirm` 后，3/3 完成、拦截重复上传 7 次、创建 3 个复查任务；其中首轮正俯视漏检的 `OBJ-A`（8.5 s，判无损）被第二批近距图（22.7 s）成功改判为 `confirmed`（三目标检出率由 2/3 升至 3/3）。人工核对发现一个 9B 模型细粒度局限：`OBJ-A` 次轮正确发现了上卷翼面上的放射状裂纹，但把竖直上卷的右主翼误称为“垂直尾翼根部”。
-3. **尚未验证项**：（1）在真正无毁伤目标（如 `01-f14-intact`）上验证 `always_confirm` 能否稳定输出 `ruled_out`（确认完好、无误报）；（2）相同补拍预算下“VLM 定向复查 vs 固定预设补拍”的对照评估；（3）ProjectAirSim 中两批共 6 架仿真无人机的在线采集、回传与返航联调。
+3. **尚未验证项**：（1）在真正完好目标（如 `01-aircraft-a-intact`）上验证 `always_confirm` 能否稳定输出 `ruled_out`（确认完好、无误报）；（2）相同补拍预算下“VLM 定向复查 vs 固定预设补拍”的对照评估；（3）ProjectAirSim 中两批共 6 架仿真无人机的在线采集、回传与返航联调。
 
 [首轮仅标疑派发报告](../runs/coordination/20261121-qwen35-9b-3targets/report.md) · [全量近距复核报告](../runs/coordination/20261121-qwen35-9b-always-confirm/report.md) · [全量复核 JSON](../runs/coordination/20261121-qwen35-9b-always-confirm/report.json) · [全量复核 SQLite](../runs/coordination/20261121-qwen35-9b-always-confirm/survey.db) · [回放清单](../configs/missions/coordination_replay_3targets.json) · [单测](../tests/test_coordination.py)
 
@@ -909,14 +909,14 @@ WSL 经网关 `172.21.192.1` 连接 UE。非物理观察相机分别朝向 19 �
 
 | 中性编号 | 事后真值 | 首轮初评（实拍正+斜俯视） | 次轮实拍与复评判定 | 人工核验 |
 |---|---|---|---|---|
-| `OBJ-A` | `02-f14-wing-curl` | 18.7 s，`needs_recheck=false` → 触发无损近距复核 | 14.7 s，**`confirmed`** | 实拍近景图清晰对准上卷右翼，成功救回漏检（但模型将卷翼阴影/裂纹误描述为“烧灼痕迹”） |
+| `OBJ-A` | `02-aircraft-a-wing-curl` | 18.7 s，`needs_recheck=false` → 触发无损近距复核 | 14.7 s，**`confirmed`** | 实拍近景图清晰对准上卷右翼，成功救回漏检（但模型将卷翼阴影/裂纹误描述为“烧灼痕迹”） |
 | `OBJ-B` | `09-hangar-910` | 18.5 s，`needs_recheck=true`（但盯住了相邻完好机库） | 24.7 s，**`ruled_out`（误排除）** | **实拍构图定位根因**：首轮 90 m 未裁剪俯视图画面中心落在了隔壁完好机库上（破洞机库在画面左半区），且次轮室内图桁架完好，模型只回答了“立柱/桁架是否完好”而忽略了画幅顶部的屋顶破洞 |
 | `OBJ-C` | `18-tower-7889` | 13.1 s，`needs_recheck=true` | 10.9 s，**`confirmed`** | 实拍近景清晰对准主柱破损，模型准确指出上部垂直裂缝与下部墙体断裂缺口 |
 
 **结论与未验证项**：
 1. ProjectAirSim 两批 6 机并发飞行 + 720p 双相机（含 `Chase` 可视化）+ 中心 SQLite 调度 + 237 `qwen3.5:9b` 两轮评估的完整端到端链路已首次实机跑通，全程零空中碰撞、6 机全部安全返航。
 2. 端到端实拍暴露出两个值得立刻改进的工程点：（a）高空首轮正俯视未裁剪原图在密集建筑群中容易引入相邻完好建筑干扰（`OBJ-B` 机库偏左），需要调整 `OBJ-B` 首轮正俯视机位使其居中（或做目标框裁剪）；（b）`qwen3.5:9b` 在 `OBJ-B` 室内近景图上只盯了立柱完好而忽略画幅上沿的大破洞，可在提示词中明确“只要两轮任意视角存在屋顶破洞或主体破损即判 `confirmed`”，且后续可对比 237 上现成的 `qwen3.5:27b` 提升细粒度识别准确率。
-3. **尚未验证项**：（1）机库首轮居中构图修复 + `qwen3.5:27b` 对照复测；（2）连续 `Chase` 30 FPS 录像录制下的多机帧率表现；（3）真正无损目标（如 `01-f14-intact`）端到端防误报验证。
+3. **尚未验证项**：（1）机库首轮居中构图修复 + `qwen3.5:27b` 对照复测；（2）连续 `Chase` 30 FPS 录像录制下的多机帧率表现；（3）真正无损目标（如 `01-aircraft-a-intact`）端到端防误报验证。
 
 [帧率探测数据](../runs/coordination/20261121-sim6-fps-probe/fps_probe.json) · [端到端评估报告](../runs/coordination/20261121-sim6-e2e-qwen35-9b/report.md) · [端到端结构化报告](../runs/coordination/20261121-sim6-e2e-qwen35-9b/report.json) · [仿真指标与耗时](../runs/coordination/20261121-sim6-e2e-qwen35-9b/sim_metrics.json) · [6机场景配置](../configs/simulation/scene_airport_multi6.jsonc) · [6机任务配置](../configs/missions/coordination_sim_6uav.json) · [端到端入口](../src/coordination/run_sim_e2e.py)
 
@@ -990,13 +990,13 @@ WSL 经网关 `172.21.192.1` 连接 UE。非物理观察相机分别朝向 19 �
 | `Inspect-3` / `OBJ-C`（塔台） | `dino_oblique`（主柱原型 + 前景深度门控防孪生塔台） | `253` 步 / `25.67 s` | `range_confirmed`，`guard_depth = 5.71 m`，`peak = 0.520`，3/3 确认 | **否** | **`confirmed`** |
 
 - **安全、耗时与产物**：6 架机全程碰撞均为起飞前+降落各 1 次地面接触，**空中及障碍物碰撞 0 次**；VLM 首轮评估总墙钟 `12.39 s`，终评总墙钟 **`9.82 s`**；6 机 5 Hz 真轨迹完整导出（`Scout-1/2/3` 各 `935` 点，`Inspect-1/2/3` 各 `1234` 点）；两版 `1920×720 @ 30 FPS` 视频均已自动封装为原生 H.264 MP4（实时版 `4250` 帧 / `141.67 s`，4 倍速精华版 `1232` 帧 / `41.07 s`）。
-- **尚未验证项**：真正无损目标（如 `01-f14-intact`）在端到端视觉伺服闭环下的 `ruled_out` 零误报验证。
+- **尚未验证项**：真正无损目标（如 `01-aircraft-a-intact`）在端到端视觉伺服闭环下的 `ruled_out` 零误报验证。
 
 [v3 评估报告](../runs/coordination/20261121-sim6-e2e-visual-servo-v3/report.md) · [v3 结构化报告 JSON](../runs/coordination/20261121-sim6-e2e-visual-servo-v3/report.json) · [v3 完整 6 机轨迹 JSON](../runs/coordination/20261121-sim6-e2e-visual-servo-v3/trajectories.json) · [v3 闭环逐帧日志目录](../runs/coordination/20261121-sim6-e2e-visual-servo-v3/servo_logs) · [v3 仿真指标](../runs/coordination/20261121-sim6-e2e-visual-servo-v3/sim_metrics.json) · [v3 高清 4x H.264 MP4](../runs/coordination/20261121-sim6-e2e-visual-servo-v3/videos/mission_6uav_highlight_4x.mp4) · [v3 高清原速 H.264 MP4](../runs/coordination/20261121-sim6-e2e-visual-servo-v3/videos/mission_6uav_overview.mp4)
 
 ## 2026-11-21 混合无损阴性对照实飞验证（2 无损飞机 + 1 受损机库，真实视觉伺服闭环）
 
-**目的**：在 `always_confirm` 全量复核策略与真实 1A 视觉伺服闭环下，将机场目标库中全部 2 个无毁伤目标（`01-f14-intact`、`05-f35-intact`）与 1 个受损目标（`09-hangar-910`）混排盲测，验证系统能否同时实现“无损目标稳定判 `ruled_out`（零误报）”与“受损目标稳定判 `confirmed`（不漏检）”，并检验 DINOv2 视觉伺服在新目标上的泛化收敛能力。
+**目的**：在 `always_confirm` 全量复核策略与真实 1A 视觉伺服闭环下，将机场目标库中全部 2 个完好目标（`01-aircraft-a-intact`、`05-aircraft-b-intact`）与 1 个受损目标（`09-hangar-910`）混排盲测，验证系统能否同时实现“无损目标稳定判 `ruled_out`（零误报）”与“受损目标稳定判 `confirmed`（不漏检）”，并检验 DINOv2 视觉伺服在新目标上的泛化收敛能力。
 
 **环境与参数**：UE Airport + WSL `172.21.192.1` + 任务配置 `configs/missions/coordination_sim_6uav_intact_check.json`（2D 态势图按目标范围自动扩展）+ 本地 GPU `DINOv2 ViT-S/14` + 237 Ollama `qwen3.5:9b`（`--no-think`，`--dispatch-policy always_confirm`，`--visual-servo`，`--record-video`）。回归单测 `14/14` 通过。
 
@@ -1004,9 +1004,9 @@ WSL 经网关 `172.21.192.1` 连接 UE。非物理观察相机分别朝向 19 �
 
 | 复查机 / 中性目标 | 事后真值 | 闭环模式与耗时 | 终态实测指标 | VLM 终评 | 核对 |
 |---|---|---|---|---|---|
-| `Inspect-1` / `OBJ-A`（飞机1） | `01-f14-intact`（无损） | `dino_oblique`，`391` 步 / `31.64 s` | `range_confirmed`，终距 `5.77 m`，`cx = -0.001`，`peak = 0.700` | **`ruled_out`** | 正确（零误报） |
+| `Inspect-1` / `OBJ-A`（飞机1） | `01-aircraft-a-intact`（无损） | `dino_oblique`，`391` 步 / `31.64 s` | `range_confirmed`，终距 `5.77 m`，`cx = -0.001`，`peak = 0.700` | **`ruled_out`** | 正确（零误报） |
 | `Inspect-2` / `OBJ-B`（机库） | `09-hangar-910`（受损） | `opening_nadir`，`242` 步 / `19.21 s` | `interior_reached`，垂直穿洞入室至 `16.08 m` 并安全原位退出 | **`confirmed`** | 正确（命中损伤） |
-| `Inspect-3` / `OBJ-C`（飞机2） | `05-f35-intact`（无损） | `dino_oblique`，`373` 步 / `31.78 s` | `range_confirmed`，终距 `5.70 m`，`cx = +0.014`，`peak = 0.482` | **`ruled_out`** | 正确（零误报） |
+| `Inspect-3` / `OBJ-C`（飞机2） | `05-aircraft-b-intact`（无损） | `dino_oblique`，`373` 步 / `31.78 s` | `range_confirmed`，终距 `5.70 m`，`cx = +0.014`，`peak = 0.482` | **`ruled_out`** | 正确（零误报） |
 
 - **安全与效率**：6 机空中及障碍物碰撞 **0 次**；VLM 首轮总耗时 `11.79 s`，终评总耗时 **`8.79 s`**；原生 `1920×720 @ 30 FPS` H.264 录像自动封包完成（实时版 `4838` 帧 / `161.27 s`，4 倍速版 `1379` 帧 / `45.97 s`）。
 - **综合 `v3` + 本轮两场端到端实飞汇总（6 组目标、6 次真实视觉伺服）**：视觉伺服闭环收敛率 **6/6（100%，零回退、零空中碰撞）**；损伤识别真正率（受损→`confirmed`）**4/4（100%）**；无损排除真负率（无损→`ruled_out`）**2/2（100%，零误报）**。
@@ -1020,10 +1020,10 @@ WSL 经网关 `172.21.192.1` 连接 UE。非物理观察相机分别朝向 19 �
 **环境与参数**：离线复用真实视觉伺服采集图像，调用 237 Ollama `qwen3.5:9b`（`think=false`，`temperature=0.1`，`always_confirm`）；回归单测 `test_project.py` + `test_coordination.py` 共 **14/14 通过**。
 
 **结果（5/5 判定准确，单次推理 `2.79–6.64 s`）**：
-- `OBJ-A`（`02-f14-wing-curl`）：首轮 `双垂尾战斗机 / none → intact_verification`（6.64 s）；次轮近景改判 **`confirmed / severe`**（3.37 s），成功救回高空漏检。
+- `OBJ-A`（`02-aircraft-a-wing-curl`）：首轮 `双尾翼固定翼飞机 / none → intact_verification`（6.64 s）；次轮近景改判 **`confirmed / severe`**（3.37 s），成功救回高空漏检。
 - `OBJ-B`（`09-hangar-910`）：首轮 `机场航站楼建筑 / severe / 屋顶 → roof_entry（高优先级）`（4.43 s）；次轮入室终评 **`confirmed / severe`**（5.84 s）。
 - `OBJ-C`（`18-tower-7889`）：首轮 `机场控制塔台 / none → intact_verification`（3.54 s）；次轮侧视近景改判 **`confirmed / severe / 塔身主体混凝土结构`**（3.58 s）。
-- `OBJ-D`（`01-f14-intact`）与 `OBJ-E`（`05-f35-intact`）：均稳定输出 **`ruled_out / intact / 无受损部位`**（终评耗时 `2.79 / 3.25 s`，零误报）。
+- `OBJ-D`（`01-aircraft-a-intact`）与 `OBJ-E`（`05-aircraft-b-intact`）：均稳定输出 **`ruled_out / intact / 无受损部位`**（终评耗时 `2.79 / 3.25 s`，零误报）。
 - **人工核验局限（诚实记录）**：`qwen3.5:9b`（`think=false`）在 5/5 总体定性与二次任务调度上表现稳定，但在细粒度部位描述上存在轻微泛化/过推断（如把上卷右翼误称为“左侧垂直尾翼”、对机库室内完好立柱过度推断为“弯曲倾斜”、对塔台未入画的塔顶屋顶外推破损）；后续对比 `--model qwen3.5:27b` 可进一步校准细粒度语义精度。
 
 [语义化评估报告](../runs/coordination/20261121-semantic-vlm-check/report.md) · [语义化报告 JSON](../runs/coordination/20261121-semantic-vlm-check/report.json) · [SQLite 状态库](../runs/coordination/20261121-semantic-vlm-check/survey.db)
@@ -1158,3 +1158,75 @@ Windows UE 5.2.1、Blender 3.6.23、RTX 4060 Ti。以用户选定的草案多边
 **性能与相机**　复用上一版的视口路线、预热、关垂直同步和取样窗口，连续跑三遍，每版统计 561 帧。改前、改后 GPU 帧耗时中位数分别为 9.803 和 9.792 ms，P95 为 19.232 和 19.749 ms，绘制调用数中位数从 888 变为 1117。单条路线的比较未覆盖所有视角及显存峰值。ProjectAirSim 在搁浅拖船机位收到 3 组同时间戳 RGB、深度帧，零超时，保存帧的有效深度比例 100%。此次验证覆盖视觉和静态碰撞，风力和破坏程度采用合成设定。[路线性能数据](../runs/scenes/20261124-wind-aftermath/performance/summary.json) · [无人机 RGB 图](../runs/scenes/20261124-wind-aftermath/simulation/front-rgb.jpg) · [RGB-D 检查](../runs/scenes/20261124-wind-aftermath/simulation/check.json)
 
 **归档复核**　使用 airsim 环境和 Windows 工程保留的规划、对象尺寸与编号表，离线重算风损布局，与已保存的 73 栋受损环境住宅和 64 组散落物的布局逐项一致。核对了前视 RGB-D 分辨率、280 个唯一编号、32 个重点标签及首轮试跑候选。此复核未重新启动 UE 或执行飞行。[风损布局](../runs/scenes/20261124-wind-aftermath/wind-layout.json) · [巡查目标表](../data/metadata/coastal_harbor/targets.json)
+
+## 2026-11-25 沿海渔港三类任务首轮实飞闭环验证
+
+**目的**　按[双场景试验方案](PLAN.md#2026-11-24-双场景灾损复查试验方案)，在正式 `CoastalHarbor` 关卡中完成三类首轮试跑任务的端到端闭环验证与对照评估：（1）指定部位二次抵近观测三条件对照；（2）仓库屋顶破口尺寸量取与入室/受阻核查；（3）连续仓库屋檐沿线巡检与米制损伤起止边界定位。
+
+**环境与参数**　Windows UE 5.2（`CoastalHarbor` Play 模式），WSL `airsim` 环境经 `172.21.192.1:8989` 连接 ProjectAirSim；本地 RTX 4060 Ti 运行冻结 DINOv2 ViT-S/14 实时视觉伺服；237 服务器 Ollama 提供视觉语言模型（`qwen3.5:9b` / `qwen3.5:27b`）。运行时在内存中为 `FrontCamera` 开启深度流推送（不改原 `robot_coastal_harbor_sensors.jsonc`），离线回归测试 `test_harbor_part_recheck.py`、`test_harbor_indoor_entry.py`、`test_harbor_line_inspection.py` 共 **7/7 通过**。目标真值坐标与部位法向仅用于起点准备与事后独立几何评分，不进入在线视觉控制、绕飞圆心估算或 VLM 提示词。
+
+### 任务 1：指定部位二次抵近观测（4 目标 × 2 工况 × 3 条件）
+
+**起点与独立判据**　选用受损渔船 `Vessel_037`、完好渔船 `Vessel_040`、受损鱼市 `Building_071` 和完好商铺 `Building_078`（4 个独立目标），每个目标设置 1 个无遮挡直视起点（`direct`）和 1 个对侧/背面遮挡起点（`occluded`），经 8 起点实拍拼图与几何检查全部核实通过（`direct` 4/4 `vis=True`，`occluded` 4/4 `vis=False`）。独立几何拍清判据事前冻结为：指定部位投影入画（边距 ≥ 4%）+ 正对法向夹角 ≤ 75° + 无前景深度遮挡（差 ≤ 2.5 m）+ 距部位 ≤ 15.0 m 且等效跨度 ≥ 100 px。三种条件共用逐字节相同的首轮远景图，两种飞行条件使用相同起点、时间与取图预算（上限 3 张）。[起点核验图](../runs/harbor/20261125-task1-starts-check/starts_grid.jpg) · [起点检查](../runs/harbor/20261125-task1-starts-check/starts_check.json) · [任务配置](../configs/missions/coastal_harbor_part_recheck.json)
+
+**首轮调试试跑（`qwen3.5:9b --no-think`，`allow_climb=true`，暴露并定位四项工程问题）**　24 组试验 0 碰撞完成，但全部条件指定部位拍清率均为 0/8。逐帧排查确认三项原因：（a）`allow_climb=true` 覆盖了下滑道下降分量，导致无人机沿水平甚至微爬升轨迹从目标头顶掠过；（b）渔船初始中心框偏高将船后黑礁石纳入原型，第 0 步即锁定 37.6 m 外背景石头；（c）商铺 2/2 正确触发 180° 绕飞，但深度只测背面外墙使圆心偏浅 4–5 m；且 `qwen3.5:9b` 在渔船 22 m 远景下无法稳定分辨左右舷。[首轮报告](../runs/harbor/20261125-task1-qwen9b/report.md) · [首轮近景拼图](../runs/harbor/20261125-task1-qwen9b/final_closeups_grid.jpg)
+
+**二轮修正实飞（`qwen3.5:27b --no-think`，下滑道 `allow_climb=false` + 绕飞半厚补偿 + 中心自动放大图）**　16 次视觉伺服飞行 **16/16 全部 `range_confirmed` 收敛、0 空中碰撞**；VLM 在 8 个起点上的主动视角决策达到 **8/8（100%）**（`direct` 4/4 选直接抵近，`occluded` 4/4 全部触发无真值深度估算 180° 绕飞换位）。
+
+| 工况 | 条件 | 试验数(目标) | 指定部位拍清率 | 停距误差(m) | 最佳部位距(m) | 平均飞行耗时(s) | 平均张数 | 碰撞 | 复评正确率(带中心裁图 / 纯全画幅) |
+|---|---|---:|---:|---:|---:|---:|---:|---:|---|
+| 无遮挡(`direct`) | A. 只用首轮远景 | 4 (4) | 0/4 (0.0%) | — | 22.14 | 0.0 | 1.00 | 0 | 1/4 (25.0%) / 0/4 (0.0%) |
+| 无遮挡(`direct`) | B. 预设直飞复查 | 4 (4) | **4/4 (100.0%)** | 2.50 | 8.99 | 21.9 | 2.00 | 0 | 2/4 (50.0%) / 1/4 (25.0%) |
+| 无遮挡(`direct`) | C. 主动选视角 | 4 (4) | **4/4 (100.0%)** | 1.85 | 8.84 | 26.0 | 2.00 | 0 | 2/4 (50.0%) / 1/4 (25.0%) |
+| 有遮挡(`occluded`) | A. 只用首轮远景 | 4 (4) | 0/4 (0.0%) | — | 28.21 | 0.0 | 1.00 | 0 | 0/4 (0.0%) / 0/4 (0.0%) |
+| 有遮挡(`occluded`) | B. 预设直飞复查 | 4 (4) | **0/4 (0.0%)** | 1.32 | 14.48 | 22.9 | 2.00 | 0 | 2/4 (50.0%) / 0/4 (0.0%) |
+| 有遮挡(`occluded`) | C. 主动选视角 | 4 (4) | **3/4 (75.0%)** | 2.35 | 16.32 | 69.7 | 3.00 | 0 | 2/4 (50.0%) / 2/4 (50.0%) |
+| 全部合计(`all`) | A. 只用首轮远景 | 8 (4) | 0/8 (0.0%) | — | 25.18 | 0.0 | 1.00 | 0 | 1/8 (12.5%) / 0/8 (0.0%) |
+| 全部合计(`all`) | B. 预设直飞复查 | 8 (4) | 4/8 (50.0%) | 1.91 | 11.74 | 22.4 | 2.00 | 0 | 4/8 (50.0%) / 1/8 (12.5%) |
+| 全部合计(`all`) | C. 主动选视角 | 8 (4) | **7/8 (87.5%)** | 2.10 | 12.58 | 47.8 | 2.50 | 0 | 4/8 (50.0%) / 3/8 (37.5%) |
+
+- **失败与局限诚实记录**：（1）`Vessel_037 occluded` 的 `active_viewpoint` 已 180° 绕到左舷（中继图 `vis=True, ang=20.6°`），但绕飞落点距船 30.1 m 偏远，末段 DINO 锁定偏移至沙滩未拍清；（2）`qwen3.5:27b` 终评在零误报（FP=0）的同时，对清晰近景中的局部微损（`Building_071` 右端条纹雨棚下垂、`Vessel_037` 左舷白色船壳局部凹陷）均出现漏报（判为 `ruled_out` 或 `still_uncertain`）；离线测试开启 `--think` 后单次推理达 71–195 s 并超时，且 `Vessel_037` 仍漏报。这表明当前瓶颈已从“相机取证/控制”转移到“开源 VLM 对低对比度微损的细粒度定损召回”。[二轮报告](../runs/harbor/20261125-task1-v2-qwen27b/report.md) · [二轮汇总 JSON](../runs/harbor/20261125-task1-v2-qwen27b/summary.json) · [全画幅离线对照](../runs/harbor/20261125-task1-v2-qwen27b/reassess_27b_fullframe.json) · [二轮近景拼图](../runs/harbor/20261125-task1-v2-qwen27b/final_closeups_grid.jpg)
+
+### 任务 2：海港仓库入室勘测（`Building_098` 与 `Building_095` 破口实测及受阻核查）
+
+**方法与真值**　两栋仓库当前共用 `ShedTornRoof`（31×19×11.4 m），缺失板 `j=4` 理论净宽 5.02 m × 9.50 m = 47.69 m²，但内部保留两根 0.12 m 水平钢檩条，将开口分割为最大 3.39 m 格室（理论最大无障碍内切圆净空半径 `1.695 m`）。机体最大外接半径 `0.472 m`。在 UE Z=34 m 正俯视 RGB-D 下独立量取破口几何，并分别测试 `Building_095`（高余量阈值 `2.0 m`）受阻中止与 `Building_098`（`1.60 m` 阈值）实飞穿洞。[任务配置](../configs/missions/coastal_harbor_indoor_entry.json) · [执行脚本](../src/harbor/indoor_entry.py)
+
+**结果**
+- **破口几何测量**：深度图成功检出 12 cm 细钢檩条与木椽子。`Building_098` 实测最大净空半径 **`1.682–1.691 m`**（误差仅 `4–13 mm`），宽 `5.86–5.95 m`（含掀翻板缝隙，误差 `0.84–0.93 m`），缺失面积 **`43.09–43.44 m²`**（相对误差 **`8.9%–9.6%`**）；`Building_095` 实测最大净空半径 **`1.660–1.729 m`**，面积 `42.20–42.95 m²`。
+- **受阻中止（`Building_095`，阈值 `2.0 m`）**：进入前即判定 `1.66 m < 2.00 m`，执行 `blocked_abort` 安全中止，未尝试穿洞。
+- **原状穿洞实飞核查（`Building_098`，阈值 `1.60 m`）**：先后以 `min_floor_guard_m = 2.8 m` 和 `1.1 m` 两次实飞，无人机均精准水平对准中间格并开始垂直下降，但分别在屋面上方 `15.95 m` 和 `14.17 m` 处因两侧水平钢檩条进入中央 40% 安全视锥触发 `floor_depth_guard`（`guard_depth = 1.02 m`）安全拦停，**0 碰撞**，但**未进入室内**（VLM 独立核验 `inside_building = false`）。
+- **结论与未验证项**：实飞证实原状 `ShedTornRoof` 因两根钢檩条横跨确属物理受阻样本；待后续离线导出移除 `Building_098` 缺失格中间两根钢檩条的网格变体（净空半径扩至 `2.51 m`）后，再补跑同阈值下 `Building_098`（真入室+室内取证+退出）与 `Building_095`（原状受阻）物理双例对照。[测量记录](../runs/harbor/20261125-task2-measure/summary.json) · [098 俯视叠加](../runs/harbor/20261125-task2-measure/Building_098/nadir_breach_overlay.jpg) · [098 入室 v2 核查](../runs/harbor/20261125-task2-entry-v2/summary.json) · [095 受阻记录](../runs/harbor/20261125-task2-entry-blocked/summary.json)
+
+### 任务 3：沿线连续巡检（`Building_098` 32.2 m 连续仓库屋檐）
+
+**方法与真值**　沿 `Building_098` 临码头侧 32.2 m 连续屋檐线（完好段 `0.00–16.10 m` → 受损掀翻/缺失段 `16.10–26.83 m` → 恢复完好段 `26.83–32.20 m`），无人机在距屋檐法向 `16.5 m`、高度 `22.0 m`、相机下俯 `-38°` 处以 `2.2 m/s` 从 `s = 0` 连续飞至 `s = 32.2 m`，每 `2.3 m` 采集同步 RGB-D（共 15 帧），由 `qwen3.5:27b --no-think` 逐帧输出屋面受损水平起止比例并经相机外参反投影至参考线融合投票。[任务配置](../configs/missions/coastal_harbor_line_inspection.json) · [执行脚本](../src/harbor/line_inspection.py)
+
+**结果（一次通过、0 碰撞）**：飞行耗时 **`34.28 s`**，采集 `15` 帧，空中碰撞 **`0`**；**有效覆盖率 `100.0%`**（每 0.5 m 区段平均被 `9.27` 帧覆盖），**漏拍区段数 `0`**；损伤区间真值 `[16.10, 26.83] m`，实测估计 **`[15.50, 27.00] m`**，**起点误差 `0.60 m`、终点误差 `0.17 m`、损伤区间 IoU `0.9565`**。未验证项：跨多栋连续建筑更长线路及含多段离散损伤的巡检线。[巡检报告](../runs/harbor/20261125-task3-line-qwen27b/report.md) · [汇总 JSON](../runs/harbor/20261125-task3-line-qwen27b/summary.json) · [15 帧追踪拼图](../runs/harbor/20261125-task3-line-qwen27b/line_inspection_grid.jpg)
+
+### 机载独立模式（零服务器依赖，UE 联机实飞验收）
+
+为支持后期真机部署（不依赖 237 大显存服务器评估，保留原有 VLM 模式不变），三类海港任务已统一补齐纯机载独立模式，并在 Windows UE `CoastalHarbor` 中完成零服务器联机实飞验收：
+
+- **任务 1（`--planner template --vlm none`，16 次实飞、0 碰撞、零服务器）**：用本机 22M 冻结 DINOv2（显存 `< 0.5 GB`）做多尺度空间特征格互相关 + 水平翻转自检（`TemplateViewpointPlanner`，单次视角决策仅 `48–161 ms`）。16 次视觉伺服 **16/16（100%）`range_confirmed` 收敛**：
+  - **有遮挡（`occluded`）**：本机模板规划 **4/4（100%）** 准确触发无真值 180° 绕飞换位，指定部位拍清率从不换位直飞的 **`0/4 (0%)`** 跃升至 **`3/4 (75%)`**（追平 27B 服务器版，且平均耗时由 `69.7 s` 降至 **`58.0 s`**）；
+  - **无遮挡（`direct`）**：`preset_recheck` `4/4 (100%)`，`active_viewpoint` `3/4 (75%)`；全工况合计 **`6/8 (75%)`** vs `preset_recheck` `4/8 (50%)`。
+  - **诚实记录 2 例失败**：`Vessel_037 occluded` 绕飞后中继距船 `27.7 m` 致末段未锁船；`Building_078 direct` 因 `Shop4` 正立面本身左右完全对称，悬停微抖下水平翻转优势略低于 `0.012` 阈值误触发翻面（后续对左右对称建筑宜加中继前后分数对比复核，且当前阈值 `0.58 / 0.012` 仅在首轮 4 目标标定，留出泛化待测）。参考模板在 `data/templates/coastal_harbor_pilot/`。[独立实飞报告](../runs/harbor/20261125-task1-standalone-template/report.md) · [汇总 JSON](../runs/harbor/20261125-task1-standalone-template/summary.json) · [近景拼图](../runs/harbor/20261125-task1-standalone-template/final_closeups_grid.jpg)
+- **任务 2（`--vlm none`）**：纯 RGB-D 深度几何完成破口测量、净空判定、对准穿洞与退出，零服务器调用（详见上文任务 2 实测）。
+- **任务 3（`--detector rgbd`，在线实飞、0 碰撞、零服务器、0 GPU 显存）**：沿 `Building_098` 32.2 m 屋檐线实时采集 15 帧 RGB-D，飞行耗时 **`32.84 s`**，单帧深度平面残差连通段检测仅 **`3.9–8.1 ms`**。**有效覆盖率 `100.0%`**，**漏拍 `0`**，损伤区间估计 **`[16.00, 26.00] m`**（真值 `[16.10, 26.83] m`），**起点误差 `0.10 m`、终点误差 `0.83 m`、IoU `0.9091`**（与离线回放逐项一致）。回归测试共 **15/15 通过**。[实时独立报告](../runs/harbor/20261125-task3-standalone-live/report.md) · [15 帧追踪拼图](../runs/harbor/20261125-task3-standalone-live/line_inspection_grid.jpg) · [离线回放对照](../runs/harbor/20261125-task3-line-standalone-rgbd/report.md)
+
+### 试点收尾修复、任务 2 真入室闭环与全任务双视角录屏（2026-11-25 晚）
+
+针对首轮试点暴露的 3 项缺口完成修复、场景补建与联机实飞复验，并新增轻量单机双视角录屏模块 [recorder.py](../src/harbor/recorder.py)（1280×416 `Chase + FrontCamera` 20 fps H.264，实时叠加 DINOv2 热力图/破口掩码/屋面破损红框与中文状态栏），三个渔港任务脚本均已支持 `--record-video`。
+
+- **任务 1 两个试点缺口修复与复验（全工况 8/8 = 100% 拍清、0 碰撞）**：
+  - **修复内容**：（a）`TemplateViewpointPlanner` 默认翻转优势阈值从 `0.012` 改为 `0.0`（仅当水平镜像相关性高于原图即 `sc_flip > sc_orig` 时判为对侧镜像，消除 `Building_078` 左右对称正立面的误翻面）；（b）`estimate_target_center_from_depth` 优先按目标 `template_roi` 采样前景深度，为小船设置 `depth_center_offset_m = 1.5 m` 与 `max_orbit_standoff_m = 20.0 m`，并按 `orbit_r * tan(|pitch|)` 对齐绕飞落点高度，消除 `Vessel_037 occluded` 中继点偏远致小船落出 `template_roi` 上方的问题。
+  - **单机无服务器版全 8 工况复飞（`--planner template --vlm none --record-video`）**：`direct` **`4/4 (100%)`**、`occluded` **`4/4 (100%)`**，总计 **`8/8 (100%)` 拍清、0 碰撞**（平均部位距 `8.60 m`，平均停距误差 `1.65 m`）；其中 `Vessel_037 occluded` 中继点精准居中（`v = 538.8 / 1080 px`）、末帧抵近至 `5.84 m`，`Building_078 direct` 直接抵近 `14.6 s` 拍清，全部 8 次飞行均生成可播 H.264 MP4。[复飞报告](../runs/harbor/20261125-task1-standalone-v2-video/report.md) · [Vessel_037 绕后录屏](../runs/harbor/20261125-task1-standalone-v2-video/captures/Vessel_037/occluded/active_viewpoint/flight.mp4)
+  - **远端 27B VLM 版单点复测（`Vessel_037 occluded`，`--record-video`）**：绕飞中继距 `19.42 m`、末帧抵近至 `6.32 m`，**`clear = True`、0 碰撞**（同时仍诚实保留其终评对白色船壳微凹陷漏报的原始记录 `verdict = ruled_out`）。[27B 补测报告](../runs/harbor/20261125-task1-v2-qwen27b-vessel037-fix/report.md) · [27B 绕后录屏](../runs/harbor/20261125-task1-v2-qwen27b-vessel037-fix/captures/Vessel_037/occluded/active_viewpoint/flight.mp4)
+- **任务 2 物理可通行 vs 受阻同阈值对照与真入室闭环（`min_passable_clearance_radius_m = 1.85 m`，0 碰撞）**：
+  - **场景补建**：基于 `harbor_meshes.py` 新增 `clear_passable_bay=True` 变体，用 Blender 3.6 导出移除 `j=4` 缺失格室两根水平钢檩条的 `ShedTornRoof_Passable.fbx`（保留 `j=3` 掀翻板与檩条，[harbor_roof_passable.py](../src/scene_build/harbor_roof_passable.py)），经 UE 5.2 离线命令 [harbor_apply_passable_shed.py](../src/scene_build/harbor_apply_passable_shed.py) 仅赋给 `Building_098`，`Building_095` 保持原状 `ShedTornRoof` 作受阻对照。
+  - **实飞结果（同一 `1.85 m` 阈值）**：
+    - `Building_098`（可通行正样本）：顶视测得最大净空半径 **`2.484 m`**（理论真值 `2.51 m`，误差 `2.4 cm`）、面积 `44.41 m²`（误差 `6.88%`）→ 判定 `enter` → RGB-D 实时对准并垂直穿顶入室至 **`alt = 6.04 m`（`stop = interior_reached`）** → 室内前视取证（`qwen3.5:27b` 独立确认 `inside_building = true`, `roof_damage_confirmed = true`，识别出内墙、地面与屋顶破口直射光线）→ **原路垂直安全退出（`exited = true`）**，全程 `53.11 s`、**0 碰撞**，生成 `36.75 s` H.264 双视角录屏。
+    - `Building_095`（原状受阻对照）：同阈值下测得最大净空半径 **`1.775 m < 1.85 m`**（面积 `47.56 m²`，误差 `0.27%`）→ 安全触发 **`blocked_abort`** 拒飞，**0 碰撞**。
+    - [对照汇总 JSON](../runs/harbor/20261125-task2-passable-vs-blocked-video/summary.json) · [098 破口叠加图](../runs/harbor/20261125-task2-passable-vs-blocked-video/Building_098/nadir_breach_overlay.jpg) · [098 室内实拍](../runs/harbor/20261125-task2-passable-vs-blocked-video/Building_098/interior_forward.jpg) · [098 穿顶入室录屏](../runs/harbor/20261125-task2-passable-vs-blocked-video/Building_098/indoor_entry.mp4)
+- **任务 3 实飞录屏复验（`--detector rgbd --record-video`）**：`35.99 s`、15 帧、**0 碰撞**，有效覆盖率 **`100.0%`**、漏拍 **`0`**、估计区间 `[16.00, 26.00] m`（起点误差 `0.10 m`、终点误差 `0.83 m`、**IoU `0.9091`**），同步生成带实时红色破损框的双视角录屏。[报告](../runs/harbor/20261125-task3-standalone-video/report.md) · [沿线巡检录屏](../runs/harbor/20261125-task3-standalone-video/line_inspection.mp4)
+- **回归测试与未验证项**：单元测试 `test_harbor_part_recheck.py`、`test_harbor_indoor_entry.py`、`test_harbor_line_inspection.py`、`test_coordination.py` 共 **17/17 全部通过**。未验证项：留出集 26 个重点目标（含 12 辆车与多栋连排仓库沿线）的跨类别泛化评测，以及微损细粒度 VLM 召回率提升。

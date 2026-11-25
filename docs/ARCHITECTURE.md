@@ -121,9 +121,9 @@ src/visualization/matching.launch.py
 
 `docs/ARCHITECTURE.md`说明模块、数据流和坐标约定，`docs/USAGE.md`提供操作命令。`reports/`保存实验记录、验证结果和相关研究调研。
 
-## F-14部位抵近
+## 飞机A部位抵近
 
-`configs/scenes/airport_f14.json`指定`StaticMeshActor_7888`、同一机场网格及机头、主翼和一侧垂尾区域。准备入口依据飞机前向轴和横向轴筛选实际网格顶点，取配置种子附近的表面参考点，投影生成部位ROI；机头使用准备元数据中的表面参考点。坐标用于模板准备与离线评价，控制速度仍由DINO中心和深度生成。
+`configs/scenes/airport_aircraft_a.json`指定`StaticMeshActor_7888`、同一机场网格及机头、主翼和一侧垂尾区域。准备入口依据飞机前向轴和横向轴筛选实际网格顶点，取配置种子附近的表面参考点，投影生成部位ROI；机头使用准备元数据中的表面参考点。坐标用于模板准备与离线评价，控制速度仍由DINO中心和深度生成。
 
 `prepare_scene.py --target-part nose|wing|tail`采集本次模板和远中近预检帧。主翼与垂尾分别通过纵向、横向和高度区间区分，垂尾高度下限用于排除水平尾翼和机身。长航段按速度拆分为预计不超过25秒的小段，逐段核对位置误差不超过2米。`--address`覆盖传输地址并保存到本轮场景档案。
 
@@ -161,7 +161,7 @@ src/visualization/matching.launch.py
 
 ### 固定方案的新视角采集与评价
 
-`capture/collect_part_views.py`使用`configs/missions/f14_tail_reacquisition_validation.json`固定距离、侧向角度、航向偏移和采样数量。入口读取现有垂尾参考与机器人配置，核对场景中飞机的位置、朝向和缩放；没有机器人时加载采集机器人，按坐标飞到各观察点，确认位置、航向与速度后保存原生RGB-D、各自时间戳及相机位姿。匹配结果不参与坐标采集飞行。取图前保存`protocol.json`及代码、参考资产哈希；完成后返回巡航位置悬停。
+`capture/collect_part_views.py`使用`configs/missions/aircraft_a_tail_reacquisition_validation.json`固定距离、侧向角度、航向偏移和采样数量。入口读取现有垂尾参考与机器人配置，核对场景中飞机的位置、朝向和缩放；没有机器人时加载采集机器人，按坐标飞到各观察点，确认位置、航向与速度后保存原生RGB-D、各自时间戳及相机位姿。匹配结果不参与坐标采集飞行。取图前保存`protocol.json`及代码、参考资产哈希；完成后返回巡航位置悬停。
 
 默认拒绝重载已有机器人。`--resume-from`仅用于本入口零采样准备中断，要求前次报告、运行配置一致，并确认原机器人仍在出生点或预定航点附近低速悬停。观察点使用上限0.5米/秒的坐标反馈消除转向与制动后的残余位移，速度与航向均满足条件后取图。起飞接口的返回值和实际飞行状态分别记录，进入巡航前须确认已在空中；碰撞或采样条件异常停止并保存中断状态。
 
@@ -169,9 +169,9 @@ src/visualization/matching.launch.py
 
 `capture/collect_training_views.py`为学习型接受判据和局部配准准备带标签数据。位姿在飞机前向坐标系内随机采样，用`SetPose`逐帧瞬移，不执行航线飞行；相机保持固定−35度，因此样本几何与部署一致。`capture/part_masks.py`用目标网格做射线投射，按场景档案的机头、主翼、垂尾区域生成逐像素掩码，并保存整机掩码作背景与遮挡参考。部位成员由前向、横向、高度边界和以共用尾参考点为圆心的半径共同判定，半径过大时只剩分区边界起作用。掩码位姿取自图像消息中的相机位置和四元数；取图后读取的机体运动学可能落后约0.5秒，不能用于标签。掩码只依赖位姿、网格和区域规则，不读取图像。每帧同时保存原生RGB-D、相机元数据和实际机体位姿，供离线提取匹配特征或训练局部配准。`capture/rerender_part_masks.py`用保存的相机位姿离线重渲染掩码，并可按已记录的搜索块重建训练目标，改动区域定义后无需重新仿真。
 
-## F-35部位数据
+## 飞机B部位数据
 
-`configs/scenes/airport.json`是F-35（`StaticMeshActor_7890`）的部位档案，给出机头、主翼和一侧垂尾的前向、横向、高度边界及半径，共同参考点取机头。`configs/missions/f35_approach.json`定义斜俯视准备任务，`configs/missions/f35_training_views.json`定义瞬移采样方案。准备、采集、掩码和训练入口与F-14相同，只替换档案和任务。参考图以机头为中心时，三个部位ROI都覆盖整机裁剪中心，`thin_roi_refinement`不产生局部参考点，冻结匹配器没有候选；这批数据只用于局部匹配器的搜索块与目标，没有NCC特征。
+`configs/scenes/airport.json`是飞机B（`StaticMeshActor_7890`）的部位档案，给出机头、主翼和一侧垂尾的前向、横向、高度边界及半径，共同参考点取机头。`configs/missions/aircraft_b_approach.json`定义斜俯视准备任务，`configs/missions/aircraft_b_training_views.json`定义瞬移采样方案。准备、采集、掩码和训练入口与飞机A相同，只替换档案和任务。参考图以机头为中心时，三个部位ROI都覆盖整机裁剪中心，`thin_roi_refinement`不产生局部参考点，冻结匹配器没有候选；这批数据只用于局部匹配器的搜索块与目标，没有NCC特征。
 
 `evaluation/eval_cross_template.py`读取带`patch_xyxy`的特征文件与HDF5样本文件或图片目录，按训练相同的（15度侧向扇区×距离档）分组重建5折。`--mode self`只用各折留出帧，复现训练时的OOF；`--mode transfer`用全部折模型推理另一份数据，用于跨采集、跨机型评价。两种模式都报告3像素正确率、峰值落在掩码内的比例，以及除以掩码等效半径的面积归一化距离，避免大掩码被3像素容差抬高。迁移结果同时混有外观、部位边界和搜索块中心三类差异，不能单独归因于外观。
 

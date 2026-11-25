@@ -134,7 +134,7 @@ class Model:
         bpy.data.meshes.remove(mesh)
 
 
-def building(kind, variant, damaged):
+def building(kind, variant, damaged, clear_passable_bay=False):
     m = Model()
     w, d, h = {
         "House": (12, 9, 5),
@@ -212,13 +212,15 @@ def building(kind, variant, damaged):
                                 )
                             m.part(corners, [(3, 2, 1, 0)], roof)
                     for yy in (0.32, 0.69):
+                        purlin_cx = x if clear_passable_bay else (x + width * 0.55)
+                        purlin_len = width if clear_passable_bay else (2.1 * width)
                         m.box(
                             (
-                                x + width * 0.55,
+                                purlin_cx,
                                 -d * 0.5 * yy,
                                 h + (1 - yy) * d * 0.5 * math.tan(rad) - 0.22,
                             ),
-                            (2.1 * width, 0.12, 0.15),
+                            (purlin_len, 0.12, 0.15),
                             STEEL,
                         )
                 continue

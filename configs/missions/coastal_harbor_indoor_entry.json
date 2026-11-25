@@ -1,0 +1,67 @@
+{
+  "mission_name": "coastal_harbor_indoor_entry_pilot",
+  "scene_config": "configs/simulation/scene_coastal_harbor.jsonc",
+  "drone_id": "Drone1",
+  "camera_id": "FrontCamera",
+  "camera_fov_deg": 90.0,
+  "rgb_resolution": [1920, 1080],
+  "depth_resolution": [640, 360],
+  "passability_policy": {
+    "uav_outer_radius_m": 0.472,
+    "safety_margin_m": 1.378,
+    "min_passable_clearance_radius_m": 1.85,
+    "min_passable_diameter_m": 3.7,
+    "min_layer_gap_m": 5.0
+  },
+  "entry_defaults": {
+    "hover_alt_ue_m": 34.0,
+    "target_interior_alt_ue_m": 5.5,
+    "exit_alt_ue_m": 28.0,
+    "align_tol_m": 0.75,
+    "align_confirm_frames": 3,
+    "gain_xy": 0.28,
+    "max_xy_mps": 0.8,
+    "descend_mps": 1.4,
+    "min_floor_guard_m": 1.1,
+    "max_duration_s": 55.0
+  },
+  "targets": [
+    {
+      "target_id": "Building_098",
+      "neutral_id": "HARBOR-SHED-1",
+      "description": "西码头受损仓库（ShedTornRoof_Passable，缺失格室 j=4 两根钢檩条已清除，纯净空 5.02 m × 9.39 m，可安全穿顶入室）",
+      "start_hover_ned": [-774.0, -92.0, -34.0],
+      "start_yaw_deg": 0.0,
+      "evaluation_gt": {
+        "building_origin_ue_m": [-781.581, -96.687, 0.035],
+        "shed_w_d_h_m": [31.0, 19.0, 11.4],
+        "open_bay_width_m": 5.02,
+        "open_bay_depth_m": 9.5,
+        "open_bay_area_m2": 47.69,
+        "full_breach_width_m": 10.33,
+        "unmodified_max_clearance_radius_m": 1.695,
+        "cleared_max_clearance_radius_m": 2.51,
+        "expected_passable": true,
+        "note": "缺失板 j=4 已清掉中间两根 0.12 m 钢檩条，形成 5.02 m × 9.39 m 纯净空（最大内切圆半径 ~2.51 m >= 1.85 m 阈值），用于验证穿顶入室与原路退出。"
+      }
+    },
+    {
+      "target_id": "Building_095",
+      "neutral_id": "HARBOR-SHED-2",
+      "description": "中码头受损仓库（ShedTornRoof，保留檩条/梁架作为受阻对照）",
+      "start_hover_ned": [-357.8, -94.3, -34.0],
+      "start_yaw_deg": 0.0,
+      "evaluation_gt": {
+        "building_origin_ue_m": [-365.411, -98.957, 0.035],
+        "shed_w_d_h_m": [31.0, 19.0, 11.4],
+        "open_bay_width_m": 5.02,
+        "open_bay_depth_m": 9.5,
+        "open_bay_area_m2": 47.69,
+        "full_breach_width_m": 10.33,
+        "unmodified_max_clearance_radius_m": 1.695,
+        "expected_passable": false,
+        "note": "保持原状 ShedTornRoof，破口内保留两根水平钢檩条（最大净空半径 ~1.70 m < 1.85 m 阈值），作为同阈值下的受阻拒飞对照。"
+      }
+    }
+  ]
+}

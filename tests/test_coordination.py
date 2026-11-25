@@ -28,11 +28,11 @@ class CoordinationTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             tmp_dir = Path(tmp)
             # Intentionally embed revealing words in source paths & ground-truth labels
-            a_r1 = _make_dummy_png(tmp_dir / "src" / "f14-wing-curl-damaged.png", b"a1")
-            a_r2 = _make_dummy_png(tmp_dir / "src" / "f14-wing-curl-closeup.png", b"a2")
+            a_r1 = _make_dummy_png(tmp_dir / "src" / "aircraft-a-wing-curl-damaged.png", b"a1")
+            a_r2 = _make_dummy_png(tmp_dir / "src" / "aircraft-a-wing-curl-closeup.png", b"a2")
             b_r1 = _make_dummy_png(tmp_dir / "src" / "hangar-roof-hole.png", b"b1")
             b_r2 = _make_dummy_png(tmp_dir / "src" / "hangar-interior.png", b"b2")
-            c_r1 = _make_dummy_png(tmp_dir / "src" / "f35-无毁伤-intact.png", b"c1")
+            c_r1 = _make_dummy_png(tmp_dir / "src" / "aircraft-b-完好-intact.png", b"c1")
 
             vlm = MockVLMClient(
                 round1_overrides={
@@ -52,9 +52,9 @@ class CoordinationTests(unittest.TestCase):
             )
             center = SurveyCenter("m-test-1", tmp_dir / "mission", vlm, dispatch_policy="only_flagged")
             try:
-                center.register_target("OBJ-A", "Scout-1", ground_truth_label="02-f14-wing-curl")
+                center.register_target("OBJ-A", "Scout-1", ground_truth_label="02-aircraft-a-wing-curl")
                 center.register_target("OBJ-B", "Scout-2", ground_truth_label="09-hangar-910")
-                center.register_target("OBJ-C", "Scout-3", ground_truth_label="05-f35-无毁伤")
+                center.register_target("OBJ-C", "Scout-3", ground_truth_label="05-aircraft-b-完好")
 
                 # Out-of-order: OBJ-C arrives and finishes before OBJ-A/OBJ-B even upload
                 r_c = center.submit_upload("OBJ-C", 1, "Scout-3", c_r1, "OBJ-C-R1-01")
@@ -99,7 +99,7 @@ class CoordinationTests(unittest.TestCase):
                 center.report_return("OBJ-B", 2, "Inspect-2", status="returned")
 
                 # Verify strict label isolation in every VLM call
-                forbidden_tokens = ("wing-curl", "hangar", "无毁伤", "f14", "f35")
+                forbidden_tokens = ("wing-curl", "hangar", "完好", "aircraft-a", "aircraft-b")
                 for call in vlm.recorded_calls:
                     blob = json.dumps(call, ensure_ascii=False).lower()
                     for token in forbidden_tokens:

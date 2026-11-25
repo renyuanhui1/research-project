@@ -292,7 +292,7 @@ def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--source-run', type=Path, required=True)
     parser.add_argument('--out-dir', type=Path, required=True)
-    parser.add_argument('--protocol', type=Path, default=ROOT/'configs/missions/f14_training_views.json')
+    parser.add_argument('--protocol', type=Path, default=ROOT/'configs/missions/aircraft_a_training_views.json')
     parser.add_argument('--address', default='172.21.192.1')
     parser.add_argument('--count', type=int, help='Override the configured sample count')
     parser.add_argument('--validate-only', action='store_true')

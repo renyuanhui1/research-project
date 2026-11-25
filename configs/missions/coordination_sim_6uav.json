@@ -7,7 +7,7 @@
   "targets": [
     {
       "target_id": "OBJ-A",
-      "ground_truth_label": "02-f14-wing-curl (F-14 主翼上卷变形)",
+      "ground_truth_label": "02-aircraft-a-wing-curl (固定翼飞机A 主翼上卷变形)",
       "round1_drone_id": "Scout-1",
       "round2_drone_id": "Inspect-1",
       "cruise_alt_m": 75.0,

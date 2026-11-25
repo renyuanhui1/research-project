@@ -8,7 +8,7 @@
     {
       "target_id": "OBJ-A",
       "display_name": "目标A（飞机1）",
-      "ground_truth_label": "01-f14-intact (F-14 无毁伤，阴性对照)",
+      "ground_truth_label": "01-aircraft-a-intact (固定翼飞机A 完好，阴性对照)",
       "round1_drone_id": "Scout-1",
       "round2_drone_id": "Inspect-1",
       "cruise_alt_m": 75.0,
@@ -133,7 +133,7 @@
     {
       "target_id": "OBJ-C",
       "display_name": "目标C（飞机2）",
-      "ground_truth_label": "05-f35-intact (F-35 无毁伤，阴性对照)",
+      "ground_truth_label": "05-aircraft-b-intact (固定翼飞机B 完好，阴性对照)",
       "round1_drone_id": "Scout-3",
       "round2_drone_id": "Inspect-3",
       "cruise_alt_m": 105.0,

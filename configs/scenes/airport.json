@@ -22,8 +22,8 @@
       "StaticMeshActor_7888"
     ],
     "labels": {
-      "StaticMeshActor_7890": "f-35-无毁伤",
-      "StaticMeshActor_7888": "f14-无毁伤"
+      "StaticMeshActor_7890": "飞机B_完好",
+      "StaticMeshActor_7888": "飞机A_完好"
     }
   },
   "target": {

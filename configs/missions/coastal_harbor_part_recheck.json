@@ -1,0 +1,184 @@
+{
+  "mission_name": "coastal_harbor_part_recheck_pilot",
+  "scene_config": "configs/simulation/scene_coastal_harbor.jsonc",
+  "drone_id": "Drone1",
+  "camera_id": "FrontCamera",
+  "camera_fov_deg": 90.0,
+  "rgb_resolution": [1920, 1080],
+  "depth_resolution": [640, 360],
+  "budget": {
+    "max_duration_s": 85.0,
+    "max_captures": 3,
+    "target_stop_dist_m": 6.5,
+    "orbit_speed_mps": 4.2,
+    "orbit_min_alt_m": 13.0,
+    "reposition_min_radius_m": 16.0,
+    "reposition_max_radius_m": 28.0,
+    "depth_center_offset_m": 4.0
+  },
+  "scoring": {
+    "part_in_frame_margin": 0.04,
+    "part_max_view_angle_deg": 75.0,
+    "part_depth_occlusion_tol_m": 2.5,
+    "part_clear_max_dist_m": 15.0,
+    "part_clear_min_span_px": 100.0
+  },
+  "servo_defaults": {
+    "camera_pitch_deg": -30.0,
+    "stop_dist_m": 6.5,
+    "slow_dist_m": 22.0,
+    "close_range_m": 13.0,
+    "close_speed_mps": 0.7,
+    "depth_gate_margin_m": 12.0,
+    "v_forward_mps": 2.0,
+    "v_down_mps": 1.15,
+    "k_yaw": 0.85,
+    "yaw_max_rps": 0.45,
+    "k_vert": 1.2,
+    "allow_climb": false,
+    "min_peak": 0.22,
+    "max_alt_m": 55.0,
+    "depth_guard_m": 2.5,
+    "confirm_frames": 3,
+    "max_duration_s": 42.0,
+    "template_roi": [0.34, 0.46, 0.66, 0.72]
+  },
+  "targets": [
+    {
+      "target_id": "Vessel_037",
+      "neutral_id": "HARBOR-OBJ-1",
+      "category": "Vessel",
+      "target_class_hint": "搁浅小渔船",
+      "focus_part_request": "船体左侧船舷及船舷栏杆（面对船头方向的左舷，即船尾偏左舷外侧）",
+      "min_alt_m": 1.2,
+      "stop_dist_m": 6.5,
+      "depth_center_offset_m": 1.5,
+      "max_orbit_standoff_m": 20.0,
+      "template_roi": [0.43, 0.45, 0.59, 0.62],
+      "evaluation_gt": {
+        "damage_gt": "damaged",
+        "part_name_cn": "左舷船壳与栏杆",
+        "evidence_gt": "locally indented hull side and bent rail",
+        "target_center_ue_m": [560.291, -227.919, -0.1],
+        "part_center_ue_m": [559.737, -229.709, -0.3],
+        "part_normal_ue": [0.5872, -0.8094, 0.0],
+        "part_radius_m": 1.6
+      },
+      "starts": {
+        "direct": {
+          "description": "无遮挡起点：位于指定船舷外法向一侧约 22 m",
+          "position_ned": [573.21, -245.73, -11.9],
+          "yaw_deg": 126.0,
+          "camera_pitch_deg": -30.0
+        },
+        "occluded": {
+          "description": "有遮挡起点：位于船体对侧约 22 m，指定船舷被船体与驾驶室遮挡",
+          "position_ned": [547.37, -210.11, -11.9],
+          "yaw_deg": -54.0,
+          "camera_pitch_deg": -30.0
+        }
+      }
+    },
+    {
+      "target_id": "Vessel_040",
+      "neutral_id": "HARBOR-OBJ-2",
+      "category": "Vessel",
+      "target_class_hint": "搁浅小渔船",
+      "focus_part_request": "船体左侧船舷及船舷栏杆（面对船头方向的左舷，即船尾偏左舷外侧）",
+      "min_alt_m": 1.2,
+      "stop_dist_m": 6.5,
+      "depth_center_offset_m": 1.5,
+      "max_orbit_standoff_m": 20.0,
+      "template_roi": [0.43, 0.45, 0.59, 0.62],
+      "evaluation_gt": {
+        "damage_gt": "intact",
+        "part_name_cn": "左舷船壳与栏杆",
+        "evidence_gt": "intact visible hull",
+        "target_center_ue_m": [914.27, -190.084, -0.2],
+        "part_center_ue_m": [914.801, -191.981, -0.496],
+        "part_normal_ue": [0.9081, -0.4188, 0.0],
+        "part_radius_m": 1.6
+      },
+      "starts": {
+        "direct": {
+          "description": "无遮挡起点：位于指定船舷外法向一侧约 22 m",
+          "position_ned": [934.25, -199.3, -11.81],
+          "yaw_deg": 155.2,
+          "camera_pitch_deg": -30.0
+        },
+        "occluded": {
+          "description": "有遮挡起点：位于船体对侧约 22 m，指定船舷被船体与驾驶室遮挡",
+          "position_ned": [894.29, -180.87, -11.81],
+          "yaw_deg": -24.8,
+          "camera_pitch_deg": -30.0
+        }
+      }
+    },
+    {
+      "target_id": "Building_071",
+      "neutral_id": "HARBOR-OBJ-3",
+      "category": "Building",
+      "target_class_hint": "临街鱼市商铺",
+      "focus_part_request": "临街正立面的招牌与遮阳雨棚（带大门、橱窗与雨棚的正面立面）",
+      "min_alt_m": 3.0,
+      "stop_dist_m": 9.0,
+      "template_roi": [0.34, 0.46, 0.66, 0.72],
+      "evaluation_gt": {
+        "damage_gt": "damaged",
+        "part_name_cn": "正立面条纹雨棚",
+        "evidence_gt": "one end of striped shop awning torn loose and hanging from facade",
+        "target_center_ue_m": [-666.882, -39.855, 3.5],
+        "part_center_ue_m": [-664.201, -34.553, 2.435],
+        "part_normal_ue": [-0.1612, 0.9869, 0.0],
+        "part_radius_m": 2.4
+      },
+      "starts": {
+        "direct": {
+          "description": "无遮挡起点：位于鱼市正立面法向约 24 m",
+          "position_ned": [-670.75, -16.17, -17.5],
+          "yaw_deg": -80.7,
+          "camera_pitch_deg": -30.0
+        },
+        "occluded": {
+          "description": "有遮挡起点：位于鱼市背面约 24 m，正立面雨棚被建筑主体完全遮挡",
+          "position_ned": [-663.01, -63.54, -17.5],
+          "yaw_deg": 99.3,
+          "camera_pitch_deg": -30.0
+        }
+      }
+    },
+    {
+      "target_id": "Building_078",
+      "neutral_id": "HARBOR-OBJ-4",
+      "category": "Building",
+      "target_class_hint": "临街商铺",
+      "focus_part_request": "临街正立面的橱窗与遮阳雨棚（带大门、橱窗与雨棚的正面立面）",
+      "min_alt_m": 4.5,
+      "stop_dist_m": 9.0,
+      "template_roi": [0.34, 0.46, 0.66, 0.72],
+      "evaluation_gt": {
+        "damage_gt": "intact",
+        "part_name_cn": "正立面雨棚与橱窗",
+        "evidence_gt": "intact exterior",
+        "target_center_ue_m": [-273.251, 196.287, 5.2],
+        "part_center_ue_m": [-272.817, 201.87, 5.025],
+        "part_normal_ue": [0.0775, 0.997, 0.0],
+        "part_radius_m": 2.6
+      },
+      "starts": {
+        "direct": {
+          "description": "无遮挡起点：位于商铺正立面法向约 20 m",
+          "position_ned": [-271.7, 216.23, -17.5],
+          "yaw_deg": -94.4,
+          "camera_pitch_deg": -30.0
+        },
+        "occluded": {
+          "description": "有遮挡起点：位于商铺背面约 22 m，正立面雨棚被建筑主体完全遮挡",
+          "position_ned": [-274.96, 174.35, -18.5],
+          "yaw_deg": 85.6,
+          "camera_pitch_deg": -30.0
+        }
+      }
+    }
+  ]
+}

@@ -29,6 +29,6 @@
     "sift": {"maximum_features": 2000, "ratio": 0.8, "minimum_inliers": 4, "reprojection_px": 3, "ransac_iterations": 2000, "seed": 1731}
   },
   "metric_train_per_target_range": 1,
-  "shadow": {"target_id": "03-f14-nose-damage", "confirmation_frames": 3, "sample_interval_s": 0.5, "max_gap_s": 2.0, "max_duration_s": 120, "max_sensor_skew_s": 0.05, "max_frame_age_s": 0.5},
+  "shadow": {"target_id": "03-aircraft-a-nose-damage", "confirmation_frames": 3, "sample_interval_s": 0.5, "max_gap_s": 2.0, "max_duration_s": 120, "max_sensor_skew_s": 0.05, "max_frame_age_s": 0.5},
   "scope": "Complete the staged development experiment, freeze before legacy-test reevaluation, and record a live shadow sequence. No new autonomous control from the verifier. Legacy test was previously evaluated and is not a fresh holdout."
 }

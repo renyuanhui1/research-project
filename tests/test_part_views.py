@@ -25,7 +25,7 @@ class IndependentPartViewTests(unittest.TestCase):
             np.testing.assert_array_equal(decode_rpc_depth(message), expected)
 
     def test_every_planned_reference_is_inside_the_fixed_camera_frustum(self):
-        protocol = json.loads((ROOT/'configs/missions/f14_tail_reacquisition_validation.json').read_text())
+        protocol = json.loads((ROOT/'configs/missions/aircraft_a_tail_reacquisition_validation.json').read_text())
         reference = np.array([555., 129., -5.])
         cases = plan_views(protocol, reference)
         self.assertEqual(len(cases), 18)

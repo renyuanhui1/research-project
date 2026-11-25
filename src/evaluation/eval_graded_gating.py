@@ -13,13 +13,18 @@ from perception.graded_gating import DistanceBinCalibrator, GradedGate, _logit
 
 def evaluate_p42(rows, by_cat):
     dist_bins = [(0, 45), (45, 80), (80, 120), (120, 300)]
-    f35_ids = {'05-f35-intact', '06-f35-folded-wing', '07-f35-collapsed-cockpit', '08-f35-tail-back'}
+    aircraft_b_ids = {
+        '05-aircraft-b-intact',
+        '06-aircraft-b-folded-wing',
+        '07-aircraft-b-collapsed-cockpit',
+        '08-aircraft-b-tail-back',
+    }
     out = {}
     for a, b in dist_bins:
         sub = [r for r in rows if r['horiz_dist_m'] is not None and a <= r['horiz_dist_m'] < b and r['candidates']]
         if not sub:
             continue
-        top1_crop = top1_max = f35_ok = f35_n = 0
+        top1_crop = top1_max = aircraft_b_ok = aircraft_b_n = 0
         m_true, m_wrong_same, s_cross = [], [], []
         for r in sub:
             tid, cat, sc_map = r['target_id'], r['category'], r['scores_by_template']
@@ -47,11 +52,11 @@ def evaluate_p42(rows, by_cat):
                     m_wrong_same.append(_logit(sc_map[wx][wi]) - _logit(max(w_oth)))
             for cx in cross_tids:
                 s_cross.append(max(sc_map[cx]))
-            if tid in f35_ids:
-                fo = [sc_map[x][best_i] for x in f35_ids if x != tid and x in sc_map and sc_map[x]]
+            if tid in aircraft_b_ids:
+                fo = [sc_map[x][best_i] for x in aircraft_b_ids if x != tid and x in sc_map and sc_map[x]]
                 if fo:
-                    f35_n += 1
-                    f35_ok += int(sc_map[tid][best_i] > max(fo))
+                    aircraft_b_n += 1
+                    aircraft_b_ok += int(sc_map[tid][best_i] > max(fo))
         out[f'{a}-{b}m'] = {
             'n': len(sub),
             'same_crop_top1_rate': round(top1_crop / len(sub), 4),
@@ -59,7 +64,7 @@ def evaluate_p42(rows, by_cat):
             'true_logit_margin_p25_p50_p75': [round(float(q), 3) for q in np.quantile(m_true, [0.25, 0.5, 0.75])] if m_true else None,
             'wrong_same_logit_margin_p50_p90': [round(float(q), 3) for q in np.quantile(m_wrong_same, [0.5, 0.9])] if m_wrong_same else None,
             'cross_cat_max_score_p50_p90': [round(float(q), 3) for q in np.quantile(s_cross, [0.5, 0.9])] if s_cross else None,
-            'f35_variant_top1': f'{f35_ok}/{f35_n} ({f35_ok/f35_n:.3f})' if f35_n else None,
+            'aircraft_b_variant_top1': f'{aircraft_b_ok}/{aircraft_b_n} ({aircraft_b_ok/aircraft_b_n:.3f})' if aircraft_b_n else None,
         }
     return out
 
@@ -133,7 +138,7 @@ def main():
     p42 = evaluate_p42(rows, by_cat)
     print('=== PART 1: P4.2 SAME-CLASS RELATIVE DISCRIMINATION BY DISTANCE ===')
     for k, v in p42.items():
-        print(f"  {k:9s}: n={v['n']:3d} top1_crop={v['same_crop_top1_rate']:.3f} true_m={v['true_logit_margin_p25_p50_p75']} wrong_m={v['wrong_same_logit_margin_p50_p90']} cross_s={v['cross_cat_max_score_p50_p90']} f35={v['f35_variant_top1']}")
+        print(f"  {k:9s}: n={v['n']:3d} top1_crop={v['same_crop_top1_rate']:.3f} true_m={v['true_logit_margin_p25_p50_p75']} wrong_m={v['wrong_same_logit_margin_p50_p90']} cross_s={v['cross_cat_max_score_p50_p90']} aircraft_b={v['aircraft_b_variant_top1']}")
 
     cfg_p1 = {
         'mid_range_m': 80.0, 'near_handoff_range_m': 45.0,

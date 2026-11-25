@@ -1,5 +1,5 @@
 {
-  "name": "airport_f14",
+  "name": "airport_aircraft_a",
   "simulator": {
     "address": "192.168.31.178",
     "scene": "configs/simulation/scene_airport.jsonc",
@@ -22,8 +22,8 @@
       "StaticMeshActor_7888"
     ],
     "labels": {
-      "StaticMeshActor_7890": "f-35-无毁伤",
-      "StaticMeshActor_7888": "f14-无毁伤"
+      "StaticMeshActor_7890": "飞机B_完好",
+      "StaticMeshActor_7888": "飞机A_完好"
     }
   },
   "target": {
@@ -104,7 +104,7 @@
     "nadir_altitude_guard_m": 14,
     "max_altitude_m": 90.0
   },
-  "mission": "configs/missions/airport_f14_approach.json",
+  "mission": "configs/missions/airport_aircraft_a_approach.json",
   "editor": {
     "export_name": "airport_scene_export",
     "wsl_export_dir": "/mnt/c/Users/PC/AppData/Local/Temp/airport_scene_export"

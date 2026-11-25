@@ -13,6 +13,7 @@
 | `visualization/` | `map_view.py`地图发布；`plan_viz_node.py`轨迹与匹配图；`matching.launch.py`回放启动 |
 | `px4/` | MAVSDK/PX4接口与航向探测 |
 | `coordination/` | 集中式两阶段多机协同调度中心（SQLite状态库、VLM初/复评适配与离线回放入口） |
+| `harbor/` | 沿海渔港三类任务入口：`part_recheck.py`（指定部位二次抵近三条件对照与单机模板规划）、`indoor_entry.py`（屋顶破口量取与入室/受阻核查）、`line_inspection.py`（沿屋檐连续巡检与 RGB-D/VLM 损伤定位）、`recorder.py`（单机 Chase+FrontCamera 双视角 MP4 录屏） |
 | `common/` | 路径、配置、日志、解码和分割ID工具 |
 
 仿真与视觉入口使用`airsim`环境；ROS2入口使用ROS环境的系统Python。主流程见[运行说明](../docs/USAGE.md#实时抵近)，配置见[场景说明](../docs/USAGE.md#场景配置与切换)。

@@ -1,0 +1,37 @@
+{
+  "mission_name": "coastal_harbor_eave_line_inspection_pilot",
+  "scene_config": "configs/simulation/scene_coastal_harbor.jsonc",
+  "drone_id": "Drone1",
+  "camera_id": "FrontCamera",
+  "camera_fov_deg": 90.0,
+  "rgb_resolution": [1920, 1080],
+  "depth_resolution": [640, 360],
+  "target_id": "Building_098",
+  "neutral_id": "HARBOR-LINE-1",
+  "line_spec": {
+    "description": "Building_098 北侧（临码头侧）32.2 m 连续仓库屋檐线：完好段(0-16.10m) → 受损掀翻/缺失段(16.10-26.83m) → 恢复完好段(26.83-32.20m)",
+    "building_origin_ue_m": [-781.581, -96.687, 0.035],
+    "axis_x_ue": [0.9999, -0.0141, 0.0],
+    "axis_y_ue": [0.0141, 0.9999, 0.0],
+    "eave_y_offset_m": 6.5,
+    "eave_z_ue_m": 12.6,
+    "s_min_m": 0.0,
+    "s_max_m": 32.2,
+    "local_x_at_s0_m": -16.1,
+    "flight_standoff_y_m": 16.5,
+    "flight_z_ue_m": 22.0,
+    "camera_pitch_deg": -38.0,
+    "cruise_speed_mps": 2.2,
+    "sample_spacing_m": 2.3,
+    "coverage_bin_m": 0.5,
+    "max_gsd_cm_per_px": 3.0
+  },
+  "evaluation_gt": {
+    "segments": [
+      {"label": "intact", "s_start_m": 0.0, "s_end_m": 16.1, "note": "屋面板 0-2 完好"},
+      {"label": "damaged", "s_start_m": 16.1, "s_end_m": 26.83, "note": "屋面板 3 掀翻变形 + 屋面板 4 缺失露檩条椽子"},
+      {"label": "intact", "s_start_m": 26.83, "s_end_m": 32.2, "note": "屋面板 5 恢复完好"}
+    ],
+    "damage_intervals_m": [[16.1, 26.83]]
+  }
+}

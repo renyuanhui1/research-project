@@ -1,5 +1,5 @@
 {
-  "profile": "airport_f14",
+  "profile": "airport_aircraft_a",
   "target_part": "tail",
   "horizontal_ranges_m": [45, 30, 18],
   "bearings_from_front_deg": [-12, 0, 12],

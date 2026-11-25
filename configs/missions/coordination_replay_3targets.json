@@ -7,12 +7,12 @@
       "target_id": "OBJ-A",
       "round1_drone_id": "Scout-1",
       "round2_drone_id": "Inspect-1",
-      "ground_truth_label": "02-f14-wing-curl (F-14 主翼上卷变形)",
+      "ground_truth_label": "02-aircraft-a-wing-curl (固定翼飞机A 主翼上卷变形)",
       "round1_uploads": [
         {
           "image_id": "OBJ-A-R1-01",
           "view_type": "nadir",
-          "path": "data/templates/airport_targets_20261116/02-f14-wing-curl/template.png",
+          "path": "data/templates/airport_targets_20261116/02-aircraft-a-wing-curl/template.png",
           "captured_at": "2026-11-21T03:00:10+00:00"
         }
       ],
@@ -20,7 +20,7 @@
         {
           "image_id": "OBJ-A-R2-01",
           "view_type": "closeup_oblique",
-          "path": "runs/approach/20261116-coarse-to-fine/02-f14-wing-curl/control/final-front.png",
+          "path": "runs/approach/20261116-coarse-to-fine/02-aircraft-a-wing-curl/control/final-front.png",
           "captured_at": "2026-11-21T03:04:20+00:00"
         }
       ]

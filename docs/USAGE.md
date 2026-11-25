@@ -69,14 +69,14 @@ python src/control/run_approach.py --out-dir runs/approach/close4-1793954736186 
 
 地图用于空间对照；参考点用于准备与评价，闭环不从目标坐标生成速度。4米指相机深度阈值，并不自动等于到指定部位表面的4米。
 
-### 同一F-14起点抵近不同部位
+### 同一飞机A起点抵近不同部位
 
-在任务配置`configs/missions/airport_f14_approach.json`的`common_start`中指定共同位置、航向和实际状态容差。三次试验分别重载场景并回到此起点，共用35度下俯相机、整机模板和统计数据。先确认UE机场场景、目标变换及当前无人机状态；准备命令会重载无人机并起飞。使用独立的空会话目录保留本轮全部数据。
+在任务配置`configs/missions/airport_aircraft_a_approach.json`的`common_start`中指定共同位置、航向和实际状态容差。三次试验分别重载场景并回到此起点，共用35度下俯相机、整机模板和统计数据。先确认UE机场场景、目标变换及当前无人机状态；准备命令会重载无人机并起飞。使用独立的空会话目录保留本轮全部数据。
 
 ```bash
 session_dir="$PWD/runs/approach/my-common-start"
 part=nose  # 分别使用 nose、wing、tail；tail为配置的一侧垂尾
-python src/capture/prepare_scene.py --profile airport_f14 --address 172.21.192.1 \
+python src/capture/prepare_scene.py --profile airport_aircraft_a --address 172.21.192.1 \
   --common-start --reference-dir "$session_dir/reference" \
   --target-part "$part" --out-dir "$session_dir/$part"
 python src/control/run_approach.py --out-dir "$session_dir/$part" --validate-only
@@ -90,14 +90,14 @@ python src/evaluation/eval_part_approach.py --run-dir "$session_dir/$part"
 
 从不同视角分别试验部位时，可在离线检查及正式控制命令中显式追加`--preflight-selected-part-only`。它仍输出三个部位的结果，只要求本次所选部位在参考图和本次起始图上通过；失败部位不启动抵近。使用`--mission <本轮任务JSON>`向准备入口指定独立的共同起点，保留原始任务配置和参考来源。控制报告会记录预检范围，不能将所选部位通过写成三个部位全部通过。
 
-飞机的首帧可见部位勘测可使用`--profile runs/approach/20261118-aircraft-template-e2e/profile.json --mission configs/missions/f35_approach.json --common-start`准备，以`--reference-dir`在本次空目录创建共用参考。该场景档案使用5 Hz前视与追踪相机，前视/追踪分辨率1920×1080、深度640×360。正式控制使用相同目录并指定`--preflight-selected-part-only --max-duration 240 --post-stop-hold-s 15 --post-stop-observe-s 10 --stop-drift-tolerance-m .35`，任务中的停车深度为6米。控制器从首条运动指令开始使用所选部位在RGB裁剪内的匹配结果。控制结束后运行`eval_part_approach.py`，同时核对`arrival_confirmed`、`stable_stop_verified`与独立部位射线核验。完整试次的数据入口为`runs/approach/20261118-aircraft-template-e2e/`。
+飞机的首帧可见部位勘测可使用`--profile runs/approach/20261118-aircraft-template-e2e/profile.json --mission configs/missions/aircraft_b_approach.json --common-start`准备，以`--reference-dir`在本次空目录创建共用参考。该场景档案使用5 Hz前视与追踪相机，前视/追踪分辨率1920×1080、深度640×360。正式控制使用相同目录并指定`--preflight-selected-part-only --max-duration 240 --post-stop-hold-s 15 --post-stop-observe-s 10 --stop-drift-tolerance-m .35`，任务中的停车深度为6米。控制器从首条运动指令开始使用所选部位在RGB裁剪内的匹配结果。控制结束后运行`eval_part_approach.py`，同时核对`arrival_confirmed`、`stable_stop_verified`与独立部位射线核验。完整试次的数据入口为`runs/approach/20261118-aircraft-template-e2e/`。
 
 实际采集间隔读取本次`runtime-scene.json`的相机`capture-interval`。以相同仿真时钟比较图像时间戳和机体状态时间戳，可以检查画面年龄；RGB与深度之间的时间差另行读取。二者都参与判断控制输入是否及时。
 
 新多候选模型参与部位控制时，在共同起点控制入口追加`--active-verifier <本轮冻结清单> --verifier-target-id <目标库ID>`。冻结清单的`configuration.active_control`指定`confirmation_frames`、`max_gap_s`和`max_input_age_s`，并绑定当前推理代码。目标ID必须对应准备档案中的Actor。主动模式与影子模式分别选择入口；`--validate-only`会加载权重并对保存的起始图执行一次核验，输出原始接受结果及确认状态。
 
 ```bash
-python src/control/run_approach.py --out-dir runs/approach/20261118-new-model-e2e/attempt-02 --preflight-selected-part-only --active-verifier runs/approach/20261118-new-model-e2e/frozen.json --verifier-target-id 05-f35-intact --max-duration 240 --post-stop-hold-s 15 --post-stop-observe-s 10 --stop-drift-tolerance-m .35
+python src/control/run_approach.py --out-dir runs/approach/20261118-new-model-e2e/attempt-02 --preflight-selected-part-only --active-verifier runs/approach/20261118-new-model-e2e/frozen.json --verifier-target-id 05-aircraft-b-intact --max-duration 240 --post-stop-hold-s 15 --post-stop-observe-s 10 --stop-drift-tolerance-m .35
 ```
 
 正式试次使用新准备的空目录。查看`active-verifier-manifest.json`核对冻结权重和参考，查看`control-signals.json`中的`new_model`及`command_dispatched`确认模型输出与运动的对应关系；原生输入和逐次预测保存在`active-inputs.h5`与`active-records.jsonl`。`active-evaluation.json`分别报告运动指令数量、几何核验和6米终点是否通过。启动动作接口或保存记录成功时，仍需根据`arrival_confirmed`和独立终点判定实际抵近结果。
@@ -365,12 +365,12 @@ source /opt/ros/humble/setup.bash
   --speed 4 --image-window --rviz
 ```
 
-## F-14机头、主翼与垂尾
+## 飞机A机头、主翼与垂尾
 
-目标配置为`airport_f14`，Actor为`StaticMeshActor_7888`。`nose`选择机头，`wing`选择一侧主翼，`tail`选择同侧垂尾。每个部位分别准备与归档；准备阶段重载机器人、按已知坐标采集模板并布置起点，控制阶段根据DINO与深度抵近。
+目标配置为`airport_aircraft_a`，Actor为`StaticMeshActor_7888`。`nose`选择机头，`wing`选择一侧主翼，`tail`选择同侧垂尾。每个部位分别准备与归档；准备阶段重载机器人、按已知坐标采集模板并布置起点，控制阶段根据DINO与深度抵近。
 
 ```bash
-python src/capture/prepare_scene.py --profile airport_f14 \
+python src/capture/prepare_scene.py --profile airport_aircraft_a \
   --address 172.21.192.1 --target-part nose \
   --out-dir runs/approach/<id>/nose
 python src/control/run_approach.py --out-dir runs/approach/<id>/nose \
@@ -387,7 +387,7 @@ python src/control/run_approach.py --out-dir runs/approach/<id>/nose \
 
 ```bash
 python src/evaluation/eval_part_reacquisition.py \
-  --run-dir runs/approach/20261113-f14-tail-local-refinement/tail \
+  --run-dir runs/approach/20261113-aircraft-a-tail-local-refinement/tail \
   --out-dir runs/approach/<研究id>
 ```
 
@@ -401,11 +401,11 @@ python src/evaluation/eval_part_reacquisition.py \
 
 ```bash
 python src/capture/collect_part_views.py \
-  --source-run runs/approach/20261113-f14-tail-local-refinement/tail \
-  --out-dir data/captures/f14_tail/<采集id> --validate-only
+  --source-run runs/approach/20261113-aircraft-a-tail-local-refinement/tail \
+  --out-dir data/captures/aircraft_a_tail/<采集id> --validate-only
 ```
 
-预检通过后去掉`--validate-only`开始采集。方案来自`configs/missions/f14_tail_reacquisition_validation.json`：45、30、18米水平距离，−12/0/+12度侧向角，−8/+8度航向偏移，每个条件3组RGB-D，共18个条件、54组。坐标只用于采集与事后核验；结束后在巡航位置悬停。输出目录必须为空。入口发现已有机器人会停止，不直接重载。
+预检通过后去掉`--validate-only`开始采集。方案来自`configs/missions/aircraft_a_tail_reacquisition_validation.json`：45、30、18米水平距离，−12/0/+12度侧向角，−8/+8度航向偏移，每个条件3组RGB-D，共18个条件、54组。坐标只用于采集与事后核验；结束后在巡航位置悬停。输出目录必须为空。入口发现已有机器人会停止，不直接重载。
 
 本入口若在取图前中断，可先检查原机器人状态，再用新的空采集目录和`--resume-from <中断目录>`恢复；仅接受零采样中断、相同配置且原机器人仍在出生点或预定航点附近悬停的情况。已有采样的中断目录应保留，不能套用该恢复方式。
 
@@ -413,8 +413,8 @@ python src/capture/collect_part_views.py \
 
 ```bash
 python src/evaluation/eval_part_reacquisition.py \
-  --run-dir runs/approach/20261113-f14-tail-local-refinement/tail \
-  --capture-dir data/captures/f14_tail/<采集id> \
+  --run-dir runs/approach/20261113-aircraft-a-tail-local-refinement/tail \
+  --capture-dir data/captures/aircraft_a_tail/<采集id> \
   --out-dir runs/approach/<评价id>
 ```
 
@@ -422,12 +422,12 @@ python src/evaluation/eval_part_reacquisition.py \
 
 ### 训练视角采集
 
-`capture/collect_training_views.py`按`configs/missions/f14_training_views.json`在飞机前向坐标系内随机采样位姿，用`SetPose`逐帧瞬移取图，不执行航线飞行：
+`capture/collect_training_views.py`按`configs/missions/aircraft_a_training_views.json`在飞机前向坐标系内随机采样位姿，用`SetPose`逐帧瞬移取图，不执行航线飞行：
 
 ```bash
 python src/capture/collect_training_views.py \
-  --source-run runs/approach/20261113-f14-tail-local-refinement/tail \
-  --out-dir data/captures/f14_tail/<采集id> --validate-only
+  --source-run runs/approach/20261113-aircraft-a-tail-local-refinement/tail \
+  --out-dir data/captures/aircraft_a_tail/<采集id> --validate-only
 ```
 
 预检只核对地图间距与参考点是否在画面内，不连接仿真；通过后去掉`--validate-only`，在UE关卡进入Play后开始采集。无需改动关卡的曝光设置：采集相机的自动曝光在场景加载后约30帧内从纯白收敛到正常亮度，采集器在记录前持续取图，直到连续3帧均值低于220且标准差大于5才进入采样，120秒仍未收敛则报错停止；收敛过程产生的帧不会写入数据集。准备阶段创建共用参考图时使用同一判据等待曝光收敛，避免模板和统计量取自过曝帧。默认5000个位姿，距离按70%取12–60米、30%取60–150米分层，对应相对垂尾约8–105米高度；侧向角±40度（相对飞机前向），航向偏移±20度，相机保持固定−35度。近中段用于部位匹配，远段用于整机粗定位。每帧保存原生RGB、深度、机头/主翼/垂尾/整机掩码、相机元数据和机体位姿，`report.json`每50帧写一次。`--count`覆盖采样数量；输出目录必须为空；`--resume-from`只接受准备阶段的零采样中断。
@@ -438,7 +438,7 @@ python src/capture/collect_training_views.py \
 
 ```bash
 python src/capture/rerender_part_masks.py \
-  --capture-dir data/captures/f14_tail/<采集id> \
+  --capture-dir data/captures/aircraft_a_tail/<采集id> \
   --run-dir runs/approach/<运行目录>
 ```
 
@@ -450,37 +450,37 @@ python src/capture/rerender_part_masks.py \
 
 ```bash
 python src/training/extract_part_features.py \
-  --capture-dir data/captures/f14_tail/20261114-training-views \
-  --run-dir runs/approach/20261113-f14-tail-local-refinement/tail \
+  --capture-dir data/captures/aircraft_a_tail/20261114-training-views \
+  --run-dir runs/approach/20261113-aircraft-a-tail-local-refinement/tail \
   --out-dir runs/training/<运行id>/patches-all \
   --patches runs/training/<运行id>/patches-all/patches.h5 --all-parts --skip 30
 ```
 
-F-14现有4970帧样本保存在`runs/training/f14_tail_acceptance/patches-all/patches.h5`，训练命令为：
+飞机A现有4970帧样本保存在`runs/training/aircraft_a_tail_acceptance/patches-all/patches.h5`，训练命令为：
 
 ```bash
 python src/training/train_local_matcher.py \
-  --features runs/training/f14_tail_acceptance/patches-all/features.jsonl \
-  --patch-dir runs/training/f14_tail_acceptance/patches-all/patches.h5 \
-  --capture-dir data/captures/f14_tail/20261114-training-views \
+  --features runs/training/aircraft_a_tail_acceptance/patches-all/features.jsonl \
+  --patch-dir runs/training/aircraft_a_tail_acceptance/patches-all/patches.h5 \
+  --capture-dir data/captures/aircraft_a_tail/20261114-training-views \
   --parts nose wing tail --out-dir runs/training/<运行id>/local-matcher
 ```
 
 训练和跨模板评价的`--patch-dir`、标签重建的`--patches-dir`均可传HDF5文件或PNG/NPY目录。每折权重为`fold*.pt`，指标为`metrics.json`，逐帧预测为`oof.jsonl`；接受层输出另含`acceptance.joblib`，每个候选模型的分数直接读取`oof.jsonl`中的`scores`。
 
-### F-35部位参考与训练采集
+### 飞机B部位参考与训练采集
 
-`configs/scenes/airport.json`已按F-35配置机头、主翼和一侧垂尾区域，共同参考点取机头。准备共同参考后按同一入口采集训练视角：
+`configs/scenes/airport.json`已按飞机B配置机头、主翼和一侧垂尾区域，共同参考点取机头。准备共同参考后按同一入口采集训练视角：
 
 ```bash
 python src/capture/prepare_scene.py --profile configs/scenes/airport.json \
-  --mission configs/missions/f35_approach.json --common-start \
+  --mission configs/missions/aircraft_b_approach.json --common-start \
   --reference-dir runs/approach/<运行目录>/nose/reference \
   --target-part nose --out-dir runs/approach/<运行目录>/nose
 python src/capture/collect_training_views.py \
   --source-run runs/approach/<运行目录>/nose \
-  --out-dir data/captures/f35/<采集id> \
-  --protocol configs/missions/f35_training_views.json
+  --out-dir data/captures/aircraft_b/<采集id> \
+  --protocol configs/missions/aircraft_b_training_views.json
 ```
 
 参考图以机头为中心时，三个部位ROI覆盖整机裁剪中心，冻结匹配器不产生候选，特征提取只输出裁剪块和三个部位的64×64目标，没有NCC特征；训练局部匹配器时使用`--parts nose wing tail`。
@@ -491,10 +491,10 @@ python src/capture/collect_training_views.py \
 
 ```bash
 python src/evaluation/eval_cross_template.py --mode transfer \
-  --features runs/training/f35/patches-all/features.jsonl \
-  --patch-dir runs/training/f35/patches-all/patches.h5 \
-  --capture-dir data/captures/f35/20261115-training-views \
-  --weights-dir runs/training/f14_tail_acceptance/local-matcher-allparts-fixed \
+  --features runs/training/aircraft_b/patches-all/features.jsonl \
+  --patch-dir runs/training/aircraft_b/patches-all/patches.h5 \
+  --capture-dir data/captures/aircraft_b/20261115-training-views \
+  --weights-dir runs/training/aircraft_a_tail_acceptance/local-matcher-allparts-fixed \
   --out-dir runs/evaluation/<运行id>
 ```
 
@@ -506,7 +506,7 @@ python src/evaluation/eval_cross_template.py --mode transfer \
 
 ```bash
 python src/evaluation/eval_nadir_template.py \
-  --capture-dir data/captures/f35/20261115-training-views \
+  --capture-dir data/captures/aircraft_b/20261115-training-views \
   --overhead-image data/captures/aircraft-overhead/StaticMeshActor_7890_overhead.png \
   --overhead-report data/captures/aircraft-overhead/capture-report.json \
   --mesh data/maps/airport_scene/meshes/StaticMeshActor_7890.npz \
@@ -548,13 +548,13 @@ python src/px4/servo_closed_loop_px4.py --help
 
 ## 远端粗定位与近端部位精对准
 
-UE Airport处于Play后，按目标配置执行斜视准备、匹配预检、控制和独立终点核验。第一项F-14示例：
+UE Airport处于Play后，按目标配置执行斜视准备、匹配预检、控制和独立终点核验。第一项飞机A示例：
 
 ```bash
-python src/capture/prepare_scene.py --profile runs/approach/20261116-coarse-to-fine/01-f14-intact/profile.json --oblique --out-dir runs/approach/20261116-coarse-to-fine/01-f14-intact/control
-python src/control/run_approach.py --out-dir runs/approach/20261116-coarse-to-fine/01-f14-intact/control --validate-only
-python src/control/run_approach.py --out-dir runs/approach/20261116-coarse-to-fine/01-f14-intact/control --max-duration 600
-python src/evaluation/eval_part_approach.py --run-dir runs/approach/20261116-coarse-to-fine/01-f14-intact/control
+python src/capture/prepare_scene.py --profile runs/approach/20261116-coarse-to-fine/01-aircraft-a-intact/profile.json --oblique --out-dir runs/approach/20261116-coarse-to-fine/01-aircraft-a-intact/control
+python src/control/run_approach.py --out-dir runs/approach/20261116-coarse-to-fine/01-aircraft-a-intact/control --validate-only
+python src/control/run_approach.py --out-dir runs/approach/20261116-coarse-to-fine/01-aircraft-a-intact/control --max-duration 600
+python src/evaluation/eval_part_approach.py --run-dir runs/approach/20261116-coarse-to-fine/01-aircraft-a-intact/control
 ```
 
 远端以整目标原型定位，连续3帧深度进入45米后切换指定部位ROI；6米停车要求3张独立深度帧确认。水平起点距离、相机俯角和实际高度分别记入任务与准备记录。准备、匹配、控制或终点核验失败时停在当前目标，分析后再执行；停车与独立终点核验均通过才进入下一目标。
@@ -621,7 +621,7 @@ python src/capture/collect_target_pilot.py --protocol configs/datasets/airport_p
 python src/capture/collect_target_pilot.py --protocol configs/datasets/airport_pilot.json
 ```
 
-协议配置目标编号、距离、各类方位、相机尺寸和深度容差；小样本限定使用主协议训练目标。采集采用无物理相机，结束后移除；输出目录必须为空，避免覆盖已有样本。现有配置为F-35座舱、机库910、轻损塔台共44组，RGB 1280×720、深度及标签640×360。
+协议配置目标编号、距离、各类方位、相机尺寸和深度容差；小样本限定使用主协议训练目标。采集采用无物理相机，结束后移除；输出目录必须为空，避免覆盖已有样本。现有配置为飞机B座舱、机库910、轻损塔台共44组，RGB 1280×720、深度及标签640×360。
 
 数据位于`data/captures/airport_targets/20261117-pilot/`，包括`samples.h5`、`report.json`、`plan.json`、相机配置和`overview.png`。HDF5每组的`rgb_png`可用`common.patches.read_rgb`读取，`depth_m`为float16米制透视距离；掩码字段见[架构说明](ARCHITECTURE.md#多目标斜视采集)。训练时用`valid_mask`排除未知像素，不能将所有非目标像素都直接当成背景。完整原生图像和深度只有一份，不逐帧保存诊断PNG；总览为离线生成的标签叠加图。
 
@@ -805,7 +805,7 @@ python runs/evaluation/20261117-opus-completion/audit_completion.py
 UE Airport进入Play后，先准备影子飞行起点并进行匹配预检：
 
 ```bash
-python src/capture/prepare_scene.py --profile runs/approach/20261116-coarse-to-fine/03-f14-nose-damage/profile.json --out-dir runs/approach/20261118-shadow-stability --oblique --start-distance 100 --speed 1.5 --camera-pitch 35 --stop-distance 6 --approach-bearing-offset 12 --address 192.168.31.178
+python src/capture/prepare_scene.py --profile runs/approach/20261116-coarse-to-fine/03-aircraft-a-nose-damage/profile.json --out-dir runs/approach/20261118-shadow-stability --oblique --start-distance 100 --speed 1.5 --camera-pitch 35 --stop-distance 6 --approach-bearing-offset 12 --address 192.168.31.178
 python src/control/run_approach.py --out-dir runs/approach/20261118-shadow-stability --validate-only
 python src/control/run_approach.py --out-dir runs/approach/20261118-shadow-stability --shadow-verifier runs/evaluation/20261118-shadow-stability/frozen.json --max-duration 180 --post-stop-hold-s 15 --post-stop-observe-s 10 --stop-drift-tolerance-m .35
 python src/evaluation/eval_part_approach.py --run-dir runs/approach/20261118-shadow-stability

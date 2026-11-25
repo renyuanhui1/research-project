@@ -44,16 +44,16 @@
 | 局部热图匹配器与接受层训练 | `src/training/` | 只支持固定部位，不接收模板输入 |
 | UE场景几何导出 | `src/debug/maps/` | 只导出场景档案`map.actors`里列出的actor |
 | 场景全部actor清单与包围盒 | `data/maps/airport_scene/source/actors.json`、`object-bounds.json` | 约7900个静态网格actor |
-| 俯视图 | `data/captures/aircraft-overhead/` | F-14、F-35各一张，80米 |
+| 俯视图 | `data/captures/aircraft-overhead/` | 飞机A、飞机B各一张，80米 |
 
 **现有数据与权重**
 
 | 内容 | 位置 |
 |---|---|
-| F-14训练采集（5000帧） | `data/captures/f14_tail/20261114-training-views/` |
-| F-35训练采集（5000帧） | `data/captures/f35/20261115-training-views/` |
-| F-14三分支局部匹配器5折权重 | `runs/training/f14_tail_acceptance/local-matcher-allparts-fixed/fold0-4.pt` |
-| F-35三分支局部匹配器5折权重 | `runs/training/f35/local-matcher/fold0-4.pt` |
+| 飞机A训练采集（5000帧） | `data/captures/aircraft_a_tail/20261114-training-views/` |
+| 飞机B训练采集（5000帧） | `data/captures/aircraft_b/20261115-training-views/` |
+| 飞机A三分支局部匹配器5折权重 | `runs/training/aircraft_a_tail_acceptance/local-matcher-allparts-fixed/fold0-4.pt` |
+| 飞机B三分支局部匹配器5折权重 | `runs/training/aircraft_b/local-matcher/fold0-4.pt` |
 | 训练用搜索块patches | 只在服务器237：`/home/ryh2025/2025ryh/research-project/runs/training/`下 |
 
 **已知结论，执行时必须考虑**
@@ -97,7 +97,7 @@
 
 **内容**
 
-1. **跨机型迁移**：先用F-14三分支权重在F-14各自的留出折上复现已记录的机头74.3%、主翼98.7%、垂尾86.5%，确认权重正确；再用F-14的5个折模型分别推理F-35全部帧，报均值±标准差，与F-35自训结果（79.2%/95.4%/95.7%，按垂尾/主翼/机头）对比。F-35只能比定位，没有接受层特征。
+1. **跨机型迁移**：先用飞机A三分支权重在飞机A各自的留出折上复现已记录的机头74.3%、主翼98.7%、垂尾86.5%，确认权重正确；再用飞机A的5个折模型分别推理飞机B全部帧，报均值±标准差，与飞机B自训结果（79.2%/95.4%/95.7%，按垂尾/主翼/机头）对比。飞机B只能比定位，没有接受层特征。
 2. **俯视模板基线**：从两张80米俯视图中按网格投影截出整机模板，用冻结DINO在两架飞机各5000帧斜视图上匹配，统计峰值落在整机掩码内的比例，按12—30/30—60/60—100/100—150米分档。对照组为当前使用的斜视模板。
 3. **面积归一化指标**：实现并与3像素指标并列报告。
 
