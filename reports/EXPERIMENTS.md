@@ -23,12 +23,17 @@
 |---|---|
 | 部位抵近试验 | [runs/approach/](../runs/approach/) |
 | 洞口匹配、对准与入室 | [runs/opening-validation/](../runs/opening-validation/)、[runs/opening-alignment/](../runs/opening-alignment/)、[runs/opening-entry/](../runs/opening-entry/)、[runs/indoor/](../runs/indoor/) |
+| 离线评价、复验与多目标全场景评估 | [runs/evaluation/](../runs/evaluation/)、[runs/validation/](../runs/validation/) |
+| 模型训练与跨骨干迁移实验 | [runs/training/](../runs/training/)、[runs/transfer/](../runs/transfer/) |
+| 多机协同调度与端到端仿真 | [runs/coordination/](../runs/coordination/) |
+| 沿海渔港场景构建与三类巡检闭环 | [runs/scenes/](../runs/scenes/)、[runs/harbor/](../runs/harbor/) |
+| 资产核对、建库、采集索引与 RViz 审阅 | [runs/inspection/](../runs/inspection/)、[runs/catalog/](../runs/catalog/)、[runs/capture/](../runs/capture/)、[runs/visualization/](../runs/visualization/) |
 | 采集素材与开发视图 | [data/captures/](../data/captures/) |
-| 模板与统计帧 | [data/templates/airport_7890/](../data/templates/airport_7890/) |
-| 飞机网格与占用图 | [data/maps/airport_scene/](../data/maps/airport_scene/) |
+| 模板与统计帧 | [data/templates/airport_7890/](../data/templates/airport_7890/)、[data/templates/airport_7888/](../data/templates/airport_7888/)、[data/templates/airport_targets_20261116/](../data/templates/airport_targets_20261116/)、[data/templates/coastal_harbor_pilot/](../data/templates/coastal_harbor_pilot/) |
+| 飞机网格、目标库与占用图 | [data/maps/airport_scene/](../data/maps/airport_scene/)、[data/maps/airport_targets_20261116/](../data/maps/airport_targets_20261116/) |
 | 相机帧率（含720p、1080p、采集间隔）与网络诊断 | [debug/camera/](../debug/camera/)、[debug/network/](../debug/network/) |
 | 航点飞行 | [runs/waypoint/](../runs/waypoint/) |
-| 海港关卡检查、渲染性能与 RGB-D 取图 | [runs/scenes/](../runs/scenes/)、[海港目标与观察位](../data/metadata/coastal_harbor/) |
+| 海港目标与观察位 | [海港目标与观察位](../data/metadata/coastal_harbor/) |
 
 包围盒评价读取`data/metadata/targets/`，表面距离使用机场三角面；占用图上的距离不能代替部位的真实距离。`debug/`在`.gitignore`内，不经Git同步。
 
@@ -610,7 +615,7 @@ UE Airport 用无物理观察相机在 35° 俯角、12/35/75/125 米采集飞�
 |---|---|---|
 | 单相机链路 | 同一静止前视 1080p 场景，采集间隔 0.0167 秒，WSL 网关 27.71 FPS，局域网 16.05 FPS。网关前视 720p 为 30.12 FPS，局域网单 Chase 720p 为 27.67 FPS。 | [同场景地址对照](../debug/camera/20261118-front-single-resolution/address-recheck/results.json) · [前视 720p](../debug/camera/20261118-front-single-resolution/wsl-720p/results.json) · [Chase 720p](../debug/camera/20261118-chase-single-720p/results.json) |
 | 双路录像与同步 | 局域网双路 720p 首轮前视／Chase 为 13.06／13.34 FPS，窗口未最小化且不在前台的复测为 9.26／10.37 FPS。单轮窗口对照不足以解释飞行卡顿。网关双路 1080p 按 5 Hz 请求，35 秒实收三路各 161 帧，全部前视帧能在 50 毫秒内配到深度。 | [双路录制](../debug/camera/20261118-camera-720p/results.json) · [窗口复测](../debug/camera/20261118-camera-720p/windowed-unfocused/results.json) · [网关收帧与配对](../runs/approach/20261118-wsl-gateway-retest/transport/results.json) |
-| 到达与停车 | 原控制器在局域网和网关均有通过记录。冻结新模型在局域网两次失锁，终点距部位表面 22.45、13.84 米；网关复测同样失锁，距表面 18.47 米，停稳通过，6 米到达失败。更换链路改善了 Chase 录像连续性，未消除失锁。 | 本地原始记录 `runs/approach/20261118-{aircraft-template-e2e,new-model-e2e,new-model-e2e-repeat,wsl-gateway-retest}/` |
+| 到达与停车 | 原控制器在局域网和网关均有通过记录。冻结新模型在局域网两次失锁，终点距部位表面 22.45、13.84 米；网关复测同样失锁，距表面 18.47 米，停稳通过，6 米到达失败。更换链路改善了 Chase 录像连续性，未消除失锁。 | 保留链路实测 [20261118-wsl-gateway-retest/transport/](../runs/approach/20261118-wsl-gateway-retest/transport/)；早期联调目录 `20261118-{aircraft-template-e2e,new-model-e2e,new-model-e2e-repeat}` 及 `attempt-01` 已于 2026-11-26 清理 |
 | 同步、身份与交接 | 早期同步试次因 RGB-D 配对超时中断。影子试验中原控制器两轮到达，错模板回放仍有 15 个误确认帧。后续在线影子试次连续 32 个结果身份正确。三轮实际近端接管均命中指定部位并停稳，均先触发高度保护，未达到 6 米。调整后另一次达到停车条件，末帧滤波距离 5.918 米、保持最大漂移 0.087 米，仅验证一次。 | 本地审计 `runs/evaluation/20261118-online-identity-shadow/audit.json`、`20261118-active-part-handoff/` 各轮接管审计及 `20261118-adaptive-height-handoff/flight/adaptive-audit.json`（后两项也位于 `runs/evaluation/`） |
 
 [静止收帧脚本](../runs/approach/20261118-wsl-gateway-retest/probe_transport.py)读取相机、深度和时钟，在指定的新输出目录保存结果。可用归档的[到达时间戳](../runs/approach/20261118-wsl-gateway-retest/transport/sensor-arrivals.csv)、[时钟](../runs/approach/20261118-wsl-gateway-retest/transport/clock.csv)和[运行日志](../runs/approach/20261118-wsl-gateway-retest/transport/projectairsim_client.log)复核本轮采集。
@@ -621,7 +626,7 @@ UE Airport 用无物理观察相机在 35° 俯角、12/35/75/125 米采集飞�
 
 通过 178 WSL 网关 `172.21.192.1` 串行运行 19 个目标的斜视巡检。各目标沿用它的历史进场和距离判据。飞机模型和塔台使用原有部位 ROI 交接，机库在确认屋面交接后切换俯视，尝试定高外部水平对准。7889 以基准方向及偏转 30 度各做三轮，同一模板、归一化样本和 ROI。原始匹配图与录制由试验入口保存在各轮目录。
 
-19 项基准复验中，7 项完整通过、4 项止于远端预检、1 项近端命中并停稳但先触发高度保护。7 座机库确认屋面交接，切成俯视后 7/7 的屋面参考点出画，均未发出近端运动指令，退出原因为 5 项匹配失败、2 项高度保护。第 4 项恢复已登记的起点帧归一化后通过。7889 两个方位各通过 1/3，6 轮均停稳。19 项历史证据的报告、终点核验与图像哈希一致。UE Play 已关闭，Windows 无监听，WSL 的 8989 和 8990 均不可达。逐目标日志和失败原因见[结果汇总](../runs/evaluation/20261118-airport-handoff-revalidation/summary.json)、[目标表](../runs/evaluation/20261118-airport-handoff-revalidation/targets.csv)和[关停验证](../runs/evaluation/20261118-airport-handoff-revalidation/shutdown.json)。
+19 项基准复验中，7 项完整通过、4 项止于远端预检、1 项近端命中并停稳但先触发高度保护。7 座机库确认屋面交接，切成俯视后 7/7 的屋面参考点出画，均未发出近端运动指令，退出原因为 5 项匹配失败、2 项高度保护。第 4 项恢复已登记的起点帧归一化后通过。7889 两个方位各通过 1/3，6 轮均停稳。19 项历史证据的报告、终点核验与图像哈希一致。UE Play 已关闭，Windows 无监听，WSL 的 8989 和 8990 均不可达。逐目标日志和失败原因见[结果汇总](../runs/evaluation/20261118-airport-handoff-revalidation/summary.json)、[目标表](../runs/evaluation/20261118-airport-handoff-revalidation/targets.csv)和[关停验证](../runs/evaluation/20261118-airport-handoff-revalidation/shutdown.json)（各目标原始子目录已于 2026-11-26 清理，保留顶层汇总文件）。
 
 
 ## 2026-11-19 新模型远端定位与分阶段接管验证
@@ -1195,7 +1200,7 @@ Windows UE 5.2.1、Blender 3.6.23、RTX 4060 Ti。以用户选定的草案多边
 - **破口几何测量**：深度图成功检出 12 cm 细钢檩条与木椽子。`Building_098` 实测最大净空半径 **`1.682–1.691 m`**（误差仅 `4–13 mm`），宽 `5.86–5.95 m`（含掀翻板缝隙，误差 `0.84–0.93 m`），缺失面积 **`43.09–43.44 m²`**（相对误差 **`8.9%–9.6%`**）；`Building_095` 实测最大净空半径 **`1.660–1.729 m`**，面积 `42.20–42.95 m²`。
 - **受阻中止（`Building_095`，阈值 `2.0 m`）**：进入前即判定 `1.66 m < 2.00 m`，执行 `blocked_abort` 安全中止，未尝试穿洞。
 - **原状穿洞实飞核查（`Building_098`，阈值 `1.60 m`）**：先后以 `min_floor_guard_m = 2.8 m` 和 `1.1 m` 两次实飞，无人机均精准水平对准中间格并开始垂直下降，但分别在屋面上方 `15.95 m` 和 `14.17 m` 处因两侧水平钢檩条进入中央 40% 安全视锥触发 `floor_depth_guard`（`guard_depth = 1.02 m`）安全拦停，**0 碰撞**，但**未进入室内**（VLM 独立核验 `inside_building = false`）。
-- **结论与未验证项**：实飞证实原状 `ShedTornRoof` 因两根钢檩条横跨确属物理受阻样本；待后续离线导出移除 `Building_098` 缺失格中间两根钢檩条的网格变体（净空半径扩至 `2.51 m`）后，再补跑同阈值下 `Building_098`（真入室+室内取证+退出）与 `Building_095`（原状受阻）物理双例对照。[测量记录](../runs/harbor/20261125-task2-measure/summary.json) · [098 俯视叠加](../runs/harbor/20261125-task2-measure/Building_098/nadir_breach_overlay.jpg) · [098 入室 v2 核查](../runs/harbor/20261125-task2-entry-v2/summary.json) · [095 受阻记录](../runs/harbor/20261125-task2-entry-blocked/summary.json)
+- **结论与未验证项**：实飞证实原状 `ShedTornRoof` 因两根钢檩条横跨确属物理受阻样本；待后续离线导出移除 `Building_098` 缺失格中间两根钢檩条的网格变体（净空半径扩至 `2.51 m`）后，再补跑同阈值下 `Building_098`（真入室+室内取证+退出）与 `Building_095`（原状受阻）物理双例对照。[测量记录](../runs/harbor/20261125-task2-measure/summary.json) · [098 俯视叠加](../runs/harbor/20261125-task2-measure/Building_098/nadir_breach_overlay.jpg) · [098 首次入室尝试](../runs/harbor/20261125-task2-entry-passable/summary.json) · [098 入室 v2 核查](../runs/harbor/20261125-task2-entry-v2/summary.json) · [095 受阻记录](../runs/harbor/20261125-task2-entry-blocked/summary.json)
 
 ### 任务 3：沿线连续巡检（`Building_098` 32.2 m 连续仓库屋檐）
 
@@ -1230,3 +1235,14 @@ Windows UE 5.2.1、Blender 3.6.23、RTX 4060 Ti。以用户选定的草案多边
     - [对照汇总 JSON](../runs/harbor/20261125-task2-passable-vs-blocked-video/summary.json) · [098 破口叠加图](../runs/harbor/20261125-task2-passable-vs-blocked-video/Building_098/nadir_breach_overlay.jpg) · [098 室内实拍](../runs/harbor/20261125-task2-passable-vs-blocked-video/Building_098/interior_forward.jpg) · [098 穿顶入室录屏](../runs/harbor/20261125-task2-passable-vs-blocked-video/Building_098/indoor_entry.mp4)
 - **任务 3 实飞录屏复验（`--detector rgbd --record-video`）**：`35.99 s`、15 帧、**0 碰撞**，有效覆盖率 **`100.0%`**、漏拍 **`0`**、估计区间 `[16.00, 26.00] m`（起点误差 `0.10 m`、终点误差 `0.83 m`、**IoU `0.9091`**），同步生成带实时红色破损框的双视角录屏。[报告](../runs/harbor/20261125-task3-standalone-video/report.md) · [沿线巡检录屏](../runs/harbor/20261125-task3-standalone-video/line_inspection.mp4)
 - **回归测试与未验证项**：单元测试 `test_harbor_part_recheck.py`、`test_harbor_indoor_entry.py`、`test_harbor_line_inspection.py`、`test_coordination.py` 共 **17/17 全部通过**。未验证项：留出集 26 个重点目标（含 12 辆车与多栋连排仓库沿线）的跨类别泛化评测，以及微损细粒度 VLM 召回率提升。
+
+## 2026-11-26 实验文件盘点与空间清理
+
+**目的**：按用户确认的 A + B + C 清单清理历史中断目录、废弃重试子目录及无回放依赖的新版重型输入缓存，保留全部正式实验结果、RViz 模板切换/入室回放数据、`.mp4` 录屏、多机协同及沿海渔港二场景数据。本次未运行新实验或修改控制代码。
+
+**清理范围与实测结果（共删除 29,601 个文件、61.67 GiB / 66,216,870,651 字节，磁盘使用率由 26% 降至 20%）**：
+- **A 组（零散残余与半截中断目录，3,174 个文件、6.45 GiB）**：清理根目录遗留 `projectairsim_client.log`、空目录 `runs/waypoint/waypoint-flight`、`data/captures/aircraft_a_tail/20261114-exposure-check-2`、`runs/scenes/20261124-boundary-concept`、30 个空目录与 17 个 0 字节日志，以及未被引用的中断目录 `20261119-p1-revalidation/10-hangar-209/repeat-01-incomplete-1795100991`、`20261120-p26-graded-active/10-hangar-209/repeat-01-incomplete-1795144684` 与 `1795148791`（保留被引用的 `18-tower-7889/repeat-01-incomplete-1795151552`）。
+- **B 组（旧版过程重试与作废批跑，13,452 个文件、16.91 GiB）**：清理 `runs/approach/20261116-coarse-to-fine/` 中未被 `summary.json` 收录的 57 个过程重试子目录（`892.2 MiB`）、`runs/opening-validation/20261112-alignment-preflight`，以及被 11-19 复验取代的 `runs/evaluation/20261118-airport-handoff-revalidation/` 下 19 个目标原始子目录（保留顶层 `summary.json`、`targets.csv`、`shutdown.json` 等摘要文件）。
+- **C 组（新版过程调试与无回放依赖缓存，12,975 个文件、38.31 GiB）**：清理 11-18 未入报告的调试目录（`20261118-aircraft-template-e2e`、`20261118-aircraft-b-instance-verification`、`20261118-aircraft-b-staged-shadow`、`20261118-identity-persistence`、`20261118-new-model-e2e`、`20261118-new-model-e2e-repeat`、`20261118-wsl-gateway-retest/attempt-01`、`20261118-shadow-stability`、`evaluation/20261118-{shadow-stability,active-replay,visible-part-evidence}`），并清理 `runs/evaluation/20261120-p26-graded-active/` 下的 58 份 `.h5`（`active-inputs.h5` 等）与 19 个 `viz_dump/` 目录（保留报告、日志与全套 `.mp4` 录像）。
+
+**保留与限制**：`runs/approach/20261116-coarse-to-fine/` 全部 28 个验收目录（含 `viz_dump/`、`frames/`、`run.h5`、`.mp4`）、`runs/approach/20261119-active-remaining-targets/`、`runs/opening-*`、`runs/indoor/`、`runs/coordination/`、`runs/scenes/` 与 `runs/harbor/` 均完整保留；同时在 [review.py](../runs/visualization/20261119-airport-target-review/review.py) 补齐 `f14`/`f35` 到 `aircraft-a`/`aircraft-b` 的旧档案兼容映射，经 `--batch passed --verify` 与 `--batch active --verify` 对全 19 目标核验通过；已清理目录不再支持离线逐帧回放或重算。

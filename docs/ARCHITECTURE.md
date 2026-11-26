@@ -14,6 +14,8 @@
 | `src/visualization/` | ROS2地图发布、匹配图与轨迹回放 |
 | `src/px4/` | MAVSDK/PX4接口与航向检查 |
 | `src/coordination/` | 集中式两阶段多机协同调度中心、SQLite任务状态库与VLM评估适配 |
+| `src/harbor/` | 沿海渔港三类巡检闭环（指定部位二次抵近与单机模板规划、破口测量与入室、沿线巡检与双视角录屏） |
+| `src/scene_build/` | 沿海渔港道路、地块、地形外缘、建筑风损与可通行屋顶等 UE/Blender 建模与构建脚本 |
 
 Python入口定位项目根目录，并只将`src/`加入搜索路径；跨模块使用`common`、`perception`、`control`等包导入。资产路径相对项目根目录解析，不依赖启动工作目录。`common/profiles.py`加载`--profile`或`UAV_SCENE_PROFILE`指定的JSON；默认使用`airport`。
 
