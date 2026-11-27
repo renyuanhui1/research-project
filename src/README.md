@@ -10,7 +10,7 @@
 | `debug/` | 图像解码、出生点、目标、深度分割、模板响应与碰撞体素探测 |
 | `debug/maps/` | UE导出、对象范围、全场碰撞采样、网格转换和栅格生成 |
 | `evaluation/` | `eval_run.py`离线轨迹与包围盒评价；`eval_target_localization.py`模板定位对照 |
-| `visualization/` | `map_view.py`地图发布；`plan_viz_node.py`轨迹与匹配图；`matching.launch.py`回放启动 |
+| `visualization/` | `map_view.py`地图发布；`plan_viz_node.py`轨迹与匹配图；`matching.launch.py`回放启动；`rerun_replay.py` Rerun离线多模态回放与实验对照 |
 | `px4/` | MAVSDK/PX4接口与航向探测 |
 | `coordination/` | 集中式两阶段多机协同调度中心（SQLite状态库、VLM初/复评适配与离线回放入口） |
 | `harbor/` | 沿海渔港三类任务入口：`part_recheck.py`（指定部位二次抵近三条件对照与单机模板规划）、`indoor_entry.py`（屋顶破口量取与入室/受阻核查）、`line_inspection.py`（沿屋檐连续巡检与 RGB-D/VLM 损伤定位）、`recorder.py`（单机 Chase+FrontCamera 双视角 MP4 录屏） |

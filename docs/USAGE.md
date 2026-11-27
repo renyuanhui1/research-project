@@ -243,6 +243,33 @@ source /opt/ros/humble/setup.bash
 
 原始响应位于`run.h5`的`similarity`和`viz_dump/step_*.npz`的`sim`。回放直接读取记录，不重跑DINO。核对其他试验时需使用对应控制温度。
 
+### Rerun 离线回放与实验对照
+
+`src/visualization/rerun_replay.py`在`airsim`环境中运行，不需要ROS2和UE。它把已有试验记录导出为`.rrd`多模态时间轴文件，并支持追加`--serve`直接启动网页查看器（在WSL2中推荐通过Windows浏览器打开输出的`http://127.0.0.1:9090/...`地址，直接使用宿主机GPU渲染）。
+
+1. 回放单次洞口对准或穿洞入室记录（同步展示3D点云与轨迹、匹配/跟踪画面、米制深度图、高度/误差/速度曲线和状态日志）：
+
+```bash
+conda activate airsim
+python src/visualization/rerun_replay.py opening \
+  --flight-dir runs/opening-entry/20261112-hangar2019/control \
+  --out runs/visualization/hangar2019-entry.rrd \
+  --serve
+```
+
+2. 同屏对比两组渔港Task 2穿洞入室实验（如基线与抗风控制器，同步展示双视角MP4录像、3D破口点云与起终点、风向箭头及高度/误差/抗风补偿曲线）：
+
+```bash
+conda activate airsim
+python src/visualization/rerun_replay.py compare-harbor \
+  --baseline-dir runs/harbor/20261127-task2-nativewind18-baseline \
+  --method-dir runs/harbor/20261127-task2-nativewind18-dob-cbf \
+  --out runs/visualization/wind18-compare.rrd \
+  --serve
+```
+
+仅生成`.rrd`文件不启动网页服务时去掉`--serve`；已有`.rrd`文件可随时用`rerun --serve-web <路径.rrd>`重新打开查看。可用`--web-port`和`--grpc-port`调整端口，完整参数见`--help`。
+
 ## 洞口匹配开发验证
 
 固定参考图、模板裁剪框和开发图像清单位于`configs/missions/hangar_opening_validation.json`。离线入口生成模板、参考图统计HDF5、逐图匹配及总览，不连接UE：

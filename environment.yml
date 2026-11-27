@@ -17,3 +17,4 @@ dependencies:
       - PyYAML
       - commentjson
       - mavsdk
+      - rerun-sdk==0.39.0
