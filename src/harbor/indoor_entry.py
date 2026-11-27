@@ -154,6 +154,9 @@ async def run_indoor_task(
     min_clearance_override: float | None,
     vlm_client: OllamaVLMClient | None,
     record_video: bool = False,
+    controller: str = "baseline_p",
+    cbf_overrides: dict[str, Any] | None = None,
+    wind_ned_mps: tuple[float, float, float] = (0.0, 0.0, 0.0),
 ) -> dict[str, Any]:
     from projectairsim import Drone, ProjectAirSimClient, World
 
@@ -180,6 +183,9 @@ async def run_indoor_task(
         world.client = client
         world.sim_instance_idx = -1
         world.load_scene(runtime_scene, delay_after_load_sec=2)
+        if any(abs(v) > 1e-6 for v in wind_ned_mps):
+            world.set_wind_velocity(float(wind_ned_mps[0]), float(wind_ned_mps[1]), float(wind_ned_mps[2]))
+            print(f"[Native Wind] world.set_wind_velocity={world.get_wind_velocity()} m/s", flush=True)
         drone_id = cfg["drone_id"]
         drone = Drone(client, world, drone_id)
         if "collision_info" in drone.robot_info:
@@ -266,6 +272,8 @@ async def run_indoor_task(
                             "target_interior_alt_m": float(edef["target_interior_alt_ue_m"]),
                             "min_floor_guard_m": float(edef["min_floor_guard_m"]),
                             "max_duration_s": float(edef["max_duration_s"]),
+                            "controller": controller,
+                            "cbf_config": dict(cbf_overrides or {}),
                         }
                         sres = await run_opening_visual_servo(
                             client=client,
@@ -356,12 +364,20 @@ async def run_indoor_task(
                 }
             )
     finally:
+        try:
+            if any(abs(v) > 1e-6 for v in wind_ned_mps):
+                world.set_wind_velocity(0.0, 0.0, 0.0)
+        except Exception:
+            pass
         client.disconnect()
 
     report = {
         "finished_at": datetime.now().isoformat(),
         "address": address,
         "mode": mode,
+        "controller": controller,
+        "cbf_overrides": dict(cbf_overrides or {}),
+        "wind_ned_mps": list(wind_ned_mps),
         "min_passable_clearance_radius_m": min_clr,
         "targets": results,
     }
@@ -384,6 +400,11 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     p.add_argument("--ssh-key", default=DEFAULT_SSH_KEY)
     p.add_argument("--think", action=argparse.BooleanOptionalAction, default=False)
     p.add_argument("--record-video", action=argparse.BooleanOptionalAction, default=False)
+    p.add_argument("--controller", choices=("baseline_p", "cbf_qp"), default="baseline_p")
+    p.add_argument("--cbf-depth", action=argparse.BooleanOptionalAction, default=True)
+    p.add_argument("--cbf-memory", action=argparse.BooleanOptionalAction, default=True)
+    p.add_argument("--wind-north-mps", type=float, default=0.0)
+    p.add_argument("--wind-east-mps", type=float, default=0.0)
     return p.parse_args(argv)
 
 
@@ -401,6 +422,10 @@ def main(argv: list[str] | None = None) -> None:
             temperature=0.1,
             timeout_s=110.0,
         )
+    cbf_overrides = {
+        "enable_depth_cbf": bool(args.cbf_depth),
+        "enable_obstacle_memory": bool(args.cbf_memory),
+    }
     asyncio.run(
         run_indoor_task(
             cfg=cfg,
@@ -411,6 +436,9 @@ def main(argv: list[str] | None = None) -> None:
             min_clearance_override=args.min_clearance_m,
             vlm_client=vlm_client,
             record_video=args.record_video,
+            controller=args.controller,
+            cbf_overrides=cbf_overrides,
+            wind_ned_mps=(float(args.wind_north_mps), float(args.wind_east_mps), 0.0),
         )
     )
 

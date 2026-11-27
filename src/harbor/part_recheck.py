@@ -1100,6 +1100,9 @@ async def run_benchmark(
     selected_conditions: set[str] | None = None,
     reuse_starts_dir: Path | None = None,
     record_video: bool = False,
+    controller: str = "baseline_p",
+    cbf_overrides: dict[str, Any] | None = None,
+    wind_ned_mps: tuple[float, float, float] = (0.0, 0.0, 0.0),
 ) -> dict[str, Any]:
     from projectairsim import Drone, ProjectAirSimClient, World
 
@@ -1135,6 +1138,9 @@ async def run_benchmark(
         world.client = client
         world.sim_instance_idx = -1
         world.load_scene(runtime_scene, delay_after_load_sec=2)
+        if any(abs(v) > 1e-6 for v in wind_ned_mps):
+            world.set_wind_velocity(float(wind_ned_mps[0]), float(wind_ned_mps[1]), float(wind_ned_mps[2]))
+            print(f"[Native Wind] world.set_wind_velocity={world.get_wind_velocity()} m/s", flush=True)
 
         drone_id = cfg["drone_id"]
         drone = Drone(client, world, drone_id)
@@ -1227,6 +1233,8 @@ async def run_benchmark(
                                 "min_alt_m": float(tgt["min_alt_m"]),
                                 "template_roi": tgt.get("template_roi", servo_defaults["template_roi"]),
                                 "max_duration_s": min(float(servo_defaults["max_duration_s"]), max_duration_s - 6.0),
+                                "controller": controller,
+                                "cbf_config": dict(cbf_overrides or {}),
                             }
                             servo_res = await run_dino_visual_servo(
                                 client=client,
@@ -1444,6 +1452,9 @@ async def run_benchmark(
                                     "min_alt_m": float(tgt["min_alt_m"]),
                                     "template_roi": tgt.get("template_roi", servo_defaults["template_roi"]),
                                     "max_duration_s": min(float(servo_defaults["max_duration_s"]), max(8.0, rem_s - 4.0)),
+                                    "controller": controller,
+                                    "cbf_config": dict(cbf_overrides or {}),
+                                    "wind_disturbance_ned": list(wind_ned_mps),
                                 }
                                 servo_res = await run_dino_visual_servo(
                                     client=client,
@@ -1553,12 +1564,20 @@ async def run_benchmark(
                         json.dumps(trials, indent=2, ensure_ascii=False), encoding="utf-8"
                     )
     finally:
+        try:
+            if any(abs(v) > 1e-6 for v in wind_ned_mps):
+                world.set_wind_velocity(0.0, 0.0, 0.0)
+        except Exception:
+            pass
         client.disconnect()
 
     summary = summarize_trials(trials, target_stop_dist_m=stop_dist_m)
     meta = {
         "finished_at": datetime.now().isoformat(),
         "address": address,
+        "controller": controller,
+        "cbf_overrides": dict(cbf_overrides or {}),
+        "wind_ned_mps": list(wind_ned_mps),
         "planner_mode": planner_mode,
         "vlm_backend": vlm.backend,
         "vlm_model": vlm.model_name,
@@ -1604,6 +1623,12 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     p.add_argument("--ssh-key", default=DEFAULT_SSH_KEY)
     p.add_argument("--think", action=argparse.BooleanOptionalAction, default=False)
     p.add_argument("--record-video", action=argparse.BooleanOptionalAction, default=False)
+    p.add_argument("--controller", choices=("baseline_p", "cbf_qp"), default="baseline_p")
+    p.add_argument("--cbf-fov", action=argparse.BooleanOptionalAction, default=True)
+    p.add_argument("--cbf-depth", action=argparse.BooleanOptionalAction, default=True)
+    p.add_argument("--cbf-memory", action=argparse.BooleanOptionalAction, default=True)
+    p.add_argument("--wind-north-mps", type=float, default=0.0)
+    p.add_argument("--wind-east-mps", type=float, default=0.0)
     return p.parse_args(argv)
 
 
@@ -1633,6 +1658,11 @@ def main(argv: list[str] | None = None) -> None:
             ssh_key=args.ssh_key.strip() if args.ssh_key else None,
             think=args.think,
         )
+        cbf_overrides = {
+            "enable_fov_cbf": bool(args.cbf_fov),
+            "enable_depth_cbf": bool(args.cbf_depth),
+            "enable_obstacle_memory": bool(args.cbf_memory),
+        }
         asyncio.run(
             run_benchmark(
                 cfg=cfg,
@@ -1646,6 +1676,9 @@ def main(argv: list[str] | None = None) -> None:
                 selected_views=sel_v,
                 selected_conditions=sel_c,
                 record_video=args.record_video,
+                controller=args.controller,
+                cbf_overrides=cbf_overrides,
+                wind_ned_mps=(float(args.wind_north_mps), float(args.wind_east_mps), 0.0),
             )
         )
 

@@ -1246,3 +1246,34 @@ Windows UE 5.2.1、Blender 3.6.23、RTX 4060 Ti。以用户选定的草案多边
 - **C 组（新版过程调试与无回放依赖缓存，12,975 个文件、38.31 GiB）**：清理 11-18 未入报告的调试目录（`20261118-aircraft-template-e2e`、`20261118-aircraft-b-instance-verification`、`20261118-aircraft-b-staged-shadow`、`20261118-identity-persistence`、`20261118-new-model-e2e`、`20261118-new-model-e2e-repeat`、`20261118-wsl-gateway-retest/attempt-01`、`20261118-shadow-stability`、`evaluation/20261118-{shadow-stability,active-replay,visible-part-evidence}`），并清理 `runs/evaluation/20261120-p26-graded-active/` 下的 58 份 `.h5`（`active-inputs.h5` 等）与 19 个 `viz_dump/` 目录（保留报告、日志与全套 `.mp4` 录像）。
 
 **保留与限制**：`runs/approach/20261116-coarse-to-fine/` 全部 28 个验收目录（含 `viz_dump/`、`frames/`、`run.h5`、`.mp4`）、`runs/approach/20261119-active-remaining-targets/`、`runs/opening-*`、`runs/indoor/`、`runs/coordination/`、`runs/scenes/` 与 `runs/harbor/` 均完整保留；同时在 [review.py](../runs/visualization/20261119-airport-target-review/review.py) 补齐 `f14`/`f35` 到 `aircraft-a`/`aircraft-b` 的旧档案兼容映射，经 `--batch passed --verify` 与 `--batch active --verify` 对全 19 目标核验通过；已清理目录不再支持离线逐帧回放或重算。
+
+## 2026-11-27 DOB-CBF-QP 安全视觉伺服实现与沿海渔港原生气动风场实飞对照
+
+**目的**：在保持原解耦比例控制器（`baseline_p`）零破坏兼容的前提下，新增统一的 **DOB-CBF-QP**（速度扰动观测器 + 相机交互矩阵 FOV-CBF + RGB-D 障碍与短时盲区记忆 Depth-CBF）安全滤波模块 [cbf_qp_servo.py](../src/control/cbf_qp_servo.py)，完成离线数学/动力学验证，并在 Windows UE `CoastalHarbor` 中启用 ProjectAirSim 原生空气动力学风场（`world.set_wind_velocity`），对比 `baseline_p` 与 `DOB-CBF-QP` 在正常无风及 `18 m/s`（8 级大风）原生风场下的实飞表现。
+
+**环境与参数**：Windows UE 5.2（`CoastalHarbor` Play 模式），WSL `airsim`（NumPy 2.2.6 + SciPy 1.15.3，零新增外部依赖）经 `172.21.192.1:8989/8990` 连接 ProjectAirSim；本地 RTX 4060 Ti 运行冻结 DINOv2 ViT-S/14；`part_recheck.py` 与 `indoor_entry.py` 新增 `--controller baseline_p|cbf_qp`、消融开关及 `--wind-north-mps / --wind-east-mps`（直接调用引擎原生 `world.set_wind_velocity` 并在退出时归零，风速真值不进入控制器），全部实飞同步开启 `--record-video`。
+
+**原生气动风场标定探针（出生点 15 m 悬停，每档 2.6 s 零速指令）**：东向风速 `0 / 6 / 10 / 15 / 20 m/s` 对应的实测漂移为 `0.000 / 0.146 / 0.455 / 1.057 / 2.030 m`（近似风速平方阻力律），真实机身倾角达 `0.00° / -0.53° / -1.48° / -3.36° / -6.41°`。
+
+**离线验证（`python -W error::RuntimeWarning -m unittest`，29/29 通过、0 警告）**：
+- `-30° / -45° / -90°` 解析图像雅可比与 3D 针孔投影有限差分误差 `< 1e-4`；
+- 斜视激进前飞下，无 FOV-CBF 丢锁、开启 FOV-CBF 全程稳锁画内（最大偏离 `< 0.88`）；
+- 斜视大偏角 + 侧方障碍立柱 + 侧风对照：`baseline_p` 逼近障碍至 `0.71 m`，`cbf_qp` 保持 `> 2.2 m` 安全净距到达停机（单步中位 `0.088 ms`）；
+- 穿顶入室盲区记忆消融（关闭 DOB 隔离测试）：洞缘移出下视 FOV 后，`baseline_p` 与 `cbf_no_memory` 均撞壁，完整 `cbf_qp`（含 `LocalObstacleMemory`）凭 6 s 体素记忆 0 碰撞安全穿入；
+- 独立 DOB 单测验证 `0.55 m/s` 恒定侧风下稳态位置误差由 `~1.96 m` 收敛至 `< 0.15 m`。
+
+**UE5 联机实飞结果（全部走原生 `world.set_wind_velocity`，全程 0 碰撞）**：
+
+| 试验与原生风场工况 | 控制器 | 实飞结果与停机原因 | 关键指标（耗时 / 误差 / QP 延迟 / DOB 估计） | 记录与录屏 |
+|---|---|---|---|---|
+| 任务 2 无风（`Building_098` + `095`） | `cbf_qp` | `098` 穿顶入室+退出（`interior_reached`, `alt=6.04 m`）；`095` 受阻拒飞（`1.777 < 1.85 m`） | `28.27 s` / 317 步；QP 中位 **`0.354 ms`**（P95 `0.967 ms`）；0 碰撞 | [汇总](../runs/harbor/20261127-task2-cbf-normal/summary.json) · [098 录屏](../runs/harbor/20261127-task2-cbf-normal/Building_098/indoor_entry.mp4) |
+| 任务 2 原生东向 `18 m/s` 大风（`Building_098`） | `baseline_p` | **未入室**（`opening_lost`, `alt=34.55 m`） | 最大水平误差被吹至 **`14.753 m`**，505 步 0 下降，最终破口被吹出视野 | [汇总](../runs/harbor/20261127-task2-nativewind18-baseline/summary.json) · [录屏](../runs/harbor/20261127-task2-nativewind18-baseline/Building_098/indoor_entry.mp4) |
+| 任务 2 原生东向 `18 m/s` 大风（`Building_098`） | **`DOB-CBF-QP`** | **成功穿顶入室**（`interior_reached`, `alt=6.04 m`，`entered=True, exited=False`） | `34.62 s` / 335 步（87 步逆风对准 + 248 步穿洞）；DOB 在线估出等效漂移 **`[-0.001, 0.948, -0.030] m/s`**；QP 中位 **`0.510 ms`**（P95 `1.918 ms`）；0 碰撞 | [汇总](../runs/harbor/20261127-task2-nativewind18-dob-cbf/summary.json) · [录屏](../runs/harbor/20261127-task2-nativewind18-dob-cbf/Building_098/indoor_entry.mp4) |
+| 任务 1 原生东向 `18 m/s` 大风（`Building_071 / direct`，直飞对照） | `baseline_p` | **未收敛**（`duration_limit`, `42.42 s`） | 从 `24.41 m` 被大风**倒吹至 `28.80 m`**（`stop_d = 26.27 m`），0 碰撞 | [报告](../runs/harbor/20261127-task1-nativewind18-baseline/report.md) · [录屏](../runs/harbor/20261127-task1-nativewind18-baseline/captures/Building_071/direct/preset_recheck/flight.mp4) |
+| 任务 1 原生东向 `18 m/s` 大风（`Building_071 / direct`，直飞对照） | **`DOB-CBF-QP`** | **逆风收敛停机**（`range_confirmed`, `21.43 s`） | 推进至 **`10.63 m`**（`stop_d = 9.66 m`），DOB 估出 **`[-0.007, 0.665, -0.023] m/s`**，QP 中位 **`0.258 ms`**（P95 `0.916 ms`），0 碰撞 | [报告](../runs/harbor/20261127-task1-nativewind18-dob-cbf/report.md) · [录屏](../runs/harbor/20261127-task1-nativewind18-dob-cbf/captures/Building_071/direct/preset_recheck/flight.mp4) |
+| 任务 1 原生东向 `18 m/s` 大风（`Vessel_037 / direct`，直飞对照） | `baseline_p` / `DOB-CBF-QP` | 两者均未达近距拍清（0 碰撞） | `baseline_p` 被吹远至 `36.67 m`；`DOB-CBF-QP` 推进至 `17.26 m`（DOB 估风 `+0.803 m/s`，QP 中位 `0.704 ms`），8 级大风下 `~6°` 持续滚转倾角导致小船 DINO 偏移 | [基线报告](../runs/harbor/20261127-task1-nativewind18-baseline/report.md) · [CBF 报告](../runs/harbor/20261127-task1-nativewind18-dob-cbf/report.md) |
+
+**过程排查、诚实限制与未验证项**：
+1. 首次实现 FISTA 对偶求解器时用全 1 向量做幂迭代低估了正负盒约束矩阵的最大特征值，触发数值溢出警告；改为小矩阵精确最大特征值 `eigvalsh(G)[-1] * 1.05` 后在 `-W error::RuntimeWarning` 下零警告通过。
+2. 原生 `18 m/s` 首轮实飞中发现 `speed_cap_mps`（`0.7 m/s`）误截断了含抗风前馈的总输出速度，导致进入 `13 m` 近距限速后顶不动 `~0.95 m/s` 气动风偏；改为限制**对地净速度** `v_ground = u_safe + d_hat_body` 后，`Building_071` 立刻在 `21.43 s` 内逆风收敛至 `9.66 m`。
+3. 诚实限制：（a）`Building_098` 在 `18 m/s` 原生大风下穿顶入室成功但退出阶段调用未挂 DOB 的 `move_to_position_async` 报 `exited=False`；（b）`Building_071` 停机后切回 `hover_async()` 拍照的 `0.5 s` 内被 8 级大风略微吹偏，使雨棚参考点滑至右画边外 `15 px`（`u=1935.8`）；（c）早期用指令叠加模拟风的 5 组草稿目录已清理，本节仅保留原生风场与无风实测。未验证项：时变阵风、真实 UE 窄通道障碍绕避与海港 26 个留出目标批跑。

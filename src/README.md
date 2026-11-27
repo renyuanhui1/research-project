@@ -6,7 +6,7 @@
 |---|---|
 | `capture/` | `prepare_scene.py`准备模板和起点；`collect_episode.py`采集episode；`record_approach.py`坐标接近录制；`grab_nadir_frames.py`俯视采集；其余入口整理与检查HDF5 |
 | `perception/` | `fingerprint.py`模板匹配；`extract_dino_features.py`冻结DINO特征提取；`depth_map.py`深度转点云 |
-| `control/` | `run_approach.py`机场主流程；`servo_closed_loop.py`公共控制律与通用入口 |
+| `control/` | `run_approach.py`机场主流程；`servo_closed_loop.py`公共控制律与通用入口；`cbf_qp_servo.py`兼顾视野保持与 RGB-D 障碍防撞的 CBF-QP 安全视觉伺服滤波器 |
 | `debug/` | 图像解码、出生点、目标、深度分割、模板响应与碰撞体素探测 |
 | `debug/maps/` | UE导出、对象范围、全场碰撞采样、网格转换和栅格生成 |
 | `evaluation/` | `eval_run.py`离线轨迹与包围盒评价；`eval_target_localization.py`模板定位对照 |

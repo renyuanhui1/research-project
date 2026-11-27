@@ -30,6 +30,12 @@ import torch.nn.functional as F
 from common.paths import PROJECT_ROOT, project_path
 from common.sensors import decode as decode_depth_msg, decode_image
 from control import servo_closed_loop as sc
+from control.cbf_qp_servo import (
+    CBFQPConfig,
+    CBFQPVisualServoFilter,
+    extract_depth_obstacles_body,
+    extract_opening_rim_obstacles_body,
+)
 from perception.extract_dino_features import IMAGENET_MEAN, IMAGENET_STD, load_model, to_input_tensor
 from perception.opening_geometry import opening_candidates
 from perception.rgbd_entry import CV_TO_SIM
@@ -451,6 +457,30 @@ async def run_dino_visual_servo(
     max_duration_s = float(servo_cfg.get("max_duration_s", 55.0))
     ema_alpha_xy = float(servo_cfg.get("ema_alpha_xy", 0.35))
     ema_alpha_d = float(servo_cfg.get("ema_alpha_depth", 0.5))
+    controller_mode = str(servo_cfg.get("controller", "baseline_p"))
+    cbf_filter: CBFQPVisualServoFilter | None = None
+    if controller_mode == "cbf_qp":
+        cbf_cfg_raw = dict(servo_cfg.get("cbf_config") or {})
+        cbf_cfg = CBFQPConfig(
+            enable_fov_cbf=bool(cbf_cfg_raw.get("enable_fov_cbf", True)),
+            enable_depth_cbf=bool(cbf_cfg_raw.get("enable_depth_cbf", True)),
+            enable_obstacle_memory=bool(cbf_cfg_raw.get("enable_obstacle_memory", True)),
+            enable_altitude_cbf=bool(cbf_cfg_raw.get("enable_altitude_cbf", True)),
+            fov_x_deg=float(servo_cfg.get("camera_fov_deg", 90.0)),
+            fov_max_x=float(cbf_cfg_raw.get("fov_max_x", 0.78)),
+            fov_max_y=float(cbf_cfg_raw.get("fov_max_y", 0.78)),
+            alpha_fov=float(cbf_cfg_raw.get("alpha_fov", 1.6)),
+            obs_safe_radius_m=float(cbf_cfg_raw.get("obs_safe_radius_m", max(2.2, depth_guard_m))),
+            alpha_obs=float(cbf_cfg_raw.get("alpha_obs", 1.2)),
+            cylindrical_obs=False,
+            min_alt_m=min_alt_m,
+            max_alt_m=max_alt_m,
+            v_min=(-1.5, -1.5, -1.0 if allow_climb else -0.35, -yaw_max),
+            v_max=(v_forward, 1.5, 1.6, yaw_max),
+            max_accel_mps2=float(cbf_cfg_raw.get("max_accel_mps2", 2.0)),
+            max_yaw_accel_rps2=float(cbf_cfg_raw.get("max_yaw_accel_rps2", 1.8)),
+        )
+        cbf_filter = CBFQPVisualServoFilter(cbf_cfg)
 
     ctrl_args = SimpleNamespace(
         nadir=False,
@@ -480,9 +510,12 @@ async def run_dino_visual_servo(
     lost_count = 0
     close_latched = False
     prev_cmd = np.zeros(3, dtype=float)
+    prev_u4 = np.zeros(4, dtype=float)
     prev_tick = time.monotonic()
     steps: list[dict[str, Any]] = []
     stop_reason = "duration_limit"
+    cbf_solve_times: list[float] = []
+    cbf_interventions: int = 0
 
     try:
         while True:
@@ -525,7 +558,14 @@ async def run_dino_visual_servo(
 
             kin = drone.get_ground_truth_kinematics()
             pos = kin["pose"]["position"]
+            ori = kin["pose"]["orientation"]
             alt_m = -float(pos["z"])
+            drone_pos_ned = np.array([float(pos["x"]), float(pos["y"]), float(pos["z"])], dtype=float)
+            drone_yaw = math.atan2(
+                2.0 * (float(ori["w"]) * float(ori["z"]) + float(ori["x"]) * float(ori["y"])),
+                1.0 - 2.0 * (float(ori["y"]) ** 2 + float(ori["z"]) ** 2),
+            )
+            cam_rot = _quat_to_rot(depth_msg)
 
             f, r, d_cmd, yaw_rate, _, _ = sc.compute_body_cmd(ctrl_args, xf, yf, 0.0)
             # Attenuate forward speed when target is far off horizontal center
@@ -545,21 +585,60 @@ async def run_dino_visual_servo(
                 f *= scale
                 r *= scale
                 d_cmd *= scale
-                if close_latched:
-                    spd = math.sqrt(f * f + r * r + d_cmd * d_cmd)
-                    if spd > close_speed_mps:
-                        f *= close_speed_mps / spd
-                        r *= close_speed_mps / spd
-                        d_cmd *= close_speed_mps / spd
-                if alt_m <= min_alt_m + 0.8 and d_cmd > 0.0:
-                    d_cmd = 0.0
+                if cbf_filter is None:
+                    if close_latched:
+                        spd = math.sqrt(f * f + r * r + d_cmd * d_cmd)
+                        if spd > close_speed_mps:
+                            f *= close_speed_mps / spd
+                            r *= close_speed_mps / spd
+                            d_cmd *= close_speed_mps / spd
+                    if alt_m <= min_alt_m + 0.8 and d_cmd > 0.0:
+                        d_cmd = 0.0
 
-            # Smooth slew-rate limit on body velocity
             tick_dt = max(0.04, min(time.monotonic() - prev_tick, 0.4))
-            max_delta = 1.8 * tick_dt
-            cmd_vec = np.clip(np.array([f, r, d_cmd], dtype=float), prev_cmd - max_delta, prev_cmd + max_delta)
-            f, r, d_cmd = float(cmd_vec[0]), float(cmd_vec[1]), float(cmd_vec[2])
-            prev_cmd = cmd_vec
+            cbf_res = None
+            if cbf_filter is not None and locked and cur_dist is not None:
+                obs_body = extract_depth_obstacles_body(
+                    depth_arr,
+                    pitch_deg=pitch_deg,
+                    fov_x_deg=float(servo_cfg.get("camera_fov_deg", 90.0)),
+                    max_range_m=max(10.0, cbf_filter.cfg.obs_safe_radius_m * 3.5),
+                    cam_rot_world=cam_rot,
+                    drone_yaw_rad=drone_yaw,
+                )
+                cbf_res = cbf_filter.filter_command(
+                    u_nom=(f, r, d_cmd, yaw_rate),
+                    prev_u=prev_u4,
+                    dt=tick_dt,
+                    target_cx=xf,
+                    target_cy=yf,
+                    target_depth_m=cur_dist,
+                    camera_pitch_deg=pitch_deg,
+                    obstacles_body=obs_body,
+                    drone_pos_ned=drone_pos_ned,
+                    drone_yaw_rad=drone_yaw,
+                    now_s=time.monotonic(),
+                    alt_m=alt_m,
+                    speed_cap_mps=close_speed_mps if close_latched else None,
+                )
+                f, r, d_cmd, yaw_rate = (
+                    float(cbf_res.u_safe[0]),
+                    float(cbf_res.u_safe[1]),
+                    float(cbf_res.u_safe[2]),
+                    float(cbf_res.u_safe[3]),
+                )
+                prev_cmd = np.array([f, r, d_cmd], dtype=float)
+                prev_u4 = cbf_res.u_safe.copy()
+                cbf_solve_times.append(cbf_res.solve_time_ms)
+                if cbf_res.filter_intervention_norm > 0.02:
+                    cbf_interventions += 1
+            else:
+                # Smooth slew-rate limit on body velocity (legacy baseline_p)
+                max_delta = 1.8 * tick_dt
+                cmd_vec = np.clip(np.array([f, r, d_cmd], dtype=float), prev_cmd - max_delta, prev_cmd + max_delta)
+                f, r, d_cmd = float(cmd_vec[0]), float(cmd_vec[1]), float(cmd_vec[2])
+                prev_cmd = cmd_vec
+                prev_u4 = np.array([f, r, d_cmd, yaw_rate], dtype=float)
             prev_tick = time.monotonic()
 
             if dt != last_depth_ts:
@@ -575,6 +654,7 @@ async def run_dino_visual_servo(
             if confirm_count > 0:
                 f = r = d_cmd = yaw_rate = 0.0
                 prev_cmd[:] = 0.0
+                prev_u4[:] = 0.0
 
             phase_cn = "停机确认" if confirm_count > 0 else ("视觉抵近" if locked else "失锁悬停")
             if recorder is not None:
@@ -617,6 +697,17 @@ async def run_dino_visual_servo(
                 "confirm": confirm_count,
                 "locked": locked,
             }
+            if cbf_res is not None:
+                step_row.update(
+                    cbf_solve_ms=cbf_res.solve_time_ms,
+                    cbf_intervention=cbf_res.filter_intervention_norm,
+                    cbf_min_h_fov=cbf_res.min_h_fov,
+                    cbf_min_h_obs=cbf_res.min_h_obs,
+                    cbf_min_obs_dist_m=cbf_res.min_obs_dist_m,
+                    cbf_active=cbf_res.n_active_constraints,
+                    cbf_slack_fov=round(cbf_res.slack_fov, 4),
+                    cbf_slack_obs=round(cbf_res.slack_obs, 4),
+                )
             steps.append(step_row)
 
             # Safety guards & stop criteria
@@ -651,8 +742,21 @@ async def run_dino_visual_servo(
             recorder.set_servo_overlay(target_id, None)
 
     final_pos = drone.get_ground_truth_kinematics()["pose"]["position"]
+    cbf_summary = None
+    if cbf_filter is not None:
+        cbf_summary = {
+            "solve_ms_median": round(float(np.median(cbf_solve_times)), 3) if cbf_solve_times else None,
+            "solve_ms_p95": round(float(np.percentile(cbf_solve_times, 95)), 3) if cbf_solve_times else None,
+            "interventions": cbf_interventions,
+            "enable_fov_cbf": cbf_filter.cfg.enable_fov_cbf,
+            "enable_depth_cbf": cbf_filter.cfg.enable_depth_cbf,
+            "enable_obstacle_memory": cbf_filter.cfg.enable_obstacle_memory,
+            "enable_dob": cbf_filter.cfg.enable_dob,
+            "final_dob_ned_mps": [round(float(v), 3) for v in cbf_filter.dob.disturbance_ned],
+        }
     return {
         "mode": "dino_oblique",
+        "controller": controller_mode,
         "target_id": target_id,
         "drone_id": drone_id,
         "template_image": str(template_image_path),
@@ -665,6 +769,7 @@ async def run_dino_visual_servo(
         "final_depth_m": steps[-1]["depth_m"] if steps else None,
         "final_peak": steps[-1]["peak"] if steps else None,
         "final_pose_ned": [round(float(final_pos["x"]), 2), round(float(final_pos["y"]), 2), round(float(final_pos["z"]), 2)],
+        "cbf_summary": cbf_summary,
         "trace": steps,
     }
 
@@ -690,6 +795,27 @@ async def run_opening_visual_servo(
     target_interior_alt_m = float(servo_cfg.get("target_interior_alt_m", 15.0))
     min_floor_guard_m = float(servo_cfg.get("min_floor_guard_m", 5.0))
     max_duration_s = float(servo_cfg.get("max_duration_s", 55.0))
+    controller_mode = str(servo_cfg.get("controller", "baseline_p"))
+    cbf_filter: CBFQPVisualServoFilter | None = None
+    if controller_mode == "cbf_qp":
+        cbf_cfg_raw = dict(servo_cfg.get("cbf_config") or {})
+        cbf_cfg = CBFQPConfig(
+            enable_fov_cbf=False,  # nadir roof breach uses 3D geometric funnel rather than single-point FOV
+            enable_depth_cbf=bool(cbf_cfg_raw.get("enable_depth_cbf", True)),
+            enable_obstacle_memory=bool(cbf_cfg_raw.get("enable_obstacle_memory", True)),
+            enable_altitude_cbf=bool(cbf_cfg_raw.get("enable_altitude_cbf", True)),
+            fov_x_deg=float(servo_cfg.get("camera_fov_deg", 90.0)),
+            obs_safe_radius_m=float(cbf_cfg_raw.get("obs_safe_radius_m", 1.25)),
+            alpha_obs=float(cbf_cfg_raw.get("alpha_obs", 1.35)),
+            cylindrical_obs=True,
+            cylindrical_z_band_m=float(cbf_cfg_raw.get("cylindrical_z_band_m", 5.0)),
+            min_alt_m=max(1.0, target_interior_alt_m - 0.5),
+            max_alt_m=60.0,
+            v_min=(-max_xy_mps, -max_xy_mps, -0.8, -0.2),
+            v_max=(max_xy_mps, max_xy_mps, descend_mps, 0.2),
+            max_accel_mps2=float(cbf_cfg_raw.get("max_accel_mps2", 2.0)),
+        )
+        cbf_filter = CBFQPVisualServoFilter(cbf_cfg)
 
     drone.set_camera_pose("FrontCamera", _camera_pose(-90.0))
     await asyncio.sleep(0.8)
@@ -703,6 +829,10 @@ async def run_opening_visual_servo(
     lost_count = 0
     align_alt_m = -float(drone.get_ground_truth_kinematics()["pose"]["position"]["z"])
     phase = "align"  # align -> descend
+    prev_u4 = np.zeros(4, dtype=float)
+    prev_tick = time.monotonic()
+    cbf_solve_times: list[float] = []
+    cbf_interventions: int = 0
     steps: list[dict[str, Any]] = []
     stop_reason = "duration_limit"
 
@@ -775,6 +905,37 @@ async def run_opening_visual_servo(
                 d_cmd = float(np.clip(rem_alt * 0.6, 0.55, descend_mps))
                 phase_cn = f"垂直穿洞入室({alt_m:.1f}m)"
 
+            tick_dt = max(0.04, min(time.monotonic() - prev_tick, 0.4))
+            cbf_res = None
+            if cbf_filter is not None:
+                drone_pos_ned = np.array([float(pos["x"]), float(pos["y"]), float(pos["z"])], dtype=float)
+                rim_obs = extract_opening_rim_obstacles_body(
+                    depth_arr,
+                    visible_gap_mask=res["visible_gap_mask"],
+                    near_layer_depth_m=res["near_layer_depth_m"],
+                    fov_x_deg=float(servo_cfg.get("camera_fov_deg", 90.0)),
+                    cam_rot_world=cam_rot,
+                    drone_yaw_rad=drone_yaw,
+                )
+                cbf_res = cbf_filter.filter_command(
+                    u_nom=(f, r, d_cmd, 0.0),
+                    prev_u=prev_u4,
+                    dt=tick_dt,
+                    obstacles_body=rim_obs,
+                    drone_pos_ned=drone_pos_ned,
+                    drone_yaw_rad=drone_yaw,
+                    now_s=time.monotonic(),
+                    alt_m=alt_m,
+                )
+                f, r, d_cmd = float(cbf_res.u_safe[0]), float(cbf_res.u_safe[1]), float(cbf_res.u_safe[2])
+                prev_u4 = cbf_res.u_safe.copy()
+                cbf_solve_times.append(cbf_res.solve_time_ms)
+                if cbf_res.filter_intervention_norm > 0.02:
+                    cbf_interventions += 1
+            else:
+                prev_u4 = np.array([f, r, d_cmd, 0.0], dtype=float)
+            prev_tick = time.monotonic()
+
             if recorder is not None:
                 recorder.set_status(target_id, f"视觉伺服·{phase_cn}")
                 recorder.set_servo_overlay(
@@ -799,22 +960,30 @@ async def run_opening_visual_servo(
                     },
                 )
 
-            steps.append(
-                {
-                    "step": len(steps),
-                    "t_s": round(time.monotonic() - t0, 3),
-                    "phase": phase,
-                    "alt_m": round(alt_m, 2),
-                    "detected": res["detected"],
-                    "err_horiz_m": res["err_horiz_m"],
-                    "clearance_m": res["clearance_m"],
-                    "near_layer_depth_m": res["near_layer_depth_m"],
-                    "center_p10_depth_m": res["center_p10_depth_m"],
-                    "guard_depth_m": round(float(guard_d), 2) if guard_d is not None else None,
-                    "cmd_body": [round(f, 2), round(r, 2), round(d_cmd, 2)],
-                    "align_hits": align_hits,
-                }
-            )
+            step_row = {
+                "step": len(steps),
+                "t_s": round(time.monotonic() - t0, 3),
+                "phase": phase,
+                "alt_m": round(alt_m, 2),
+                "detected": res["detected"],
+                "err_horiz_m": res["err_horiz_m"],
+                "clearance_m": res["clearance_m"],
+                "near_layer_depth_m": res["near_layer_depth_m"],
+                "center_p10_depth_m": res["center_p10_depth_m"],
+                "guard_depth_m": round(float(guard_d), 2) if guard_d is not None else None,
+                "cmd_body": [round(f, 2), round(r, 2), round(d_cmd, 2)],
+                "align_hits": align_hits,
+            }
+            if cbf_res is not None:
+                step_row.update(
+                    cbf_solve_ms=cbf_res.solve_time_ms,
+                    cbf_intervention=cbf_res.filter_intervention_norm,
+                    cbf_min_h_obs=cbf_res.min_h_obs,
+                    cbf_min_obs_dist_m=cbf_res.min_obs_dist_m,
+                    cbf_active=cbf_res.n_active_constraints,
+                    cbf_slack_obs=round(cbf_res.slack_obs, 4),
+                )
+            steps.append(step_row)
 
             if collision_flags.get(drone_id, 0) > col_baseline:
                 stop_reason = "collision_guard"
@@ -838,8 +1007,20 @@ async def run_opening_visual_servo(
             recorder.set_servo_overlay(target_id, None)
 
     final_pos = drone.get_ground_truth_kinematics()["pose"]["position"]
+    cbf_summary = None
+    if cbf_filter is not None:
+        cbf_summary = {
+            "solve_ms_median": round(float(np.median(cbf_solve_times)), 3) if cbf_solve_times else None,
+            "solve_ms_p95": round(float(np.percentile(cbf_solve_times, 95)), 3) if cbf_solve_times else None,
+            "interventions": cbf_interventions,
+            "enable_depth_cbf": cbf_filter.cfg.enable_depth_cbf,
+            "enable_obstacle_memory": cbf_filter.cfg.enable_obstacle_memory,
+            "enable_dob": cbf_filter.cfg.enable_dob,
+            "final_dob_ned_mps": [round(float(v), 3) for v in cbf_filter.dob.disturbance_ned],
+        }
     return {
         "mode": "opening_nadir",
+        "controller": controller_mode,
         "target_id": target_id,
         "drone_id": drone_id,
         "stop_reason": stop_reason,
@@ -849,5 +1030,6 @@ async def run_opening_visual_servo(
         "entered_interior": phase == "descend" and stop_reason in ("interior_reached", "floor_depth_guard"),
         "final_alt_m": round(-float(final_pos["z"]), 2),
         "final_pose_ned": [round(float(final_pos["x"]), 2), round(float(final_pos["y"]), 2), round(float(final_pos["z"]), 2)],
+        "cbf_summary": cbf_summary,
         "trace": steps,
     }

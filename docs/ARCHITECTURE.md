@@ -383,3 +383,12 @@ SIFT分支使用RootSIFT描述子、双向比值匹配和二维仿射RANSAC；�
 - `coordination/run_sim_e2e.py`：ProjectAirSim 两批 6 机（`Scout-1..3`、`Inspect-1..3`）端到端仿真桥接入口，配合 `configs/simulation/scene_airport_multi6.jsonc`（720p + 30 Hz + 保留 `Chase`）与 `configs/missions/coordination_sim_6uav.json`（三目标 75/90/105 m 分层巡航）。支持 `--probe-only` 实测 1/3/6 机实时帧率，也支持两批 3 机并行起飞实拍、5 Hz 位姿采样导出 `trajectories.json`（NED 与 ENU）、上传中心、调用 237 `qwen3.5:9b`（默认 `think=false`）两轮评估、返航降落及碰撞计数归档；配合 `coordination/video_recorder.py` 仅订阅在飞 3 机的 `Chase` + `FrontCamera` 流，实时合成 `1920×720` 纯中文四区视频（左上 3×2 实时画面、左下实时高度剖面、右上真实机场占用栅格二维轨迹态势图、右下 6 机色标遥测表），并在结束时自动调用 `ffmpeg` 转为浏览器可直播的 H.264 MP4。
 - `coordination/visual_servo.py`：第二批复查机末端真实视觉伺服闭环模块（默认开启 `--visual-servo`，可 `--no-visual-servo` 切回纯航点基线）。采用 **1A 并行到点 + 串行独占 GPU 伺服** 调度：3 架复查机先并行巡航至各自伺服起点悬停，再依次获取异步互斥锁运行闭环控制，伺服全程不读取目标真值坐标。飞机与塔台（`dino_oblique`）共用单实例冻结 `DINOv2 ViT-S/14`（`SharedDinoMatcher`），直接以第一批交接包传回的斜俯视图提取目标原型，结合实时 RGB-D 深度采样与 `servo_closed_loop` 机体系速度控制律抵近并经连续 3 帧停机确认；机库（`opening_nadir`）复用 `opening_geometry.opening_candidates` 对正俯视深度图做屋面/室内双层分割，按破口像素偏移与屋面深度驱动机体系水平对准，核验正下方垂直通道净空后下降入室拍图并沿原位垂直退出。通过 `recorder.set_front_listener` 复用前视 RGB 流（避免双订阅冲突），并通过 `recorder.set_servo_overlay` 在前视画面实时叠加 DINO 热图 / 破口掩膜、目标准星、测距、速度指令及确认进度条，同时落盘逐帧轨迹至 `servo_logs/<target_id>_servo.json`。
 - `visualization/multi_uav_traj_node.py` 与 `visualization/multi_uav_replay.launch.py`：ROS2 Humble 多机三维轨迹回放节点与启动入口，读取 `trajectories.json` 在 `world` ENU 坐标系发布 `/coordination/markers` 与 `/coordination/paths/*`，与 `map_view.py` 机场三维网格及占用栅格叠加显示在 `configs/rviz/multi_uav_coordination.rviz` 中。
+
+## DOB-CBF-QP 安全视觉伺服滤波器
+
+`src/control/cbf_qp_servo.py` 提供无侵入接入 `coordination/visual_servo.py` 的统一安全滤波层（通过 `--controller cbf_qp` 启用，默认保持 `baseline_p` 解耦比例伺服不变），将斜俯视目标抵近与正俯视破口穿顶入室统一到同一个严格凸对角二次规划（6 维变量：4 轴机体系速度 `[vf, vr, vd, yaw_rate]` + 2 个非负松弛变量）中求解：
+
+- **相机交互矩阵视野屏障（FOV-CBF）**：根据实时目标归一化坐标 `(cx, cy)`、RGB-D 深度与相机俯仰角计算针孔图像雅可比 `normalized_fov_jacobian`，把目标不越出画幅安全框写成线性不等式约束，避免传统 IBVS 雅可比求逆奇异。
+- **RGB-D 障碍屏障与短时盲区记忆（Depth-CBF + `LocalObstacleMemory`）**：斜视模式对深度图分块取第 5 百分位提取前景最近点（抑制边缘单像素飞点）；穿顶入室模式通过 `extract_opening_rim_obstacles_body` 提取屋顶破口内缘与钢檩条点云，并结合世界系 NED 短时体素记忆（默认 6 s TTL）在洞缘移出下视视野后继续维持水平圆柱安全漏斗约束。
+- **速度扰动观测器（`VelocityDisturbanceObserver`）**：仅用相邻帧机载位姿差分速度与一阶惯性预测指令速度的残差在线辨识外部未知风扰动（不读风速真值），同步用于名义速度前馈抵消与鲁棒 CBF 约束右端项补偿。
+- **毫秒级求解与消融开关**：将对角正定 QP 转为非负象限对偶 FISTA 求解（用精确最大特征值保证步长无发散，病态时回退 SciPy SLSQP），内置 `enable_fov_cbf`、`enable_depth_cbf`、`enable_obstacle_memory`、`enable_dob` 独立开关。
