@@ -161,17 +161,40 @@ def _load_opening_background_points(flight_dir: Path, rows: list[dict[str, Any]]
     return pts_cat[keep], rgb_cat[keep]
 
 
-def _log_video_asset(entity_path: str, mp4_path: Path) -> float:
-    """Attach an MP4 asset statically and reference every frame on the `time_s` timeline."""
+def _log_video_asset(entity_path: str, mp4_path: Path, *, time_offset_s: float = 0.0) -> float:
+    """Attach an MP4 asset statically and reference every frame on the `time_s` timeline.
+
+    `time_offset_s = video_first_frame_wall_s - trace_start_wall_s`:
+    when the video starts earlier than the servo trace (negative offset), a video
+    frame at `t_vid` maps to `t_vid + time_offset_s` on the servo timeline so
+    video and curves share the exact same t=0 servo start.
+    """
     asset = rr.AssetVideo(path=mp4_path)
     rr.log(entity_path, asset, static=True)
     ts_ns = asset.read_frame_timestamps_nanos()
     if len(ts_ns) > 0:
         for t_ns in ts_ns:
-            rr.set_time("time_s", duration=float(t_ns) * 1e-9)
+            rr.set_time("time_s", duration=float(t_ns) * 1e-9 + time_offset_s)
             rr.log(entity_path, rr.VideoFrameReference(nanoseconds=int(t_ns)))
         return float(ts_ns[-1]) * 1e-9
     return 0.0
+
+
+def _compute_video_time_offset_s(target_entry: dict[str, Any], trace_obj: dict[str, Any]) -> float:
+    """Compute `video_start_wall_s - trace_start_wall_s` when wall clocks are recorded, else 0.0."""
+    entry_meta = target_entry.get("entry") or {}
+    video_meta = entry_meta.get("video") or {}
+    vid_wall = video_meta.get("first_frame_wall_s")
+    if vid_wall is None:
+        vid_wall = video_meta.get("start_wall_s")
+    trace_wall = trace_obj.get("start_wall_s")
+    if trace_wall is None:
+        rows = trace_obj.get("trace") or []
+        if rows and rows[0].get("wall_s") is not None:
+            trace_wall = float(rows[0]["wall_s"]) - float(rows[0].get("t_s", 0.0))
+    if vid_wall is None or trace_wall is None:
+        return 0.0
+    return float(vid_wall) - float(trace_wall)
 
 
 def build_opening_rrd(
@@ -487,6 +510,20 @@ def build_harbor_compare_rrd(
     if nadir_depth is not None:
         left_tabs.append(rrb.Spatial2DView(origin="snapshots/nadir_depth", name="俯视米制深度图 (悬停读数)"))
 
+    has_dob_series = any(
+        isinstance(r.get("dob_est_ned"), list) and len(r["dob_est_ned"]) >= 3 for r in (*base_rows, *meth_rows)
+    )
+    has_pose_traj = any(
+        isinstance(r.get("pose_ned"), list) and len(r["pose_ned"]) >= 3 for r in (*base_rows, *meth_rows)
+    )
+
+    bottom_right_tabs: list[Any] = [
+        rrb.TimeSeriesView(origin="metrics/wind_comp", name="侧向抗风指令 & DOB/CBF 补偿强度"),
+    ]
+    if has_dob_series:
+        bottom_right_tabs.append(rrb.TimeSeriesView(origin="metrics/dob_est_mps", name="DOB 实时风扰动估计 (m/s)"))
+    bottom_right_tabs.append(rrb.TextLogView(origin="logs/compare", name="实验对照事件日志"))
+
     bottom_row = rrb.Horizontal(
         rrb.Tabs(*left_tabs),
         rrb.Vertical(
@@ -495,10 +532,7 @@ def build_harbor_compare_rrd(
                 name=f"高度对比 (m): {baseline_label} {base_alt_end:.1f}m vs {method_label} {meth_alt_end:.1f}m",
             ),
             rrb.TimeSeriesView(origin="metrics/error_m", name="水平对准误差对比 (m)"),
-            rrb.Tabs(
-                rrb.TimeSeriesView(origin="metrics/wind_comp", name="侧向抗风指令 & DOB/CBF 补偿强度"),
-                rrb.TextLogView(origin="logs/compare", name="实验对照事件日志"),
-            ),
+            rrb.Tabs(*bottom_right_tabs),
             row_shares=[1.0, 1.0, 1.0],
         ),
         column_shares=[1.05, 1.25],
@@ -653,17 +687,25 @@ def build_harbor_compare_rrd(
         rr.SeriesLines(colors=[255, 200, 60], names=f"{method_label} DOB/CBF 补偿幅度 (m/s)", widths=2.0),
         static=True,
     )
+    if has_dob_series:
+        rr.log("metrics/dob_est_mps/north", rr.SeriesLines(colors=[90, 180, 255], names="DOB 北向 dN (m/s)", widths=1.6), static=True)
+        rr.log("metrics/dob_est_mps/east", rr.SeriesLines(colors=[255, 180, 50], names="DOB 东向 dE (m/s)", widths=2.2), static=True)
+        rr.log("metrics/dob_est_mps/down", rr.SeriesLines(colors=[180, 130, 255], names="DOB 垂向 dD (m/s)", widths=1.5), static=True)
+        rr.log("metrics/dob_est_mps/norm", rr.SeriesLines(colors=[60, 235, 120], names="DOB 总扰动 ||d|| (m/s)", widths=2.0), static=True)
 
+    base_vid_offset = _compute_video_time_offset_s(base_target, base_trace_obj)
+    meth_vid_offset = _compute_video_time_offset_s(meth_target, meth_trace_obj)
     if base_mp4.exists():
-        _log_video_asset("video/baseline", base_mp4)
+        _log_video_asset("video/baseline", base_mp4, time_offset_s=base_vid_offset)
     if meth_mp4.exists():
-        _log_video_asset("video/method", meth_mp4)
+        _log_video_asset("video/method", meth_mp4, time_offset_s=meth_vid_offset)
 
-    for tag, label, rows, stop_reason, succeeded in [
-        ("baseline", baseline_label, base_rows, base_stop, bool(base_trace_obj.get("succeeded"))),
-        ("method", method_label, meth_rows, meth_stop, bool(meth_trace_obj.get("succeeded"))),
+    for tag, label, rows, stop_reason, succeeded, color_rgb in [
+        ("baseline", baseline_label, base_rows, base_stop, bool(base_trace_obj.get("succeeded")), [255, 85, 85]),
+        ("method", method_label, meth_rows, meth_stop, bool(meth_trace_obj.get("succeeded")), [60, 235, 120]),
     ]:
         prev_phase: str | None = None
+        traj_pts: list[list[float]] = []
         for idx, r in enumerate(rows):
             t_s = float(r["t_s"])
             rr.set_time("time_s", duration=t_s)
@@ -674,6 +716,24 @@ def build_harbor_compare_rrd(
             rr.log(f"metrics/wind_comp/{tag}_cmd_y", rr.Scalars(float(cmd[1])))
             if tag == "method" and r.get("cbf_intervention") is not None:
                 rr.log("metrics/wind_comp/method_intervention", rr.Scalars(float(r["cbf_intervention"])))
+
+            pose_ned = r.get("pose_ned")
+            if isinstance(pose_ned, list) and len(pose_ned) >= 3:
+                pt_enu = ned_to_enu(pose_ned[:3])
+                traj_pts.append(pt_enu)
+                rr.log(f"world/trajectories/{tag}", rr.LineStrips3D([traj_pts], colors=[color_rgb], radii=0.2))
+                rr.log(
+                    f"world/drones/{tag}",
+                    rr.Points3D([pt_enu], colors=[color_rgb], radii=0.55, labels=[f"{label} z={pt_enu[2]:.1f}m"]),
+                )
+
+            dob_ned = r.get("dob_est_ned")
+            if tag == "method" and isinstance(dob_ned, list) and len(dob_ned) >= 3:
+                dn, de, dd = float(dob_ned[0]), float(dob_ned[1]), float(dob_ned[2])
+                rr.log("metrics/dob_est_mps/north", rr.Scalars(dn))
+                rr.log("metrics/dob_est_mps/east", rr.Scalars(de))
+                rr.log("metrics/dob_est_mps/down", rr.Scalars(dd))
+                rr.log("metrics/dob_est_mps/norm", rr.Scalars(float(math.sqrt(dn * dn + de * de + dd * dd))))
 
             phase = str(r.get("phase", ""))
             is_last = idx == len(rows) - 1
@@ -698,6 +758,9 @@ def build_harbor_compare_rrd(
         "size_bytes": out_rrd.stat().st_size,
         "has_videos": has_videos,
         "has_point_cloud": pts_enu is not None and pts_enu.shape[0] > 0,
+        "has_pose_traj": has_pose_traj,
+        "has_dob_series": has_dob_series,
+        "video_time_offsets_s": {"baseline": round(base_vid_offset, 3), "method": round(meth_vid_offset, 3)},
     }
 
 

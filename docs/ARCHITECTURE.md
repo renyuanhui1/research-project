@@ -85,7 +85,7 @@ src/visualization/matching.launch.py
 
 `render_opening_features.py`读取控制记录中的候选裁剪、固定模板、参考统计和原始RGB-D，离线重建32×32空间DINO相似度及RGB-D跟踪点。红色按`√(softmax/max_softmax)`叠色，仅用于显示；原候选平均分数仍单独核对，不把显示权重作为控制权重。绿色大十字在DINO阶段使用记录的洞口点，在RGB-D阶段将记录的水平误差投影到当前地面深度平面；密集绿色小点为RGB-D角点与LK跟踪所用的特征，包含关键帧刷新后新提取的点。重算结果核对原分数、位姿及源记录哈希，通过后由`opening_replay.py --feature-view-dir`同步播放。`--image-window`另开大图窗口，图中明确标识离线重算及当前控制来源。
 
-`src/visualization/rerun_replay.py`在`airsim`环境中运行，不依赖ROS2与UE，将已有实验记录离线导出为`.rrd`多模态文件并可选通过`rerun --serve-web`在浏览器中交互查看。`opening`子命令读取洞口对准或入室控制目录的`signals.jsonl`、`rviz/manifest.json`、`rviz/rgbd-map.npz`及原始RGB-D帧，在统一时间轴上同步展示ENU三维点云与轨迹、特征匹配图、米制深度图（`float32`米）、高度/误差/速度曲线及状态日志；`compare-harbor`子命令读取两组沿海渔港Task 2入室目录的`summary.json`、`opening_servo_trace.json`、`nadir_overview.npz`和双视角`indoor_entry.mp4`，以原生H.264视频流、三维屋顶破口点云与起终点位移、风向箭头及同图对比曲线呈现对照结果。
+`src/visualization/rerun_replay.py`在`airsim`环境中运行，不依赖ROS2与UE，将已有实验记录离线导出为`.rrd`多模态文件并可选通过`rerun --serve-web`在浏览器中交互查看。`opening`子命令读取洞口对准或入室控制目录的`signals.jsonl`、`rviz/manifest.json`、`rviz/rgbd-map.npz`及原始RGB-D帧，在统一时间轴上同步展示ENU三维点云与轨迹、特征匹配图、米制深度图（`float32`米）、高度/误差/速度曲线及状态日志；`compare-harbor`子命令读取两组沿海渔港Task 2入室目录的`summary.json`、`opening_servo_trace.json`、`nadir_overview.npz`和双视角`indoor_entry.mp4`，以原生H.264视频流、三维屋顶破口点云与起终点位移、风向箭头及同图对比曲线呈现对照结果；当轨迹和录屏记录包含`pose_ned`、`dob_est_ned`与`start_wall_s`/`first_frame_wall_s`/`wall_s`时，自动绘制完整三维动态轨迹、DOB实时风扰动估计曲线并按统一挂钟对齐视频与曲线时间轴。
 
 `src/evaluation/eval_opening_matching.py`读取`configs/missions/hangar_opening_validation.json`，从固定参考图裁剪洞口模板，仅用参考图计算`Fingerprint`标准化统计量；验证帧不参与统计。它比较整帧DINO中心与由该中心决定的原始高清候选裁剪，输出原图像素坐标、响应和诊断图。人工洞口轮廓只用于参考图自检，响应中心不作为可通行位置；输出不构成穿越验证或飞行放行依据。
 

@@ -62,6 +62,8 @@ class HarborVideoRecorder:
         self._stop_event = threading.Event()
         self._thread: threading.Thread | None = None
         self._started_mono = time.monotonic()
+        self._started_wall_s: float | None = None
+        self._first_frame_wall_s: float | None = None
 
         self._status = "准备中"
         self._badge = ""
@@ -164,6 +166,7 @@ class HarborVideoRecorder:
         if self._thread is not None:
             return
         self._started_mono = time.monotonic()
+        self._started_wall_s = time.time()
         self._stop_event.clear()
         self._thread = threading.Thread(target=self._loop, name="harbor-video-recorder", daemon=True)
         self._thread.start()
@@ -256,6 +259,8 @@ class HarborVideoRecorder:
                 frame = self._compose_frame()
                 with self._lock:
                     if self._writer.isOpened():
+                        if self._first_frame_wall_s is None:
+                            self._first_frame_wall_s = time.time()
                         self._writer.write(frame)
                         self._frames_written += 1
             next_tick += period
@@ -275,12 +280,16 @@ class HarborVideoRecorder:
             self._writer.release()
             frames = self._frames_written
             rx = dict(self._rx_counts)
+            started_wall_s = self._started_wall_s
+            first_frame_wall_s = self._first_frame_wall_s
         transcoded = _transcode_h264_inplace(self.output_path) if (self.encode_h264 and frames > 0) else False
         return {
             "path": str(self.output_path),
             "frames": frames,
             "duration_s": round(frames / max(1, self.fps), 2),
             "fps": self.fps,
+            "start_wall_s": round(started_wall_s, 3) if started_wall_s is not None else None,
+            "first_frame_wall_s": round(first_frame_wall_s, 3) if first_frame_wall_s is not None else None,
             "rx_counts": rx,
             "h264_transcoded": transcoded,
         }

@@ -501,6 +501,7 @@ async def run_dino_visual_servo(
     buf.start()
     col_baseline = collision_flags.get(drone_id, 0)
     t0 = time.monotonic()
+    t0_wall = time.time()
     last_rgb_ts = -1
     last_depth_ts = -1
     xf: float | None = None
@@ -687,6 +688,13 @@ async def run_dino_visual_servo(
             step_row = {
                 "step": len(steps),
                 "t_s": round(time.monotonic() - t0, 3),
+                "wall_s": round(time.time(), 3),
+                "pose_ned": [
+                    round(float(pos["x"]), 3),
+                    round(float(pos["y"]), 3),
+                    round(float(pos["z"]), 3),
+                    round(float(drone_yaw), 4),
+                ],
                 "alt_m": round(alt_m, 2),
                 "cx": round(float(xf), 3),
                 "cy": round(float(yf), 3),
@@ -697,6 +705,8 @@ async def run_dino_visual_servo(
                 "confirm": confirm_count,
                 "locked": locked,
             }
+            if cbf_filter is not None:
+                step_row["dob_est_ned"] = [round(float(v), 3) for v in cbf_filter.dob.disturbance_ned]
             if cbf_res is not None:
                 step_row.update(
                     cbf_solve_ms=cbf_res.solve_time_ms,
@@ -764,6 +774,7 @@ async def run_dino_visual_servo(
         "template_patches": patch_count,
         "stop_reason": stop_reason,
         "succeeded": stop_reason in ("range_confirmed", "depth_guard", "altitude_guard"),
+        "start_wall_s": round(t0_wall, 3),
         "duration_s": round(time.monotonic() - t0, 2),
         "steps": len(steps),
         "final_depth_m": steps[-1]["depth_m"] if steps else None,
@@ -824,6 +835,7 @@ async def run_opening_visual_servo(
     buf.start()
     col_baseline = collision_flags.get(drone_id, 0)
     t0 = time.monotonic()
+    t0_wall = time.time()
     last_rgb_ts = -1
     align_hits = 0
     lost_count = 0
@@ -963,6 +975,13 @@ async def run_opening_visual_servo(
             step_row = {
                 "step": len(steps),
                 "t_s": round(time.monotonic() - t0, 3),
+                "wall_s": round(time.time(), 3),
+                "pose_ned": [
+                    round(float(pos["x"]), 3),
+                    round(float(pos["y"]), 3),
+                    round(float(pos["z"]), 3),
+                    round(float(drone_yaw), 4),
+                ],
                 "phase": phase,
                 "alt_m": round(alt_m, 2),
                 "detected": res["detected"],
@@ -974,6 +993,8 @@ async def run_opening_visual_servo(
                 "cmd_body": [round(f, 2), round(r, 2), round(d_cmd, 2)],
                 "align_hits": align_hits,
             }
+            if cbf_filter is not None:
+                step_row["dob_est_ned"] = [round(float(v), 3) for v in cbf_filter.dob.disturbance_ned]
             if cbf_res is not None:
                 step_row.update(
                     cbf_solve_ms=cbf_res.solve_time_ms,
@@ -1025,6 +1046,7 @@ async def run_opening_visual_servo(
         "drone_id": drone_id,
         "stop_reason": stop_reason,
         "succeeded": stop_reason in ("interior_reached", "floor_depth_guard"),
+        "start_wall_s": round(t0_wall, 3),
         "duration_s": round(time.monotonic() - t0, 2),
         "steps": len(steps),
         "entered_interior": phase == "descend" and stop_reason in ("interior_reached", "floor_depth_guard"),
