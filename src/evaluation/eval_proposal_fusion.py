@@ -2,7 +2,6 @@
 import argparse
 from contextlib import ExitStack
 from datetime import datetime, timezone
-from itertools import zip_longest
 from pathlib import Path
 import json
 import subprocess
@@ -18,41 +17,9 @@ sys.path.insert(0, str(ROOT / 'src'))
 from common.paths import project_path
 from common.patches import read_rgb
 from common.view_geometry import redact_rgb
-from evaluation.eval_template_selection import read, write, digest, box_iou, peak_candidates
+from common.artifacts import read, write, digest
+from perception.proposal_utils import SOURCES, box_iou, peak_candidates, fuse_candidates
 from training.train_scene_proposals import score_predictions, aggregate
-
-SOURCES = ['original', 'all_balanced']
-
-
-def fuse_candidates(pools, method, budget, nms_iou):
-    """Use only source ranks and image boxes; labels and cross-model logits are unused."""
-    if budget <= 0:
-        return [], []
-    tagged = {source: [dict(candidate, source=source, source_rank=i + 1)
-                       for i, candidate in enumerate(pools[source])] for source in SOURCES}
-    if method in SOURCES:
-        return tagged[method][:budget], []
-    if method == 'original_anchor':
-        stream = tagged['original'][:1] + tagged['all_balanced'] + tagged['original'][1:]
-    else:
-        first = {'alternate_original': 'original', 'alternate_balanced': 'all_balanced'}[method]
-        second = next(source for source in SOURCES if source != first)
-        stream = [candidate for pair in zip_longest(tagged[first], tagged[second])
-                  for candidate in pair if candidate is not None]
-    selected = []; suppressed = []
-    for candidate in stream:
-        overlaps = [(prior, box_iou(candidate['box_xyxy'], prior['box_xyxy'])) for prior in selected]
-        blocking = [(prior, overlap) for prior, overlap in overlaps if overlap > nms_iou]
-        if blocking:
-            prior, overlap = max(blocking, key=lambda item: item[1])
-            suppressed.append({'source': candidate['source'], 'source_rank': candidate['source_rank'],
-                               'blocked_by_source': prior['source'], 'blocked_by_rank': prior['source_rank'],
-                               'iou': overlap})
-            continue
-        selected.append(candidate)
-        if len(selected) == budget:
-            break
-    return selected, suppressed
 
 
 def inputs(cfg):
@@ -96,7 +63,8 @@ def run(cfg, out, config_path):
             cached[seed][method] = {frame['sample_name']: frame['candidates'] for frame in frames}
     registration = {'configuration': cfg, 'configuration_sha256': digest(config_path),
                     'source_sha256': {name: digest(ROOT / name) for name in
-                      ['src/evaluation/eval_proposal_fusion.py', 'src/evaluation/eval_template_selection.py', 'src/training/train_scene_proposals.py']},
+                      ['src/evaluation/eval_proposal_fusion.py', 'src/common/artifacts.py',
+                       'src/perception/proposal_utils.py', 'src/training/train_scene_proposals.py']},
                     'source_candidates_and_metrics_sha256': source_hashes,
                     'source_registration_sha256': digest(source / 'pre-registration.json'),
                     'candidate_counts': counts, 'nms_iou': evaluation['nms_iou'],

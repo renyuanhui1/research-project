@@ -5,7 +5,7 @@
 | 目录 | 入口与用途 |
 |---|---|
 | `capture/` | `prepare_scene.py`准备模板和起点；`collect_episode.py`采集episode；`record_approach.py`坐标接近录制；`grab_nadir_frames.py`俯视采集；其余入口整理与检查HDF5 |
-| `perception/` | `fingerprint.py`模板匹配；`extract_dino_features.py`冻结DINO特征提取；`depth_map.py`深度转点云 |
+| `perception/` | `fingerprint.py`模板匹配；`extract_dino_features.py`冻结DINO特征提取；`depth_map.py`深度转点云；`proposal_utils.py`候选峰值提取与多源融合 |
 | `control/` | `run_approach.py`机场主流程；`servo_closed_loop.py`公共控制律与通用入口；`cbf_qp_servo.py`兼顾视野保持与 RGB-D 障碍防撞的 CBF-QP 安全视觉伺服滤波器 |
 | `debug/` | 图像解码、出生点、目标、深度分割、模板响应与碰撞体素探测 |
 | `debug/maps/` | UE导出、对象范围、全场碰撞采样、网格转换和栅格生成 |
@@ -14,7 +14,7 @@
 | `px4/` | MAVSDK/PX4接口与航向探测 |
 | `coordination/` | 集中式两阶段多机协同调度中心（SQLite状态库、VLM初/复评适配与离线回放入口） |
 | `harbor/` | 沿海渔港三类任务入口：`part_recheck.py`（指定部位二次抵近三条件对照与单机模板规划）、`indoor_entry.py`（屋顶破口量取与入室/受阻核查）、`line_inspection.py`（沿屋檐连续巡检与 RGB-D/VLM 损伤定位）、`recorder.py`（单机 Chase+FrontCamera 双视角 MP4 录屏） |
-| `common/` | 路径、配置、日志、解码和分割ID工具 |
+| `common/` | 路径、配置、日志、解码、分割ID工具、`artifacts.py`JSON读写与哈希校验 |
 
 仿真与视觉入口使用`airsim`环境；ROS2入口使用ROS环境的系统Python。主流程见[运行说明](../docs/USAGE.md#实时抵近)，配置见[场景说明](../docs/USAGE.md#场景配置与切换)。
 

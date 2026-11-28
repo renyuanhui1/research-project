@@ -10,7 +10,7 @@ import torch
 
 from common.paths import project_path
 from common.sensors import decode
-from evaluation.eval_template_selection import read, digest
+from common.artifacts import read, digest
 from perception.graded_gating import DistanceBinCalibrator, GradedGate
 from perception.multicandidate_verification import MultiCandidateVerifier
 

@@ -18,8 +18,9 @@ sys.path.insert(0, str(ROOT / 'src'))
 from common.paths import project_path
 from perception.template_matcher import TemplateMatcher
 from training.train_template_matcher import load_features, fitting_statistics, train_localizer
-from evaluation.eval_template_selection import (read, write, digest, peak_candidates, point_hit,
-                                                 crop_coverage, bin_name, grouped, coverage_summary)
+from common.artifacts import read, write, digest
+from perception.proposal_utils import (peak_candidates, point_hit, crop_coverage,
+                                       bin_name, grouped, coverage_summary)
 
 
 def balanced_targets(data, queries, allowed):
@@ -139,7 +140,8 @@ def train(cfg, evaluation, out, config_path):
                     'context_report_sha256': digest(context_path / 'report.json'), 'context_labels_sha256': digest(context_path / 'labels.h5'),
                     'source_sha256': {str(path): digest(ROOT / path) for path in
                       ['src/training/train_scene_proposals.py', 'src/training/train_template_matcher.py',
-                       'src/perception/template_matcher.py', 'src/evaluation/eval_template_selection.py']},
+                       'src/perception/template_matcher.py', 'src/common/artifacts.py',
+                       'src/perception/proposal_utils.py']},
                     'fold_sha256': {path.parent.name: digest(path) for path in paths},
                     'checkpoint_sha256': digest(bundle_path), 'raw_sha256': data['raw_sha256'],
                     'created_at_utc': datetime.now(timezone.utc).isoformat(),

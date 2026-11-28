@@ -1277,3 +1277,26 @@ Windows UE 5.2.1、Blender 3.6.23、RTX 4060 Ti。以用户选定的草案多边
 1. 首次实现 FISTA 对偶求解器时用全 1 向量做幂迭代低估了正负盒约束矩阵的最大特征值，触发数值溢出警告；改为小矩阵精确最大特征值 `eigvalsh(G)[-1] * 1.05` 后在 `-W error::RuntimeWarning` 下零警告通过。
 2. 原生 `18 m/s` 首轮实飞中发现 `speed_cap_mps`（`0.7 m/s`）误截断了含抗风前馈的总输出速度，导致进入 `13 m` 近距限速后顶不动 `~0.95 m/s` 气动风偏；改为限制**对地净速度** `v_ground = u_safe + d_hat_body` 后，`Building_071` 立刻在 `21.43 s` 内逆风收敛至 `9.66 m`。
 3. 诚实限制：（a）`Building_098` 在 `18 m/s` 原生大风下穿顶入室成功但退出阶段调用未挂 DOB 的 `move_to_position_async` 报 `exited=False`；（b）`Building_071` 停机后切回 `hover_async()` 拍照的 `0.5 s` 内被 8 级大风略微吹偏，使雨棚参考点滑至右画边外 `15 px`（`u=1935.8`）；（c）早期用指令叠加模拟风的 5 组草稿目录已清理，本节仅保留原生风场与无风实测。未验证项：时变阵风、真实 UE 窄通道障碍绕避与海港 26 个留出目标批跑。
+
+## 2026-11-28 Archify 架构诊断、跨包循环依赖解耦与双场景架构图试点
+
+**目的**：使用 Archify v3.3.2 对 `src/` 执行静态架构体检并生成试点交互式架构图；针对体检检出的唯一错误级包循环依赖（`COUP-6ac7e0b75e73`：`control → perception → evaluation → control`，涉及 `training`）完成最小解耦与全量单测回归。
+
+**环境与参数**：本机 WSL（Ubuntu 22.04），原生 Linux Node `v24.22.1` + Archify v3.3.2（`explainer` 设为 `on-demand`）；Python `airsim` 环境执行 `python -W error::RuntimeWarning -m unittest discover -s tests -v`。
+
+**方法**：
+- 首次静态体检分析 `src/` 下 144 个 Python 文件（0 解析错误），共检出 181 条诊断（`error: 1`、`warning: 85`、`info: 95`），其中文件级 `coupling/import-cycle = 0`，唯一 `error` 为 `perception/` 与 `training/` 反向导入 `evaluation/` 通用辅助函数导致的包层级闭环。
+- 新增零内部依赖叶子模块 [artifacts.py](../src/common/artifacts.py)（迁移 `read`、`write`、`digest`）与 [proposal_utils.py](../src/perception/proposal_utils.py)（迁移 `SOURCES`、`ratio`、`bin_name`、`point_hit`、`crop_coverage`、`grouped`、`box_iou`、`peak_candidates`、`coverage_summary`、`fuse_candidates`）；改写 `active_verification.py`、`shadow_verification.py`、`multicandidate_verification.py`、`train_scene_proposals.py` 的导入，在 `eval_template_selection.py` 与 `eval_proposal_fusion.py` 保留同名重导出以兼容既有调用与单测，并同步更新 `docs/ARCHITECTURE.md` 与 `src/README.md`。
+- 同时基于 [candidate.json](../runs/visualization/20261128-archify-demo/diagram/candidate.json) 运行 `archify finalize architecture` 生成双场景试点交互架构图。
+
+**结果**：
+- **全量单元测试**：`205/205` 全部通过（耗时 `7.643 s`，`-W error::RuntimeWarning` 零警告）。
+- **Archify 代码体检复核**：共分析 `146` 个 Python 文件（0 解析错误），诊断总数由 `181` 条降至 **`176`** 条，其中 **`error` 由 `1` 降至 `0`**（`coupling/cycle = 0`、`coupling/import-cycle = 0`），`warning` 由 `85` 降至 `81`，`info` 为 `95`。
+- **双场景试点架构图**：`validate`（`9/9` 通过，0 错误 0 警告）、`deliver`（36 处源码引用核验通过）、`check`（0 错误 0 警告，`properCrossings = 0`）均通过。
+
+**结论、限制与未验证项**：
+1. 跨包循环依赖已消除，`src/` 恢复严格单向层级且离线单测零回归。
+2. **源码 SHA-256 变更影响**：修改 `eval_template_selection.py`、`eval_proposal_fusion.py`、`active_verification.py`、`multicandidate_verification.py`、`shadow_verification.py` 会改变其源文件哈希，后续若需加载早期机场已冻结验证产物（`frozen.json`）须重新冻结（本次未实测旧冻结产物回放）。
+3. **试点架构图待修订与未验证项**：（a）试点架构图将仅用于机场 6 机的多机协同调度中心（`SurveyCenter` / `SurveyStore`）与海港单机任务放在同一任务调度框内，归属暂未拆分，待项目结构稳定后修订；（b）WSL 内未安装 Linux 版 Chrome/Chromium/Edge，`archify browser-check` 状态为 `skipped`（`viewer/chrome-unavailable`），真实浏览器视口渲染效果尚未经自动化实测。
+
+[代码体检工作台](../runs/visualization/20261128-archify-demo/code-analysis/analysis/repo.analysis.html) · [体检原始 JSON](../runs/visualization/20261128-archify-demo/code-analysis/analysis/findings.json) · [试点架构图 HTML](../runs/visualization/20261128-archify-demo/diagram/research-project.architecture.html) · [架构图配置](../runs/visualization/20261128-archify-demo/diagram/candidate.json) · [工件读写工具](../src/common/artifacts.py) · [候选提案工具](../src/perception/proposal_utils.py)

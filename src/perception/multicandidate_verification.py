@@ -10,8 +10,7 @@ from perception.extract_dino_features import to_input_tensor
 from perception.template_verification import (TemplateVerifier, square_rgb, rgb_descriptors,
                                               rgb_correspondence_features, patch_verification_features)
 from perception.template_matcher import TemplateMatcher
-from evaluation.eval_template_selection import peak_candidates
-from evaluation.eval_proposal_fusion import fuse_candidates
+from perception.proposal_utils import peak_candidates, fuse_candidates
 
 
 class MultiCandidateVerifier(TemplateVerifier):

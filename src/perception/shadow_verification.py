@@ -9,7 +9,7 @@ import numpy as np
 import torch
 from common.paths import project_path
 from common.sensors import decode, decode_image
-from evaluation.eval_template_selection import read, digest
+from common.artifacts import read, digest
 from perception.multicandidate_verification import MultiCandidateVerifier
 
 
